@@ -50,7 +50,7 @@ export class AuthController {
     const result = await this.authService.oauthLogin(req.user);
 
     return res.redirect(
-      `http://localhost:3000/oauth-success?token=${result.access_token}`,
+      `http://localhost:3000/auth/google?token=${result.access_token}`,
     );
   }
 }
