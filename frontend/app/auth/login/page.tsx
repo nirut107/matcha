@@ -66,7 +66,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Username Input */}
           <div className="relative">
-            <User className="absolute left-3 top-3 text-gray-900" size={20} />
+            <User className="absolute left-3 top-3 text-gray-400" size={20} />
             <input
               type="text"
               placeholder="Username"
@@ -78,7 +78,7 @@ export default function LoginPage() {
 
           {/* Password Input */}
           <div className="relative">
-            <Lock className="absolute left-3 top-3 text-gray-900" size={20} />
+            <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
             <input
               type="password"
               placeholder="Password"
