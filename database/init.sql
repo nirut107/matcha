@@ -8,6 +8,7 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
+    google_id TEXT,
     is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -71,32 +71,34 @@ export class AuthService {
   }
 
   async oauthLogin(profile: any) {
-    const { email } = profile;
+    console.log('OAuth profile:', profile);
+    const { email,googleId } = profile;
   
     let user = await this.db.query(
-      `SELECT * FROM users WHERE email = $1`,
-      [email],
+      `SELECT * FROM users WHERE email = $1 OR google_id = $2`,
+      [email, googleId],
     );
   
     if (user.rows.length === 0) {
       const newUser = await this.db.query(
         `
-        INSERT INTO users (email, first_name, password_hash)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, username
+        INSERT INTO users (email, username, password_hash, google_id)
+        VALUES ($1, $2, $3, $4)
         `,
         [
           email,
           email.split('@')[0],
           'oauth',
+          googleId,
         ],
       );
   
       user = newUser;
     }
-  
+    const currentUser = user.rows[0];
+    console.log('Current user after OAuth login:', currentUser);
     const token = jwt.sign(
-      { userId: user.rows[0].id },
+      { userId: currentUser.id },
       process.env.JWT_SECRET!,
     );
   
