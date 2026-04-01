@@ -32,7 +32,7 @@ INSERT INTO tags (name) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 
--- docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/seed_tags.sql
+-- docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/add.sql
 
 
 -- ALTER TABLE pictures

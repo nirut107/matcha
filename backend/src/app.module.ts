@@ -10,6 +10,9 @@ import { DatabaseModule } from './database/database.module';
 import { ProfileModule } from './profile/profile.module';
 import { TagModule } from './tag/tag.module';
 import { PicturesModule } from './pictures/pictures.module';
+import { LikeModule } from './like/like.module';
+import { MatchesModule } from './matches/matches.module';
+import { BlocksModule } from './blocks/blocks.module';
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { PicturesModule } from './pictures/pictures.module';
     ProfileModule,
     TagModule,
     PicturesModule,
+    LikeModule,
+    MatchesModule,
+    BlocksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,13 +1,15 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards, Post } from '@nestjs/common';
 import { JwtGuard } from '../auth/jwt.guard';
 import { DatabaseService } from '../database/database.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { UserService } from './user.service';
 
 @ApiTags('User')
 @ApiBearerAuth()
 @Controller('user')
 export class UserController {
-  constructor(private db: DatabaseService) {}
+  constructor(private db: DatabaseService, private UserService: UserService) {}
+
 
   @UseGuards(JwtGuard)
   @Get('me')
@@ -20,5 +22,16 @@ export class UserController {
     );
 
     return result.rows[0];
+  }
+
+  @Post('online')
+  @UseGuards(JwtGuard)
+  setOnline(@Req() req: any) {
+    return this.UserService.setUserOnline(req.user.userId, true);
+  }
+  @Post('offline')
+  @UseGuards(JwtGuard)
+  setOffline(@Req() req: any) {
+    return this.UserService.setUserOnline(req.user.userId, false);
   }
 }

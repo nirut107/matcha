@@ -10,6 +10,8 @@ CREATE TABLE users (
     last_name VARCHAR(100),
     google_id TEXT,
     is_verified BOOLEAN DEFAULT FALSE,
+    is_online BOOLEAN DEFAULT FALSE,
+    last_connection TIMESTAMP DEFAULT NOW();
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
