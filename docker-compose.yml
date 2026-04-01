@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: matcha_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: matcha
+      POSTGRES_PASSWORD: matcha123
+      POSTGRES_DB: matcha_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build: ./backend
+    container_name: matcha_backend
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://matcha:matcha123@postgres:5432/matcha_db
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    container_name: matcha_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
