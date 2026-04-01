@@ -14,7 +14,7 @@ export class CreateProfileDto {
   @IsString()
   biography: string;
 
-  @ApiProperty({ type: [String], example: ['#geek', '#coffee'] })
+  @ApiProperty({ type: [String], example: ['#coding', '#coffee'] })
   @IsArray()
   @ArrayMaxSize(20)
   tags: string[];
