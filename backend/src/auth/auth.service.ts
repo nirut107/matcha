@@ -69,4 +69,40 @@ export class AuthService {
       }, 
     };
   }
+
+  async oauthLogin(profile: any) {
+    const { email } = profile;
+  
+    let user = await this.db.query(
+      `SELECT * FROM users WHERE email = $1`,
+      [email],
+    );
+  
+    if (user.rows.length === 0) {
+      const newUser = await this.db.query(
+        `
+        INSERT INTO users (email, first_name, password_hash)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, username
+        `,
+        [
+          email,
+          email.split('@')[0],
+          'oauth',
+        ],
+      );
+  
+      user = newUser;
+    }
+  
+    const token = jwt.sign(
+      { userId: user.rows[0].id },
+      process.env.JWT_SECRET!,
+    );
+  
+    return {
+      access_token: token,
+      user: user.rows[0],
+    };
+  }
 }
