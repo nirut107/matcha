@@ -102,12 +102,13 @@ export class AuthService {
           googleId,
         ],
       );
-    
+      console.log('NEW USER RAW:', newUser);
+      console.log('ROWS:', newUser?.rows);
       user = newUser.rows[0];
     }
   
-
-    const currentUser = user.rows[0];
+    console.log('User after OAuth query:', user);
+    const currentUser = user;
     console.log('Current user after OAuth login:', currentUser);
     const token = jwt.sign(
       { userId: currentUser.id },
@@ -116,7 +117,7 @@ export class AuthService {
   
     return {
       access_token: token,
-      user: user.rows[0],
+      user: user.rows,
     };
   }
 }

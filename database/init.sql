@@ -5,13 +5,13 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
-    google_id TEXT,
+    google_id TEXT UNIQUE,
     is_verified BOOLEAN DEFAULT FALSE,
     is_online BOOLEAN DEFAULT FALSE,
-    last_connection TIMESTAMP DEFAULT NOW();
+    last_connection TIMESTAMP DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
