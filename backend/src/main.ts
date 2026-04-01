@@ -2,6 +2,7 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,7 +19,7 @@ async function bootstrap() {
     origin: 'http://localhost:3000',
     credentials: true,
   });
-
+  app.use('/uploads', express.static('uploads'));
   await app.listen(process.env.PORT || 3000, '0.0.0.0');
   console.log(`🚀 Server running on http://localhost:${process.env.PORT}`);
 }

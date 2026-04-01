@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { DatabaseModule } from './database/database.module';
 import { ProfileModule } from './profile/profile.module';
 import { TagModule } from './tag/tag.module';
+import { PicturesModule } from './pictures/pictures.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TagModule } from './tag/tag.module';
     UserModule,
     ProfileModule,
     TagModule,
+    PicturesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
