@@ -25,6 +25,7 @@ export default function ProfileSetupPage() {
   // Image State (Matcha requires up to 5)
   const [previews, setPreviews] = useState<(string | null)[]>([null, null, null, null, null]);
   const [profilePicIndex, setProfilePicIndex] = useState(0);
+  const [files, setFiles] = useState<(File | null)[]>([null, null, null, null, null]);
 
   // Load existing tags from NestJS
   useEffect(() => {
@@ -38,6 +39,10 @@ export default function ProfileSetupPage() {
   const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const newFiles = [...files];
+      newFiles[index] = file;
+      setFiles(newFiles);
+
       const reader = new FileReader();
       reader.onloadend = () => {
         const newPreviews = [...previews];
@@ -46,6 +51,32 @@ export default function ProfileSetupPage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const uploadImages = async () => {
+    const uploadedImages: any[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      if (!files[i]) continue;
+
+      const formData = new FormData();
+      formData.append("file", files[i]!);
+
+      const res = await fetch("http://localhost:3001/pictures/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      uploadedImages.push({
+        id: data.id,
+        position: i + 1,
+        is_profile: i === profilePicIndex,
+      });
+    }
+
+    return uploadedImages;
   };
 
   // Tag Logic (Local only, sent on submit)
@@ -75,33 +106,42 @@ export default function ProfileSetupPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    const payload = {
-      gender,
-      preference,
-      biography,
-      tags: selectedTags,
-      images: previews.filter(p => p !== null),
-      mainImageIndex: profilePicIndex,
-      location
-    };
+  try {
+    // ✅ 1. Upload images
+    const images = await uploadImages();
 
-    try {
-      const res = await fetch('http://localhost:3001/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+    // ✅ 2. Create profile
+    const profileRes = await fetch("http://localhost:3001/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gender,
+        preference,
+        biography,
+        tags: selectedTags,
+      }),
+    });
 
-      if (res.ok) router.push('/browse');
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (!profileRes.ok) throw new Error("Profile creation failed");
+
+    // ✅ 3. Sync pictures
+    await fetch("http://localhost:3001/pictures/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images }),
+    });
+
+    router.push("/dashboard");
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Calculate completion percentage for the Progress Bar
   const calculateProgress = () => {
