@@ -34,6 +34,6 @@ ON CONFLICT (name) DO NOTHING;
 
 -- docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/add.sql
 
-
+-- docker exec -it matcha_postgres psql -U matcha -d matcha_db
 -- ALTER TABLE pictures
 -- ADD CONSTRAINT unique_user_position UNIQUE (user_id, position);

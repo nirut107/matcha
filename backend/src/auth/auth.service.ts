@@ -80,21 +80,33 @@ export class AuthService {
     );
   
     if (user.rows.length === 0) {
+      const username =
+        email.split('@')[0] + '_' + Math.floor(Math.random() * 10000);
+    
       const newUser = await this.db.query(
         `
-        INSERT INTO users (email, username, password_hash, google_id)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO users (
+          email,
+          username,
+          password_hash,
+          google_id,
+          is_verified
+        )
+        VALUES ($1, $2, $3, $4, true)
+        RETURNING *
         `,
         [
           email,
-          email.split('@')[0],
-          'oauth',
+          username,
+          null,
           googleId,
         ],
       );
-  
-      user = newUser;
+    
+      user = newUser.rows[0];
     }
+  
+
     const currentUser = user.rows[0];
     console.log('Current user after OAuth login:', currentUser);
     const token = jwt.sign(
