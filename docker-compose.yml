@@ -19,7 +19,7 @@ services:
     build: ./backend
     container_name: matcha_backend
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       DATABASE_URL: postgresql://matcha:matcha123@postgres:5432/matcha_db
     depends_on:
@@ -35,3 +35,7 @@ services:
 
 volumes:
   postgres_data:
+
+
+
+# docker compose up postgres -d
