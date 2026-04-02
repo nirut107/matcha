@@ -13,6 +13,8 @@ import { PicturesModule } from './pictures/pictures.module';
 import { LikeModule } from './like/like.module';
 import { MatchesModule } from './matches/matches.module';
 import { BlocksModule } from './blocks/blocks.module';
+import { NotificationModule } from './notification/notification.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { BlocksModule } from './blocks/blocks.module';
     LikeModule,
     MatchesModule,
     BlocksModule,
+    NotificationModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

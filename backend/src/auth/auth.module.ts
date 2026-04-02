@@ -5,10 +5,14 @@ import { DatabaseModule } from '../database/database.module'; // 👈 สำค�
 import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './google.strategy';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtModule } from '@nestjs/jwt';
 
 
 @Module({
-  imports: [DatabaseModule, PassportModule],
+  imports: [DatabaseModule, PassportModule,JwtModule.register({
+    secret: process.env.JWT_ACCESS_SECRET,
+    signOptions: { expiresIn: '3d' },
+  })],
   controllers: [AuthController],
   providers: [AuthService, GoogleStrategy, JwtStrategy],
   exports: [PassportModule]

@@ -1,26 +1,33 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ProfileService {
-  constructor(private db: DatabaseService) {}
+  constructor(private db: DatabaseService,
+    private notificationService: NotificationService
+  ) {}
 
   async upsertProfile(userId: number, dto: any) {
-    const { gender, preference, biography, tags } = dto;
+    console.log('ProfileService.upsertProfile called with userId:', userId, 'dto:', dto);
+    const { gender, preference, biography, tags, age, latitude, longitude } = dto;
 
     await this.db.query('BEGIN');
     try {
       await this.db.query(
         `
-        INSERT INTO profiles (user_id, gender, preference, biography)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO profiles (user_id, gender, preference, biography, age, latitude, longitude)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (user_id)
         DO UPDATE SET
           gender = EXCLUDED.gender,
           preference = EXCLUDED.preference,
-          biography = EXCLUDED.biography
+          biography = EXCLUDED.biography,
+          age = EXCLUDED.age,
+          latitude = EXCLUDED.latitude,
+          longitude = EXCLUDED.longitude
         `,
-        [userId, gender, preference, biography],
+        [userId, gender, preference, biography, age, latitude, longitude],
       );
 
       await this.db.query(`DELETE FROM user_tags WHERE user_id = $1`, [userId]);
@@ -85,5 +92,16 @@ export class ProfileService {
     return { message: 'Profile deleted' };
   }
 
+  async visitProfile(visitorId: number, visitedId: number) {
+    await this.db.query(
+      `INSERT INTO visits (visitor_id, visited_id)
+       VALUES ($1, $2)`,
+      [visitorId, visitedId],
+    );
   
+    await this.notificationService.create(visitedId, 'visit', {
+      fromUserId: visitorId,
+    });
+  }
+
 }

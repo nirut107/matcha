@@ -27,6 +27,7 @@ import {
     @UseGuards(JwtGuard)
     @ApiResponse({ status: 201, description: 'Profile saved' })
     createOrUpdate(@Req() req: any, @Body() dto: CreateProfileDto) {
+      console.log(req.user);
       return this.profileService.upsertProfile(req.user.userId, dto);
     }
   
@@ -45,5 +46,12 @@ import {
     @UseGuards(JwtGuard)
     delete(@Req() req: any) {
       return this.profileService.deleteProfile(req.user.userId);
+    }
+
+    @Post('visit/:visitedId')
+    @UseGuards(JwtGuard)
+    async visitProfile(@Req() req: any, @Param('visitedId') visitedId: string) {
+      await this.profileService.visitProfile(req.user.userId, Number(visitedId));
+      return { message: 'Visit recorded' };
     }
   }

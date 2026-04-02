@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { ProfileController } from './profile.controller';
 import { DatabaseModule } from '../database/database.module';
+import { NotificationModule } from 'src/notification/notification.module';
 
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, NotificationModule],
   providers: [ProfileService],
   controllers: [ProfileController],
 })

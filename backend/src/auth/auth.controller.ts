@@ -5,6 +5,7 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { UnauthorizedException } from '@nestjs/common';
 
 
 @ApiTags('Auth')
@@ -23,8 +24,8 @@ export class AuthController {
     status: 401,
     description: 'Invalid credentials',
   })
-  login(@Body() body: LoginDto) {
-    return this.authService.login(body.username, body.password);
+  async login(@Body() body: LoginDto, @Res({ passthrough: true }) res) {
+    return this.authService.login(body.username, body.password, res);
   }
   @Post('register')
   @ApiBody({ type: RegisterDto })
@@ -36,8 +37,9 @@ export class AuthController {
     status: 400,
     description: 'Username or email already exists',
   })
-  resgister(@Body() body: RegisterDto) {
-    return this.authService.register(body);
+  async resgister(@Body() body: RegisterDto, @Res({ passthrough: true }) res) {
+    return this.authService.register(body, res);
+    
   }
 
   @Get('google')
@@ -47,16 +49,17 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req, @Res() res) {
-    const result = await this.authService.oauthLogin(req.user);
-    console.log('OAuth profile:', req.user);
+    return this.authService.oauthLogin(req.user, res);
+  }
 
-    res.cookie('access_token', result.access_token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+  @Post('refresh')
+  async refresh(@Req() req, @Res() res) {
+    const refreshToken = req.cookies['refresh_token'];
+    if (!refreshToken) throw new UnauthorizedException();
 
-    return res.redirect('http://localhost:3000/dashboard');
+    return this.authService.refresh(refreshToken, res);
   }
 }
+
+
+

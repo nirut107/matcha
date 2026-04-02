@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { NotificationService } from '../notification/notification.service';
 
 
 @Injectable()
 export class LikeService {
-    constructor(private db:DatabaseService) {}
+    constructor(private db:DatabaseService,
+        private notificationService: NotificationService
+    ) {}
 
     async likeUser(likerId: number, likedId: number) {
         await this.db.query(
@@ -13,6 +16,9 @@ export class LikeService {
            ON CONFLICT DO NOTHING`,
           [likerId, likedId]
         );
+        await this.notificationService.create(likedId, 'like', {
+          fromUserId: likerId,
+        });
       
         const res = await this.db.query(
           `SELECT 1 FROM likes WHERE liker_id = $2 AND liked_id = $1`,

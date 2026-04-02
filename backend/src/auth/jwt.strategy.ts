@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UnauthorizedException } from '@nestjs/common';
 
 // 🔥 extract token from cookie
 const cookieExtractor = (req: any) => {
@@ -10,8 +11,8 @@ const cookieExtractor = (req: any) => {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
-    if (!process.env.JWT_SECRET) {
-        throw new Error('JWT_SECRET is not defined');
+    if (!process.env.JWT_ACCESS_SECRET) {
+        throw new Error('JWT_ACCESS_SECRET is not defined');
       }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -19,12 +20,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: process.env.JWT_ACCESS_SECRET,
     });
   }
 
   async validate(payload: any) {
-    // 👉 payload = { userId: ... }
-    return { userId: payload.userId };
+    console.log('JWT payload:', payload);
+    if (!payload || !payload.sub) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
+    return { userId: payload.sub };
   }
 }

@@ -22,6 +22,7 @@ CREATE TABLE profiles (
     user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     gender VARCHAR(20),
     preference VARCHAR(20),
+    age INT,
     biography TEXT,
     fame_rating INT DEFAULT 0,
     latitude FLOAT,
@@ -85,7 +86,9 @@ CREATE TABLE messages (
     match_id INT REFERENCES matches(id) ON DELETE CASCADE,
     sender_id INT REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN DEFAULT FALSE,
+    deleted BOOLEAN DEFAULT FALSE
 );
 
 -- =========================
@@ -131,6 +134,17 @@ CREATE TABLE reports (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE refresh_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    revoked BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_refresh_user ON refresh_tokens(user_id);
+
 -- =========================
 -- INDEXES (สำคัญมาก)
 -- =========================
@@ -139,4 +153,39 @@ CREATE INDEX idx_profiles_location ON profiles(latitude, longitude);
 CREATE INDEX idx_likes_liker ON likes(liker_id);
 CREATE INDEX idx_likes_liked ON likes(liked_id);
 CREATE INDEX idx_messages_match ON messages(match_id);
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
+
+
+INSERT INTO tags (name) VALUES
+('geek'),
+('vegan'),
+('fitness'),
+('travel'),
+('music'),
+('coffee'),
+('gaming'),
+('movies'),
+('reading'),
+('coding'),
+('art'),
+('photography'),
+('sports'),
+('yoga'),
+('hiking'),
+('fashion'),
+('foodie'),
+('pets'),
+('technology'),
+('anime'),
+('kpop'),
+('cars'),
+('nature'),
+('startup'),
+('finance'),
+('crypto'),
+('books'),
+('movies'),
+('series'),
+('nightlife')
+ON CONFLICT (name) DO NOTHING;

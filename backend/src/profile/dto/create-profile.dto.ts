@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsArray, ArrayMaxSize } from 'class-validator';
+import { IsString, IsArray, ArrayMaxSize, IsNumber } from 'class-validator';
+
 
 export class CreateProfileDto {
   @ApiProperty({ example: 'male' })
@@ -18,4 +19,16 @@ export class CreateProfileDto {
   @IsArray()
   @ArrayMaxSize(20)
   tags: string[];
+
+  @IsNumber({}, { message: 'Age must be a number' })
+  @ApiProperty({ example: 25 })
+  age: number;
+
+  @IsNumber({}, { message: 'Latitude must be a number' })
+  @ApiProperty({ example: 40.7128 })
+  latitude: number;
+
+  @IsNumber({}, { message: 'Longtitude must be a number' })
+  @ApiProperty({ example: -74.0060 })
+  longitude: number;
 }
