@@ -4,10 +4,13 @@ import { AuthController } from './auth.controller';
 import { DatabaseModule } from '../database/database.module'; // 👈 สำคัญ
 import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './google.strategy';
+import { JwtStrategy } from './jwt.strategy';
+
 
 @Module({
   imports: [DatabaseModule, PassportModule],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy],
+  providers: [AuthService, GoogleStrategy, JwtStrategy],
+  exports: [PassportModule]
 })
 export class AuthModule {}
