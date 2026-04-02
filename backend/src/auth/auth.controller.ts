@@ -45,8 +45,10 @@ export class AuthController {
   async googleAuth() {}
 
   @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req, @Res() res) {
     const result = await this.authService.oauthLogin(req.user);
+    console.log('OAuth profile:', req.user);
 
     res.cookie('access_token', result.access_token, {
       httpOnly: true,
