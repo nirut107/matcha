@@ -45,7 +45,7 @@ export class AuthService {
 
   async register(dto: RegisterDto, res: Response) {
     const { username, email, password } = dto;
-
+    console.log(username,password, email)
     const existing = await this.db.query(
       'SELECT * FROM users WHERE username = $1 OR email = $2',
       [username, email],
@@ -61,7 +61,6 @@ export class AuthService {
     }
 
     const password_hash = await bcrypt.hash(password, 10);
-
     const user = await this.db.query(
       'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id',
       [username, email, password_hash],

@@ -24,7 +24,7 @@ export default function Header() {
           <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full border-2 border-white"></span>
         </button>
 
-        <button className="text-gray-400 hover:text-rose-500 transition-colors">
+        <button className="text-gray-400 hover:text-rose-500 transition-colors" onClick={()=>window.location.href = "/profile/setup"}>
           <Settings size={24} />
         </button>
       </div>
