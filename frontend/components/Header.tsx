@@ -18,7 +18,7 @@ export default function Header() {
 
       {/* Right icons */}
       <div className="flex gap-6">
-        <button className="text-gray-400 hover:text-rose-500 relative transition-colors">
+        <button className="text-gray-400 hover:text-rose-500 relative transition-colors" onClick={()=>window.location.href = "/chat"}>
           <MessageCircle size={24} />
           {/* Notification dot */}
           <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full border-2 border-white"></span>
