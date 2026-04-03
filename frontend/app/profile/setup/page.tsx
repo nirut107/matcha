@@ -169,9 +169,35 @@ export default function ProfileSetupPage() {
 
     return images;
   };
+  const buildFormData = () => {
+    const formData = new FormData();
+    const imagesPayload: any[] = [];
 
+    const images = buildImagesPayload();
+
+    images.forEach((img) => {
+      if (img.file) {
+        formData.append('files', img.file);
+
+        imagesPayload.push({
+          position: img.position,
+          is_profile: img.is_profile,
+        });
+      } else {
+        imagesPayload.push({
+          id: img.id,
+          position: img.position,
+          is_profile: img.is_profile,
+        });
+      }
+    });
+
+    formData.append('images', JSON.stringify(imagesPayload));
+
+    return formData;
+  };
   const syncImages = async () => {
-    const payload: ImageItem[] = buildImagesPayload();
+    const payload: any = buildFormData();
     console.log(payload)
 
     const res = await fetchWithAuth("http://localhost:3001/pictures/sync", {
@@ -196,6 +222,33 @@ export default function ProfileSetupPage() {
     const data = await res.json();
     console.log("Success:", data);
   };
+  // const syncImages = async () => {
+  //   const payload = buildImagesPayload();
+  //   const formData = new FormData();
+
+  //   payload.forEach((img, index) => {
+  //     formData.append(`position_${index}`, String(img.position));
+  //     formData.append(`is_profile_${index}`, String(img.is_profile));
+
+  //     if (img.id) {
+  //       formData.append(`id`, String(img.id));
+  //     }
+
+  //     if (img.file) {
+  //       formData.append("files", img.file);
+  //     }
+  //   });
+
+  //   const res = await fetchWithAuth("http://localhost:3001/pictures/sync", {
+  //     method: "POST",
+  //     body: formData,
+  //   });
+
+  //   if (!res.ok) {
+  //     const err = await res.json();
+  //     console.log(err);
+  //   }
+  // };
 
   const handleDrop = (dropIndex: number) => {
     if (dragIndex === null) return;
