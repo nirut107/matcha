@@ -197,15 +197,15 @@ export default function ProfileSetupPage() {
     return formData;
   };
   const syncImages = async () => {
-    const payload: any = buildFormData();
-    console.log(payload)
+    const formData = buildFormData();
+
+    for (const [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
 
     const res = await fetchWithAuth("http://localhost:3001/pictures/sync", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+      body: formData
     });
 
     if (res.status === 401) {
