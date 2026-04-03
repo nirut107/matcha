@@ -455,7 +455,7 @@ export default function ProfileSetupPage() {
                 max="99"
                 value={age}
                 onChange={(e) => setAge(Number(e.target.value))}
-                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl"
+                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
               />
             </div>
             <div className="space-y-2">

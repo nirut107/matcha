@@ -7,7 +7,7 @@ export default function Header() {
     <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
 
       {/* Logo */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" onClick={()=>window.location.href = "/dashboard"}>
         <div className="bg-gradient-to-tr from-rose-500 to-orange-400 p-1.5 rounded-lg">
           <Flame size={24} color="white" fill="white" />
         </div>
