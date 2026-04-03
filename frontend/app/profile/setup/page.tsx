@@ -16,6 +16,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import Header from "@/components/Header";
 
 export interface ImageItem {
   id?: number; // existing image (from DB)
@@ -171,6 +172,7 @@ export default function ProfileSetupPage() {
 
   const syncImages = async () => {
     const payload: ImageItem[] = buildImagesPayload();
+    console.log(payload)
 
     const res = await fetchWithAuth("http://localhost:3001/pictures/sync", {
       method: "POST",
@@ -325,6 +327,8 @@ export default function ProfileSetupPage() {
   const progress = calculateProgress();
 
   return (
+    <>
+    <Header />
     <div className="min-h-screen bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 flex flex-col items-center py-12 px-4">
       <div className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-xl p-8 md:p-12">
         {/* Header & Percent Bar */}
@@ -576,5 +580,6 @@ export default function ProfileSetupPage() {
         </form>
       </div>
     </div>
+    </>
   );
 }

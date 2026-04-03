@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Flame, Lock, User, Loader2 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch('http://localhost:3001/auth/login', {
+      const response = await fetchWithAuth('http://localhost:3001/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -30,9 +31,6 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store the token (In 2026, consider using HttpOnly Cookies for better security)
-        localStorage.setItem('access_token', data.access_token);
-        // Redirect to the "Discovery" or "Swipe" page
         router.push('/dashboard');
       } else {
         setError(data.message || "Invalid credentials. Try again!");
