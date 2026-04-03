@@ -18,11 +18,14 @@ import ProfileCard from "@/components/ProfileCard";
 import Header from "@/components/Header";
 import ActionButtons from "@/components/ActionButtons";
 import FilterBar from "@/components/FilterBar";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { useRouter } from "next/navigation";
 
 // 🔥 Toggle here (switch to false when backend ready)
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 export default function Dashboard() {
+  const router = useRouter();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -35,10 +38,15 @@ export default function Dashboard() {
           await new Promise((res) => setTimeout(res, 300));
           setProfiles(MOCK_PROFILES);
         } else {
-          const res = await fetch(
-            "http://localhost:3001/profiles/suggestions"
+          console.log("=======================")
+          const res = await fetchWithAuth(
+            "http://localhost:3001/profile/suggestions"
           );
+          if (res.status === 403) {
+            router.push('profile/setup'); // onboarding page
+          }
           const data = await res.json();
+          console.log(data)
           setProfiles(data);
         }
       } catch (err) {
@@ -63,6 +71,8 @@ export default function Dashboard() {
   // ✅ Empty state
   if (!profiles.length || currentIndex >= profiles.length) {
     return (
+      <>
+      <Header />
       <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
         <div className="bg-gray-100 p-6 rounded-full mb-4">
           <Flame size={48} className="text-gray-300" />
@@ -80,6 +90,7 @@ export default function Dashboard() {
           Reset
         </button>
       </div>
+      </>
     );
   }
 

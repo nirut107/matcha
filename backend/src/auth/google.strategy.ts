@@ -27,7 +27,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       last_name: profile.name?.familyName,
       googleId: profile.id,
     };
-
+    console.log(user)
     done(null, user);
   }
 }

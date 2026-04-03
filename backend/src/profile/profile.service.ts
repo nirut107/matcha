@@ -1,23 +1,33 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationService } from '../notification/notification.service';
+import { ForbiddenException } from '@nestjs/common';
 
 @Injectable()
 export class ProfileService {
-  constructor(private db: DatabaseService,
-    private notificationService: NotificationService
+  constructor(
+    private db: DatabaseService,
+    private notificationService: NotificationService,
   ) {}
 
   async upsertProfile(userId: number, dto: any) {
-    console.log('ProfileService.upsertProfile called with userId:', userId, 'dto:', dto);
-    const { gender, preference, biography, tags, age, latitude, longitude } = dto;
+    console.log(
+      'ProfileService.upsertProfile called with userId:',
+      userId,
+      'dto:',
+      dto,
+    );
+    const { gender, preference, biography, tags, age, latitude, longitude } =
+      dto;
 
     await this.db.query('BEGIN');
     try {
       await this.db.query(
         `
-        INSERT INTO profiles (user_id, gender, preference, biography, age, latitude, longitude)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO profiles (
+          user_id, gender, preference, biography, age, latitude, longitude, is_setup
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7, TRUE)
         ON CONFLICT (user_id)
         DO UPDATE SET
           gender = EXCLUDED.gender,
@@ -25,7 +35,8 @@ export class ProfileService {
           biography = EXCLUDED.biography,
           age = EXCLUDED.age,
           latitude = EXCLUDED.latitude,
-          longitude = EXCLUDED.longitude
+          longitude = EXCLUDED.longitude,
+          is_setup = TRUE
         `,
         [userId, gender, preference, biography, age, latitude, longitude],
       );
@@ -98,10 +109,128 @@ export class ProfileService {
        VALUES ($1, $2)`,
       [visitorId, visitedId],
     );
-  
+
     await this.notificationService.create(visitedId, 'visit', {
       fromUserId: visitorId,
     });
   }
 
+  async getSuggestions(userId: number) {
+    console.log('===========', userId);
+    const meRes = await this.db.query(
+      `
+      SELECT u.id, p.gender, p.preference, p.latitude, p.longitude
+      FROM users u
+      JOIN profiles p ON p.user_id = u.id
+      WHERE u.id = $1
+      `,
+      [userId],
+    );
+
+    const me = meRes.rows[0];
+    console.log(me, 'aaaaaaaaaaaaaaaa');
+
+    if (!me) {
+      throw new ForbiddenException('Complete your profile first');
+    }
+
+    // 👉 main query
+    const result = await this.db.query(
+      `
+      SELECT 
+        u.id,
+        u.first_name,
+        u.is_online,
+        p.age,
+        p.biography,
+        p.fame_rating,
+    
+        -- 🔥 distance
+        (
+          6371 * acos(
+            cos(radians($2)) *
+            cos(radians(p.latitude)) *
+            cos(radians(p.longitude) - radians($3)) +
+            sin(radians($2)) *
+            sin(radians(p.latitude))
+          )
+        ) AS distance,
+    
+        -- 🔥 images
+        COALESCE(
+          ARRAY_AGG(DISTINCT pic.url) FILTER (WHERE pic.url IS NOT NULL),
+          '{}'
+        ) AS images,
+    
+        -- 🔥 tags
+        COALESCE(
+          ARRAY_AGG(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL),
+          '{}'
+        ) AS tags
+    
+      FROM users u
+      JOIN profiles p ON p.user_id = u.id
+    
+      LEFT JOIN pictures pic ON pic.user_id = u.id
+      LEFT JOIN user_tags ut ON ut.user_id = u.id
+      LEFT JOIN tags t ON t.id = ut.tag_id
+    
+      WHERE u.id != $1
+    
+      -- ❌ blocked
+      AND u.id NOT IN (
+        SELECT blocked_id FROM blocks WHERE blocker_id = $1
+        UNION
+        SELECT blocker_id FROM blocks WHERE blocked_id = $1
+      )
+    
+      -- ❌ liked
+      AND u.id NOT IN (
+        SELECT target_id FROM swipes WHERE swiper_id = $1
+      )
+    
+      -- ❌ matches
+      AND u.id NOT IN (
+        SELECT user1_id FROM matches WHERE user2_id = $1
+        UNION
+        SELECT user2_id FROM matches WHERE user1_id = $1
+      )
+    
+      -- ✅ gender
+      AND (
+        p.gender = $4 OR $4 = 'both'
+      )
+    
+      AND (
+        p.preference = $5 OR p.preference = 'both'
+      )
+    
+      GROUP BY u.id, p.user_id
+    
+      ORDER BY distance ASC, p.fame_rating DESC
+      LIMIT 20
+      `,
+      [userId, me.latitude, me.longitude, me.preference, me.gender],
+    );
+
+    return result.rows.map((row) => ({
+      first_name: row.first_name,
+      age: row.age,
+      biography: row.biography,
+      tags: row.tags || [],
+      images: row.images || [],
+      fame_rating: row.fame_rating,
+      distance: `${row.distance.toFixed(1)} km`, // 🔥 format
+      is_online: row.is_online,
+    }));
+  }
+
+  async getSetupStatus(userId: number) {
+    const res = await this.db.query(
+      `SELECT is_setup FROM profiles WHERE user_id = $1`,
+      [userId],
+    );
+
+    return res.rows[0];
+  }
 }

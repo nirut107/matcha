@@ -1,4 +1,6 @@
-ALTER TABLE users ADD COLUMN google_id TEXT;
-ALTER TABLE pictures ADD COLUMN position INT;
-ALTER TABLE pictures
-ADD CONSTRAINT unique_user_position UNIQUE (user_id, position);
+UPDATE profiles
+SET is_setup = TRUE
+WHERE gender IS NOT NULL
+  AND preference IS NOT NULL
+  AND age IS NOT NULL
+  AND biography IS NOT NULL;

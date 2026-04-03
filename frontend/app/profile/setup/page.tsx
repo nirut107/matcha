@@ -30,6 +30,7 @@ interface Tag {
   name: string;
 }
 
+
 export default function ProfileSetupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -77,8 +78,6 @@ export default function ProfileSetupPage() {
     const res = await fetchWithAuth("http://localhost:3001/profile/me");
     const data = await res.json();
 
-    // profile fields
-    console.log(data);
     setGender(data.gender || "");
     setPreference(data.preference || "");
     setBiography(data.biography || "");
@@ -89,8 +88,12 @@ export default function ProfileSetupPage() {
     // images mapping
     const newPreviews = [null, null, null, null, null];
     const newExisting = [null, null, null, null, null];
-    if (data.images) {
-      data.images.forEach((img: any) => {
+    const res2 = await fetchWithAuth("http://localhost:3001/pictures/me");
+    console.log(res2)
+    const data2 = await res2.json()
+    console.log(data2, "=========")
+    if (data2) {
+      data2.forEach((img: any) => {
         const index = img.position - 1;
 
         newPreviews[index] = img.url; // show image
@@ -113,9 +116,9 @@ export default function ProfileSetupPage() {
       .then((data) => setAvailableTags(data.tags))
       .catch((err) => console.error("Error fetching tags:", err));
     fetchProfile();
-    console.log(availableTags);
-    console.log(gender, "======");
   }, []);
+
+  
 
   // Image Logic
   const handleImageChange = (
@@ -222,33 +225,6 @@ export default function ProfileSetupPage() {
     const data = await res.json();
     console.log("Success:", data);
   };
-  // const syncImages = async () => {
-  //   const payload = buildImagesPayload();
-  //   const formData = new FormData();
-
-  //   payload.forEach((img, index) => {
-  //     formData.append(`position_${index}`, String(img.position));
-  //     formData.append(`is_profile_${index}`, String(img.is_profile));
-
-  //     if (img.id) {
-  //       formData.append(`id`, String(img.id));
-  //     }
-
-  //     if (img.file) {
-  //       formData.append("files", img.file);
-  //     }
-  //   });
-
-  //   const res = await fetchWithAuth("http://localhost:3001/pictures/sync", {
-  //     method: "POST",
-  //     body: formData,
-  //   });
-
-  //   if (!res.ok) {
-  //     const err = await res.json();
-  //     console.log(err);
-  //   }
-  // };
 
   const handleDrop = (dropIndex: number) => {
     if (dragIndex === null) return;

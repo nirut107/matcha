@@ -28,6 +28,7 @@ CREATE TABLE profiles (
     latitude FLOAT,
     longitude FLOAT,
     location_text VARCHAR(255),
+    is_setup BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -39,6 +40,7 @@ CREATE TABLE pictures (
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     url TEXT NOT NULL,
     is_profile BOOLEAN DEFAULT FALSE,
+    position INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -57,14 +59,16 @@ CREATE TABLE user_tags (
 );
 
 -- =========================
--- LIKES
+-- SWIPES
 -- =========================
-CREATE TABLE likes (
+
+CREATE TABLE swipes (
     id SERIAL PRIMARY KEY,
-    liker_id INT REFERENCES users(id) ON DELETE CASCADE,
-    liked_id INT REFERENCES users(id) ON DELETE CASCADE,
+    swiper_id INT REFERENCES users(id) ON DELETE CASCADE,
+    target_id INT REFERENCES users(id) ON DELETE CASCADE,
+    action VARCHAR(10) NOT NULL, -- 'like' | 'pass'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (liker_id, liked_id)
+    UNIQUE (swiper_id, target_id)
 );
 
 -- =========================
@@ -148,6 +152,8 @@ CREATE INDEX idx_refresh_user ON refresh_tokens(user_id);
 -- =========================
 -- INDEXES (สำคัญมาก)
 -- =========================
+CREATE INDEX idx_profiles_user ON profiles(user_id);
+CREATE INDEX idx_blocks_blocker ON blocks(blocker_id);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_profiles_location ON profiles(latitude, longitude);
 CREATE INDEX idx_likes_liker ON likes(liker_id);
@@ -155,6 +161,7 @@ CREATE INDEX idx_likes_liked ON likes(liked_id);
 CREATE INDEX idx_messages_match ON messages(match_id);
 CREATE INDEX idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
+CREATE UNIQUE INDEX unique_user_position ON pictures(user_id, position);
 
 
 INSERT INTO tags (name) VALUES

@@ -10,11 +10,11 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +22,9 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetchWithAuth('http://localhost:3001/auth/login', {
+      const response = await fetch('http://localhost:3001/auth/login', {
         method: 'POST',
+        credentials: "include",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
@@ -32,10 +33,10 @@ export default function LoginPage() {
 
       if (response.ok) {
         router.push('/dashboard');
-      } else {
-        setError(data.message || "Invalid credentials. Try again!");
       }
-    } catch (err) {
+      setError(data.message || "Invalid credentials. Try again!");
+    } catch (error) {
+      console.log(error)
       setError("Something went wrong. Is the server running?");
     } finally {
       setLoading(false);
@@ -70,7 +71,7 @@ export default function LoginPage() {
               placeholder="Username"
               required
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 transition-all text-gray-900 placeholder:text-gray-400"
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
+              value={formData.username} onChange={(e) => setFormData({...formData, username: e.target.value})}
             />
           </div>
 
@@ -82,7 +83,7 @@ export default function LoginPage() {
               placeholder="Password"
               required
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 transition-all text-gray-900 placeholder:text-gray-400"
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
           </div>
 

@@ -25,7 +25,7 @@ import {
       if (!images || !Array.isArray(images)) {
         throw new BadRequestException('Invalid images payload');
       }
-  
+      console.log(userId, images, files)
       if (images.length > 5) {
         throw new BadRequestException('Max 5 images allowed');
       }
@@ -50,7 +50,7 @@ import {
   
         // 👉 2. separate old / new
         const incomingOld = images.filter(i => i.id);
-        const incomingNew = images.filter(i => i.file);
+        const incomingNew = images.filter(i => !i.id);
   
         const incomingIds = incomingOld.map(i => i.id);
   
@@ -95,7 +95,7 @@ import {
             throw new BadRequestException('Only image files allowed');
           }
   
-          const url = `/uploads/${file.filename}`;
+          const url = `http://localhost:3001/uploads/${file.filename}`;
   
           await this.db.query(
             `
@@ -151,6 +151,12 @@ import {
   
     // 🔥 GET MY IMAGES
     async getMyPictures(userId: number) {
+      console.log('userId:', userId);
+    
+      if (!userId) {
+        throw new Error('Invalid userId');
+      }
+    
       const result = await this.db.query(
         `
         SELECT id, url, is_profile, position
@@ -160,7 +166,7 @@ import {
         `,
         [userId],
       );
-  
+    
       return result.rows;
     }
   

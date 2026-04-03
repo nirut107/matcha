@@ -33,8 +33,7 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) throw new UnauthorizedException('Wrong password');
 
-    const { accessToken, refreshToken } =
-    await this.generateTokens(user.id);
+    const { accessToken, refreshToken } = await this.generateTokens(user.id);
 
     await this.storeRefreshToken(user.id, refreshToken);
 
@@ -45,7 +44,7 @@ export class AuthService {
 
   async register(dto: RegisterDto, res: Response) {
     const { username, email, password } = dto;
-    console.log(username,password, email)
+    console.log(username, password, email);
     const existing = await this.db.query(
       'SELECT * FROM users WHERE username = $1 OR email = $2',
       [username, email],
@@ -66,8 +65,7 @@ export class AuthService {
       [username, email, password_hash],
     );
 
-    const { accessToken, refreshToken } =
-    await this.generateTokens(user.id);
+    const { accessToken, refreshToken } = await this.generateTokens(user.id);
 
     await this.storeRefreshToken(user.id, refreshToken);
 
@@ -77,19 +75,21 @@ export class AuthService {
   }
 
   async oauthLogin(profile: any, res: Response) {
-    console.log('OAuth profile:', profile);
     const { email, googleId } = profile;
 
-    let user = await this.db.query(
+    // 👉 get user
+    const result = await this.db.query(
       `SELECT * FROM users WHERE email = $1 OR google_id = $2`,
       [email, googleId],
     );
 
-    if (user.rows.length === 0) {
+    let user = result.rows[0];
+
+    if (!user) {
       const username =
         email.split('@')[0] + '_' + Math.floor(Math.random() * 10000);
 
-      const newUser = await this.db.query(
+      const newUserResult = await this.db.query(
         `
         INSERT INTO users (
           email,
@@ -103,14 +103,16 @@ export class AuthService {
         `,
         [email, username, null, googleId],
       );
-      console.log('NEW USER RAW:', newUser);
-      console.log('ROWS:', newUser?.rows);
-      user = newUser.rows[0];
+
+      user = newUserResult.rows[0];
     }
 
-    console.log('User after OAuth query:', user);
-    const { accessToken, refreshToken } =
-    await this.generateTokens(user.id);
+    // 🔥 safety check
+    if (!user || !user.id) {
+      throw new Error('User creation failed');
+    }
+
+    const { accessToken, refreshToken } = await this.generateTokens(user.id);
 
     await this.storeRefreshToken(user.id, refreshToken);
 
@@ -147,8 +149,8 @@ export class AuthService {
       [userId],
     );
 
-    let validToken :RefreshTokenRow | null = null;
-
+    let validToken: RefreshTokenRow | null = null;
+    // console.log(tokens)
     for (const token of tokens.rows) {
       const match = await bcrypt.compare(refreshToken, token.token_hash);
       if (match) {

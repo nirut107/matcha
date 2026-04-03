@@ -18,17 +18,50 @@ export class MatchesService {
         u.is_online,
         u.last_connection,
         p.url as profile_picture,
-        m.created_at
+        m.created_at,
+    
+        -- 🔥 last message
+        lm.content AS last_message,
+        lm.created_at AS last_message_time,
+    
+        -- 🔥 unread count
+        COALESCE(unread.count, 0) AS unread_count
+    
       FROM matches m
+    
       JOIN users u 
         ON u.id = CASE 
           WHEN m.user1_id = $1 THEN m.user2_id
           ELSE m.user1_id
         END
+    
       LEFT JOIN pictures p 
         ON p.user_id = u.id AND p.is_profile = TRUE
+    
+      -- 🔥 last message (LATERAL = per row)
+      LEFT JOIN LATERAL (
+        SELECT content, created_at
+        FROM messages
+        WHERE match_id = m.id
+          AND deleted = FALSE
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) lm ON TRUE
+    
+      -- 🔥 unread count
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*) as count
+        FROM messages
+        WHERE match_id = m.id
+          AND sender_id != $1
+          AND is_read = FALSE
+      ) unread ON TRUE
+    
       WHERE m.user1_id = $1 OR m.user2_id = $1
-      ORDER BY m.created_at DESC
+    
+      ORDER BY 
+        lm.created_at DESC NULLS LAST, -- 🔥 sort by last message
+        m.created_at DESC
       `,
       [userId],
     );
@@ -51,7 +84,7 @@ export class MatchesService {
 
   async removeMatch(userA: number, userB: number) {
     await this.db.query('BEGIN');
-  
+
     try {
       await this.db.query(
         `
@@ -61,7 +94,7 @@ export class MatchesService {
         `,
         [userA, userB],
       );
-  
+
       await this.db.query(
         `
         DELETE FROM likes
@@ -70,9 +103,9 @@ export class MatchesService {
         `,
         [userA, userB],
       );
-  
+
       await this.db.query('COMMIT');
-  
+
       return { message: 'Match and likes removed' };
     } catch (e) {
       await this.db.query('ROLLBACK');

@@ -27,6 +27,16 @@ export class AuthController {
   async login(@Body() body: LoginDto, @Res({ passthrough: true }) res) {
     return this.authService.login(body.username, body.password, res);
   }
+
+  @Post('refresh')
+  async refresh(@Req() req, @Res() res) {
+    const refreshToken = req.cookies['refresh_token'];
+    console.log(refreshToken)
+    if (!refreshToken) throw new UnauthorizedException();
+
+    return this.authService.refresh(refreshToken, res);
+  }
+  
   @Post('register')
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
@@ -52,13 +62,7 @@ export class AuthController {
     return this.authService.oauthLogin(req.user, res);
   }
 
-  @Post('refresh')
-  async refresh(@Req() req, @Res() res) {
-    const refreshToken = req.cookies['refresh_token'];
-    if (!refreshToken) throw new UnauthorizedException();
-
-    return this.authService.refresh(refreshToken, res);
-  }
+  
 }
 
 
