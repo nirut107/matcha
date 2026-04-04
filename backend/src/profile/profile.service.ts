@@ -37,7 +37,7 @@ export class ProfileService {
         INSERT INTO profiles (
           user_id, gender, preference, biography,first_name, last_name, age, latitude, longitude, is_setup
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7, TRUE)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8, $9 ,TRUE)
         ON CONFLICT (user_id)
         DO UPDATE SET
           gender = EXCLUDED.gender,
