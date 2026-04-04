@@ -1,12 +1,21 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Res} from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiTags, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiBody, ApiResponse, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { UnauthorizedException } from '@nestjs/common';
-
+import { JwtGuard } from './jwt.guard';
+import { Response } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -31,12 +40,12 @@ export class AuthController {
   @Post('refresh')
   async refresh(@Req() req, @Res() res) {
     const refreshToken = req.cookies['refresh_token'];
-    console.log(refreshToken)
+    console.log(refreshToken);
     if (!refreshToken) throw new UnauthorizedException();
 
     return this.authService.refresh(refreshToken, res);
   }
-  
+
   @Post('register')
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
@@ -49,7 +58,6 @@ export class AuthController {
   })
   async resgister(@Body() body: RegisterDto, @Res({ passthrough: true }) res) {
     return this.authService.register(body, res);
-    
   }
 
   @Get('google')
@@ -62,8 +70,11 @@ export class AuthController {
     return this.authService.oauthLogin(req.user, res);
   }
 
-  
+  @Post('logout')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Logout successful' })
+  logout(@Req() req, @Res({ passthrough: true })  res) {
+    return this.authService.logout(req.user.userId, res);
+  }
 }
-
-
-

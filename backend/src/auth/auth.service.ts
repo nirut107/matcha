@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
 import { DatabaseService } from '../database/database.service';
 import { RegisterDto } from './dto/register.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -222,5 +221,26 @@ export class AuthService {
       path: '/auth/refresh',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+  }
+
+  async logout(userId: number, res: Response) {
+    await this.db.query(`UPDATE users SET refresh_token = NULL WHERE id = $1`, [
+      userId,
+    ]);
+
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+    });
+
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/auth/refresh',
+    });
+
+    return res.json({ message: 'Logged out successfully' });
   }
 }

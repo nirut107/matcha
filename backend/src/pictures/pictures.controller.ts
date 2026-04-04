@@ -51,8 +51,6 @@ export class PicturesController {
 
     const parsedImages = JSON.parse(images);
 
-    console.log('PARSED images:', parsedImages);
-
     return this.picturesService.syncImages(
       req.user.userId,
       parsedImages,

@@ -19,7 +19,6 @@ export class ProfileService {
       'dto:',
       dto,
     );
-    console.log(dto, "========================")
     const {
       gender,
       preference,

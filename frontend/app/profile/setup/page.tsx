@@ -522,7 +522,7 @@ export default function ProfileSetupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={hasGoogle}
-                className={`w-full p-4 border-2 rounded-2xl outline-none transition
+                className={`w-full p-4 border-2 rounded-2xl outline-none transition text-gray-900
       ${
         hasGoogle
           ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
