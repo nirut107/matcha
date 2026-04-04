@@ -30,7 +30,6 @@ interface Tag {
   name: string;
 }
 
-
 export default function ProfileSetupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -46,6 +45,9 @@ export default function ProfileSetupPage() {
     lat: number | null;
     lng: number | null;
   }>({ lat: null, lng: null });
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [error, setError] = useState("");
 
   // Image State (Matcha requires up to 5)
   const [previews, setPreviews] = useState<(string | null)[]>([
@@ -83,15 +85,15 @@ export default function ProfileSetupPage() {
     setBiography(data.biography || "");
     setSelectedTags(data.tags || []);
     setAge(data.age || 18);
-    setLocation({lat: data.latitude || null ,lng: data.longitude || null});
+    setLocation({ lat: data.latitude || null, lng: data.longitude || null });
 
     // images mapping
     const newPreviews = [null, null, null, null, null];
     const newExisting = [null, null, null, null, null];
     const res2 = await fetchWithAuth("http://localhost:3001/pictures/me");
-    console.log(res2)
-    const data2 = await res2.json()
-    console.log(data2, "=========")
+    console.log(res2);
+    const data2 = await res2.json();
+    console.log(data2, "=========");
     if (data2) {
       data2.forEach((img: any) => {
         const index = img.position - 1;
@@ -117,8 +119,6 @@ export default function ProfileSetupPage() {
       .catch((err) => console.error("Error fetching tags:", err));
     fetchProfile();
   }, []);
-
-  
 
   // Image Logic
   const handleImageChange = (
@@ -180,7 +180,7 @@ export default function ProfileSetupPage() {
 
     images.forEach((img) => {
       if (img.file) {
-        formData.append('files', img.file);
+        formData.append("files", img.file);
 
         imagesPayload.push({
           position: img.position,
@@ -195,7 +195,7 @@ export default function ProfileSetupPage() {
       }
     });
 
-    formData.append('images', JSON.stringify(imagesPayload));
+    formData.append("images", JSON.stringify(imagesPayload));
 
     return formData;
   };
@@ -208,7 +208,7 @@ export default function ProfileSetupPage() {
 
     const res = await fetchWithAuth("http://localhost:3001/pictures/sync", {
       method: "POST",
-      body: formData
+      body: formData,
     });
 
     if (res.status === 401) {
@@ -300,20 +300,20 @@ export default function ProfileSetupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (progress < 100) {
+      setError("Please complete your profile 100% before submitting.");
+      return;
+    }
+
+    if (!firstName || !lastName) {
+      setError("First name and last name are required.");
+      return;
+    }
+
+    setError("");
     setLoading(true);
 
     try {
-      const bodyData = JSON.stringify({
-        gender,
-        preference,
-        biography,
-        tags: selectedTags,
-        age,
-        latitude: location.lat,
-        longitude: location.lng,
-      });
-
-      console.log("FINAL JSON STRING:", bodyData);
       // ✅ 2. Create profile
       const profileRes = await fetchWithAuth("http://localhost:3001/profile", {
         method: "POST",
@@ -345,11 +345,12 @@ export default function ProfileSetupPage() {
   // Calculate completion percentage for the Progress Bar
   const calculateProgress = () => {
     let score = 0;
+    if (firstName && lastName) score += 20;
     if (gender) score += 20;
     if (biography && biography.length > 10) score += 20;
     if (selectedTags && selectedTags.length >= 3) score += 20;
-    if (previews.filter((p) => p !== null).length >= 1) score += 20;
-    if (location.lat) score += 20;
+    if (previews.filter((p) => p !== null).length >= 1) score += 10;
+    if (location.lat) score += 10;
     return score;
   };
 
@@ -357,258 +358,294 @@ export default function ProfileSetupPage() {
 
   return (
     <>
-    <Header />
-    <div className="min-h-screen bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 flex flex-col items-center py-12 px-4">
-      <div className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-xl p-8 md:p-12">
-        {/* Header & Percent Bar */}
-        <div className="flex flex-col items-center mb-10 text-center">
-          <div className="bg-gradient-to-tr from-rose-500 to-orange-400 p-3 rounded-2xl mb-4 shadow-lg">
-            <Flame size={32} color="white" fill="white" />
-          </div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-            Setup Your Vibe
-          </h1>
-
-          <div className="w-full mt-6 space-y-2">
-            <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
-              <span>Profile Completion</span>
-              <span>{progress}%</span>
+      <Header />
+      <div className="min-h-screen bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 flex flex-col items-center py-12 px-4">
+        <div className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-xl p-8 md:p-12">
+          {/* Header & Percent Bar */}
+          <div className="flex flex-col items-center mb-10 text-center">
+            <div className="bg-gradient-to-tr from-rose-500 to-orange-400 p-3 rounded-2xl mb-4 shadow-lg">
+              <Flame size={32} color="white" fill="white" />
             </div>
-            <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden border border-gray-50">
-              <div
-                className="bg-gradient-to-r from-rose-500 via-pink-500 to-orange-400 h-full transition-all duration-700 ease-out"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        </div>
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+              Setup Your Vibe
+            </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-10">
-          {/* Photo Grid (Max 5 [cite: 82]) */}
-          <div className="space-y-4">
-            <label className="text-sm font-bold text-gray-700 ml-1">
-              PHOTOS (MIN 1, MAX 5)
-            </label>
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-              {previews.map((url, i) => (
+            <div className="w-full mt-6 space-y-2">
+              <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                <span>Profile Completion</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden border border-gray-50">
                 <div
-                  key={i}
-                  draggable={!!url}
-                  onDragStart={() => setDragIndex(i)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDrop(i)}
-                  className={`relative aspect-[3/4] rounded-2xl border-2 overflow-hidden bg-gray-50 transition-all cursor-move
+                  className="bg-gradient-to-r from-rose-500 via-pink-500 to-orange-400 h-full transition-all duration-700 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-10">
+            {/* Photo Grid (Max 5 [cite: 82]) */}
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-gray-700 ml-1">
+                PHOTOS (MIN 1, MAX 5)
+              </label>
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                {previews.map((url, i) => (
+                  <div
+                    key={i}
+                    draggable={!!url}
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDrop(i)}
+                    className={`relative aspect-[3/4] rounded-2xl border-2 overflow-hidden bg-gray-50 transition-all cursor-move
                 ${
                   i === profilePicIndex
                     ? "border-rose-500 ring-4 ring-rose-50"
                     : "border-dashed border-gray-200"
                 }`}
-                >
-                  {url ? (
-                    <>
-                      {/* IMAGE */}
-                      <img src={url} className="w-full h-full object-cover" />
-
-                      {/* PROFILE SELECT */}
-                      <button
-                        type="button"
-                        onClick={() => setProfilePicIndex(i)}
-                        className={`absolute top-2 left-2 p-1 rounded-lg backdrop-blur-md ${
-                          i === profilePicIndex
-                            ? "bg-rose-500 text-white"
-                            : "bg-white/80 text-gray-400"
-                        }`}
-                      >
-                        <Star
-                          size={12}
-                          fill={i === profilePicIndex ? "white" : "none"}
-                        />
-                      </button>
-
-                      {/* DELETE */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const n = [...previews];
-                          const f = [...files];
-                          n[i] = null;
-                          f[i] = null;
-                          setPreviews(n);
-                          setFiles(f);
-                        }}
-                        className="absolute top-2 right-2 bg-black/40 backdrop-blur-md p-1 rounded-full text-white hover:bg-black"
-                      >
-                        <X size={12} />
-                      </button>
-                    </>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-100 transition-colors">
-                      <Camera size={20} className="text-gray-400" />
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange(i, e)}
-                      />
-                    </label>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 ml-1">
-                GENDER{" "}
-              </label>
-              <select
-                required
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
-              >
-                <option value="">Select...</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 ml-1">
-                AGE
-              </label>
-              <input
-                type="number"
-                min="18"
-                max="99"
-                value={age}
-                onChange={(e) => setAge(Number(e.target.value))}
-                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 ml-1">
-                INTERESTED IN{" "}
-              </label>
-              <select
-                value={preference}
-                onChange={(e) => setPreference(e.target.value)}
-                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
-              >
-                <option value="male">Men</option>
-                <option value="female">Women</option>
-                <option value="bisexual">Everyone (Default)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 ml-1">BIO</label>
-            <textarea
-              required
-              rows={3}
-              placeholder="Tell us something interesting..."
-              className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 resize-none"
-              value={biography}
-              onChange={(e) => setBiography(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <label className="text-sm font-bold text-gray-700 ml-1">
-              INTERESTS
-            </label>
-            <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border-2 border-gray-100 rounded-2xl min-h-[60px]">
-              {selectedTags &&
-                selectedTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="bg-rose-500 text-white pl-4 pr-2 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm"
                   >
-                    {tag}{" "}
-                    <X
-                      size={14}
-                      className="cursor-pointer"
-                      onClick={() => toggleTag(tag)}
-                    />
-                  </span>
-                ))}
-            </div>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" &&
-                  (e.preventDefault(), handleAddCustomTag())
-                }
-                className="w-full p-4 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 shadow-sm"
-                placeholder="Search or create tags..."
-              />
-              {searchTerm && (
-                <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-100 rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
-                  {availableTags &&
-                    availableTags
-                      .filter(
-                        (t) =>
-                          t?.name?.includes(searchTerm.toLowerCase()) &&
-                          selectedTags &&
-                          !selectedTags.includes(`#${t.name}`)
-                      )
-                      .map((tag) => (
-                        <div
-                          key={tag.id}
-                          onClick={() => {
-                            toggleTag(tag.name);
-                            setSearchTerm("");
-                          }}
-                          className="p-4 hover:bg-rose-50 cursor-pointer border-b border-gray-50 last:border-0 text-gray-800 font-medium text-sm"
+                    {url ? (
+                      <>
+                        {/* IMAGE */}
+                        <img src={url} className="w-full h-full object-cover" />
+
+                        {/* PROFILE SELECT */}
+                        <button
+                          type="button"
+                          onClick={() => setProfilePicIndex(i)}
+                          className={`absolute top-2 left-2 p-1 rounded-lg backdrop-blur-md ${
+                            i === profilePicIndex
+                              ? "bg-rose-500 text-white"
+                              : "bg-white/80 text-gray-400"
+                          }`}
                         >
-                          #{tag.name}
-                        </div>
-                      ))}
-                  <div
-                    onClick={handleAddCustomTag}
-                    className="p-4 hover:bg-green-50 cursor-pointer text-green-600 font-bold flex items-center gap-2 text-sm"
-                  >
-                    <Plus size={18} /> Create new tag: "{searchTerm}"
+                          <Star
+                            size={12}
+                            fill={i === profilePicIndex ? "white" : "none"}
+                          />
+                        </button>
+
+                        {/* DELETE */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const n = [...previews];
+                            const f = [...files];
+                            n[i] = null;
+                            f[i] = null;
+                            setPreviews(n);
+                            setFiles(f);
+                          }}
+                          className="absolute top-2 right-2 bg-black/40 backdrop-blur-md p-1 rounded-full text-white hover:bg-black"
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-100 transition-colors">
+                        <Camera size={20} className="text-gray-400" />
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handleImageChange(i, e)}
+                        />
+                      </label>
+                    )}
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">
+                  FIRST NAME
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
+                />
+              </div>
 
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <button
-              type="button"
-              onClick={handleLocation}
-              className={`flex items-center gap-2 font-bold px-4 py-2 rounded-xl transition-all ${
-                location.lat
-                  ? "text-green-500 bg-green-50"
-                  : "text-rose-500 bg-rose-50 hover:bg-rose-100"
-              }`}
-            >
-              {location.lat ? <CheckCircle2 size={20} /> : <MapPin size={20} />}
-              {location.lat ? "Location Verified" : "Verify Location (GPS)"}
-            </button>
-          </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">
+                  LAST NAME
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">
+                  GENDER{" "}
+                </label>
+                <select
+                  required
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
+                >
+                  <option value="">Select...</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">
+                  AGE|| !previews[profilePicIndex]
+                </label>
+                <input
+                  type="number"
+                  min="18"
+                  max="99"
+                  value={age}
+                  onChange={(e) => setAge(Number(e.target.value))}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">
+                  INTERESTED IN{" "}
+                </label>
+                <select
+                  value={preference}
+                  onChange={(e) => setPreference(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
+                >
+                  <option value="male">Men</option>
+                  <option value="female">Women</option>
+                  <option value="bisexual">Everyone (Default)</option>
+                </select>
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading || progress < 40 || !previews[profilePicIndex]}
-            className="w-full bg-gradient-to-r from-rose-500 to-orange-400 text-white font-black py-5 rounded-2xl shadow-xl shadow-rose-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin mx-auto" />
-            ) : (
-              "FINISH & START MATCHING"
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 ml-1">
+                BIO
+              </label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Tell us something interesting..."
+                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 resize-none"
+                value={biography}
+                onChange={(e) => setBiography(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-gray-700 ml-1">
+                INTERESTS
+              </label>
+              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border-2 border-gray-100 rounded-2xl min-h-[60px]">
+                {selectedTags &&
+                  selectedTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="bg-rose-500 text-white pl-4 pr-2 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm"
+                    >
+                      {tag}{" "}
+                      <X
+                        size={14}
+                        className="cursor-pointer"
+                        onClick={() => toggleTag(tag)}
+                      />
+                    </span>
+                  ))}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" &&
+                    (e.preventDefault(), handleAddCustomTag())
+                  }
+                  className="w-full p-4 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 shadow-sm"
+                  placeholder="Search or create tags..."
+                />
+                {searchTerm && (
+                  <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-100 rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
+                    {availableTags &&
+                      availableTags
+                        .filter(
+                          (t) =>
+                            t?.name?.includes(searchTerm.toLowerCase()) &&
+                            selectedTags &&
+                            !selectedTags.includes(`#${t.name}`)
+                        )
+                        .map((tag) => (
+                          <div
+                            key={tag.id}
+                            onClick={() => {
+                              toggleTag(tag.name);
+                              setSearchTerm("");
+                            }}
+                            className="p-4 hover:bg-rose-50 cursor-pointer border-b border-gray-50 last:border-0 text-gray-800 font-medium text-sm"
+                          >
+                            #{tag.name}
+                          </div>
+                        ))}
+                    <div
+                      onClick={handleAddCustomTag}
+                      className="p-4 hover:bg-green-50 cursor-pointer text-green-600 font-bold flex items-center gap-2 text-sm"
+                    >
+                      <Plus size={18} /> Create new tag: "{searchTerm}"
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <button
+                type="button"
+                onClick={handleLocation}
+                className={`flex items-center gap-2 font-bold px-4 py-2 rounded-xl transition-all ${
+                  location.lat
+                    ? "text-green-500 bg-green-50"
+                    : "text-rose-500 bg-rose-50 hover:bg-rose-100"
+                }`}
+              >
+                {location.lat ? (
+                  <CheckCircle2 size={20} />
+                ) : (
+                  <MapPin size={20} />
+                )}
+                {location.lat ? "Location Verified" : "Verify Location (GPS)"}
+              </button>
+            </div>
+            {error && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-semibold">
+                {error}
+              </div>
             )}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading || progress < 100}
+              className="w-full bg-gradient-to-r from-rose-500 to-orange-400 text-white font-black py-5 rounded-2xl shadow-xl shadow-rose-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin mx-auto" />
+              ) : (
+                "FINISH & START MATCHING"
+              )}
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
     </>
   );
 }
