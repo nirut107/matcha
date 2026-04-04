@@ -53,7 +53,7 @@ export default function Dashboard() {
       const picturesData = await picturesRes.json();
 
       setDetailedInfo(profileData);
-      setExtraPictures(picturesData); // Assuming this is an array of strings/URLs
+      setExtraPictures(picturesData.pictures); // Assuming this is an array of strings/URLs
     } catch (err) {
       console.error("Failed to load details", err);
     } finally {
