@@ -117,7 +117,6 @@ export class ProfileService {
   }
 
   async getSuggestions(userId: number) {
-    console.log('===========', userId);
     const meRes = await this.db.query(
       `
       SELECT u.id, p.gender, p.preference, p.latitude, p.longitude
@@ -129,7 +128,6 @@ export class ProfileService {
     );
 
     const me = meRes.rows[0];
-    console.log(me, 'aaaaaaaaaaaaaaaa');
 
     if (!me) {
       throw new ForbiddenException('Complete your profile first');
@@ -205,7 +203,7 @@ export class ProfileService {
       `,
       [userId, me.latitude, me.longitude, me.preference, me.gender],
     );
-
+    console.log(result.rows)
     return result.rows.map((row) => ({
       first_name: row.first_name,
       age: row.age,

@@ -1,9 +1,10 @@
-import { Controller, Get, Req, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards, Post, Body } from '@nestjs/common';
 import { JwtGuard } from '../auth/jwt.guard';
 import { DatabaseService } from '../database/database.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOkResponse } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { UnauthorizedException } from '@nestjs/common';
+import { MeResponseDto } from './dto/me-response.dto';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -13,6 +14,11 @@ export class UserController {
 
   @Get('me')
   @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    type: MeResponseDto,
+    description: 'Get current logged-in user',
+  })
   async getMe(@Req() req: any) {
     if (!req.user || !req.user.userId) {
       throw new UnauthorizedException();
@@ -21,7 +27,7 @@ export class UserController {
     const userId = req.user.userId;
   
     const result = await this.db.query(
-      'SELECT id, username, email FROM users WHERE id = $1',
+      `SELECT id, username, email, google_id FROM users WHERE id = $1`,
       [userId],
     );
   
@@ -29,8 +35,22 @@ export class UserController {
       throw new UnauthorizedException('User not found');
     }
   
-    return result.rows[0];
+    const user = result.rows[0];
+  
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      hasGoogle: !!user.google_id,
+    };
   }
+
+  @Post("emil")
+  @UseGuards(JwtGuard)
+  async updateEmail(@Req() req, @Body() email: string) {
+    
+  }
+  
 
   @Post('online')
   @UseGuards(JwtGuard)

@@ -23,6 +23,8 @@ CREATE TABLE profiles (
     gender VARCHAR(20),
     preference VARCHAR(20),
     age INT,
+    first_name VARCHAR(20),
+    last_name VARCHAR(20),
     biography TEXT,
     fame_rating INT DEFAULT 0,
     latitude FLOAT,
