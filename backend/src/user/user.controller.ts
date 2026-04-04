@@ -10,7 +10,10 @@ import { MeResponseDto } from './dto/me-response.dto';
 @ApiBearerAuth()
 @Controller('user')
 export class UserController {
-  constructor(private db: DatabaseService, private UserService: UserService) {}
+  constructor(
+    private db: DatabaseService,
+    private UserService: UserService,
+  ) {}
 
   @Get('me')
   @UseGuards(JwtGuard)
@@ -23,20 +26,20 @@ export class UserController {
     if (!req.user || !req.user.userId) {
       throw new UnauthorizedException();
     }
-  
+
     const userId = req.user.userId;
-  
+
     const result = await this.db.query(
       `SELECT id, username, email, google_id FROM users WHERE id = $1`,
       [userId],
     );
-  
+
     if (result.rows.length === 0) {
       throw new UnauthorizedException('User not found');
     }
-  
+
     const user = result.rows[0];
-  
+
     return {
       id: user.id,
       username: user.username,
@@ -45,12 +48,12 @@ export class UserController {
     };
   }
 
-  @Post("email")
+  @Post('email')
   @UseGuards(JwtGuard)
   async updateEmail(@Req() req, @Body() email: string) {
-    
+    console.log("Email :", email)
+    return this.updateEmail(req.user.userId, email);
   }
-  
 
   @Post('online')
   @UseGuards(JwtGuard)

@@ -337,7 +337,7 @@ export default function ProfileSetupPage() {
       // ✅ 2. Create profile
       const emailRes = await fetchWithAuth("http://localhost:3001/user/email", {
         method: "POST",
-        body: email
+        body: JSON.stringify(email)
       });
       const profileRes = await fetchWithAuth("http://localhost:3001/profile", {
         method: "POST",
