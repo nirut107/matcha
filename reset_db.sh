@@ -2,19 +2,24 @@
 
 set -e
 
-echo "🛑 Stopping containers..."
-docker-compose down
-
-echo "🗑 Removing volumes (THIS DELETES DB DATA)..."
-docker-compose down -v
-
-echo "🧹 Removing orphan containers..."
-docker-compose down --remove-orphans
+echo "🛑 Cleaning up environment and wiping volumes..."
+docker-compose down -v --remove-orphans
 
 echo "🚀 Starting fresh database..."
-docker compose up postgres -d
+docker-compose up postgres -d
 
-echo "⏳ Waiting for DB to be ready..."
-sleep 5
+echo "⏳ Waiting for Postgres to be ready..."
+until docker exec matcha_postgres pg_isready -U matcha -d matcha_db; do
+  echo "Postgres is initializing..."
+  sleep 1
+done
 
-echo "✅ Database reset complete!"
+
+echo "👤 Seeding users table..."
+
+docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/seed_users.sql
+
+echo "🏷 Seeding tags..."
+docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/seed_tags.sql
+
+echo "✅ Database reset and seeded successfully!"
