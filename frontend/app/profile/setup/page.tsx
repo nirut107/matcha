@@ -505,7 +505,7 @@ export default function ProfileSetupPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700 ml-1">
-                  AGE|| !previews[profilePicIndex]
+                  AGE
                 </label>
                 <input
                   type="number"
