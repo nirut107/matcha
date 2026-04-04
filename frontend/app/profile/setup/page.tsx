@@ -97,6 +97,8 @@ export default function ProfileSetupPage() {
     const res = await fetchWithAuth("http://localhost:3001/profile/me");
     const data = await res.json();
 
+    setFirstName(data.firstName || "");
+    setLastName(data.lastName)
     setGender(data.gender || "");
     setPreference(data.preference || "");
     setBiography(data.biography || "");
