@@ -96,9 +96,9 @@ export default function ProfileSetupPage() {
   const fetchProfile = async () => {
     const res = await fetchWithAuth("http://localhost:3001/profile/me");
     const data = await res.json();
-
-    setFirstName(data.firstName || "");
-    setLastName(data.lastName)
+    console.log(data);
+    setFirstName(data.first_name || "");
+    setLastName(data.last_name);
     setGender(data.gender || "");
     setPreference(data.preference || "");
     setBiography(data.biography || "");
@@ -337,14 +337,15 @@ export default function ProfileSetupPage() {
       // ✅ 2. Create profile
       const emailRes = await fetchWithAuth("http://localhost:3001/user/email", {
         method: "POST",
-        body: JSON.stringify(email)
+        body: JSON.stringify(email),
       });
+
       const profileRes = await fetchWithAuth("http://localhost:3001/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          firstName,
-          lastName,
+          first_name: firstName,
+          last_name: lastName,
           gender,
           preference,
           biography,

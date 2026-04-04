@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { NotificationService } from '../notification/notification.service';
 import { ForbiddenException } from '@nestjs/common';
 import { SearchDto } from './dto/search.dto';
+import { compareSync } from 'bcrypt';
 
 @Injectable()
 export class ProfileService {
@@ -18,6 +19,7 @@ export class ProfileService {
       'dto:',
       dto,
     );
+    console.log(dto, "========================")
     const {
       gender,
       preference,
@@ -43,6 +45,8 @@ export class ProfileService {
           gender = EXCLUDED.gender,
           preference = EXCLUDED.preference,
           biography = EXCLUDED.biography,
+          first_name = EXCLUDED.first_name,
+          last_name = EXCLUDED.last_name,
           age = EXCLUDED.age,
           latitude = EXCLUDED.latitude,
           longitude = EXCLUDED.longitude,
@@ -108,7 +112,7 @@ export class ProfileService {
 
     if (result.rows.length === 0)
       throw new NotFoundException('Profile not found');
-
+    // console.log(result.row[0], "============")
     return result.rows[0];
   }
 
@@ -222,7 +226,7 @@ export class ProfileService {
       `,
       [userId, me.latitude, me.longitude, me.preference, me.gender],
     );
-    console.log(result.rows);
+    console.log(result.rows.length);
     return result.rows.map((row) => ({
       first_name: row.first_name,
       age: row.age,
