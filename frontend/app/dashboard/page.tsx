@@ -38,15 +38,15 @@ export default function Dashboard() {
           await new Promise((res) => setTimeout(res, 300));
           setProfiles(MOCK_PROFILES);
         } else {
-          console.log("=======================")
+          console.log("=======================");
           const res = await fetchWithAuth(
             "http://localhost:3001/profile/suggestions"
           );
           if (res.status === 403) {
-            router.push('profile/setup'); // onboarding page
+            router.push("profile/setup"); // onboarding page
           }
           const data = await res.json();
-          console.log(data)
+          console.log(data);
           setProfiles(data);
         }
       } catch (err) {
@@ -72,24 +72,24 @@ export default function Dashboard() {
   if (!profiles.length || currentIndex >= profiles.length) {
     return (
       <>
-      <Header />
-      <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
-        <div className="bg-gray-100 p-6 rounded-full mb-4">
-          <Flame size={48} className="text-gray-300" />
+        <Header />
+        <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
+          <div className="bg-gray-100 p-6 rounded-full mb-4">
+            <Flame size={48} className="text-gray-300" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            That's everyone for now!
+          </h2>
+          <p className="text-gray-500 mt-2">
+            Try changing filters or come back later.
+          </p>
+          <button
+            onClick={() => setCurrentIndex(0)}
+            className="mt-6 text-rose-500 font-bold hover:underline"
+          >
+            Reset
+          </button>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">
-          That's everyone for now!
-        </h2>
-        <p className="text-gray-500 mt-2">
-          Try changing filters or come back later.
-        </p>
-        <button
-          onClick={() => setCurrentIndex(0)}
-          className="mt-6 text-rose-500 font-bold hover:underline"
-        >
-          Reset
-        </button>
-      </div>
       </>
     );
   }
@@ -107,12 +107,11 @@ export default function Dashboard() {
       <Header />
 
       {/* 🔍 FILTER BAR */}
-      <FilterBar onOpenFilters={() => console.log("open filter modal")} />
 
       {/* 🔥 MAIN CARD */}
       <main className="flex-grow flex flex-col items-center justify-center p-4">
+        <FilterBar onOpenFilters={() => console.log("open filter modal")} />
         <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl">
-
           <ProfileCard profile={currentProfile} />
 
           {/* ACTION BUTTONS */}
