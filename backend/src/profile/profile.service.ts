@@ -3,7 +3,6 @@ import { DatabaseService } from '../database/database.service';
 import { NotificationService } from '../notification/notification.service';
 import { ForbiddenException } from '@nestjs/common';
 import { SearchDto } from './dto/search.dto';
-import { compareSync } from 'bcrypt';
 
 @Injectable()
 export class ProfileService {
@@ -150,7 +149,6 @@ export class ProfileService {
     );
 
     const me = meRes.rows[0];
-    console.log(me,"ME")
 
     if (!me) {
       throw new ForbiddenException('Complete your profile first');
@@ -165,8 +163,8 @@ export class ProfileService {
         p.age,
         p.biography,
         p.fame_rating,
-
-        -- 🔥 distance
+  
+        -- 🔥 distance (km)
         (
           6371 * acos(
             cos(radians($2)) *
@@ -176,68 +174,86 @@ export class ProfileService {
             sin(radians(p.latitude))
           )
         ) AS distance,
-
-        -- 🔥 images
+  
+        -- 🔥 images (WITH PROFILE INFO)
         COALESCE(
-          ARRAY_AGG(DISTINCT pic.url) FILTER (WHERE pic.url IS NOT NULL),
-          '{}'
+          JSON_AGG(
+            JSONB_BUILD_OBJECT(
+              'url', pic.url,
+              'is_profile', pic.is_profile,
+              'position', pic.position
+            )
+            ORDER BY pic.position
+          ) FILTER (WHERE pic.url IS NOT NULL),
+          '[]'
         ) AS images,
-
+  
         -- 🔥 tags
-        COALESCE(
-          ARRAY_AGG(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL),
-          '{}'
+        (
+          SELECT COALESCE(
+            ARRAY_AGG(t2.name),
+            '{}'
+          )
+          FROM user_tags ut2
+          JOIN tags t2 ON t2.id = ut2.tag_id
+          WHERE ut2.user_id = u.id
         ) AS tags
-
+  
       FROM users u
       JOIN profiles p ON p.user_id = u.id
-
+  
       LEFT JOIN pictures pic ON pic.user_id = u.id
       LEFT JOIN user_tags ut ON ut.user_id = u.id
       LEFT JOIN tags t ON t.id = ut.tag_id
-
+  
       WHERE u.id != $1
-
+  
       -- ❌ blocked
       AND u.id NOT IN (
         SELECT blocked_id FROM blocks WHERE blocker_id = $1
         UNION
         SELECT blocker_id FROM blocks WHERE blocked_id = $1
       )
-
-      -- ❌ swiper
+  
+      -- ❌ swiped
       AND u.id NOT IN (
         SELECT target_id FROM swipes WHERE swiper_id = $1
       )
-
-      -- ✅ gender
-      AND (
-        p.gender = $4 OR $4 = 'both'
-      )
-
-      AND (
-        p.preference = $5 OR p.preference = 'both'
-      )
-
+  
+      -- ✅ gender match
+      AND (p.gender = $4 OR $4 = 'both')
+  
+      AND (p.preference = $5 OR p.preference = 'both')
+  
       GROUP BY u.id, p.user_id
-
+  
       ORDER BY distance ASC, p.fame_rating DESC
       LIMIT 20
       `,
       [userId, me.latitude, me.longitude, me.preference, me.gender],
     );
-    console.log(result.rows);
-    return result.rows.map((row) => ({
-      first_name: row.first_name,
-      age: row.age,
-      biography: row.biography,
-      tags: row.tags || [],
-      images: row.images || [],
-      fame_rating: row.fame_rating,
-      distance: `${row.distance.toFixed(1)} km`, // 🔥 format
-      is_online: row.is_online,
-      userId: row.id
-    }));
+
+    return result.rows.map((row) => {
+      const images = row.images || [];
+
+      const profileIndex = images.findIndex((img) => img.is_profile);
+      const profileImage =
+        profileIndex !== -1 ? images[profileIndex].url : null;
+
+      return {
+        userId: row.id,
+        first_name: row.first_name,
+        age: row.age,
+        biography: row.biography,
+        tags: row.tags || [],
+        images,
+        profileIndex,
+        profileImage,
+        fame_rating: row.fame_rating,
+        distance: `${Number(row.distance).toFixed(1)} km`,
+        is_online: row.is_online,
+      };
+    });
   }
 
   async getSetupStatus(userId: number) {

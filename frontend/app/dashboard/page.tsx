@@ -27,58 +27,55 @@ import { useRouter } from "next/navigation";
 // 🔥 Toggle here (switch to false when backend ready)
 const USE_MOCK = false;
 
+type Image = {
+  url: string;
+  is_profile: boolean;
+  position: number;
+};
+
+type Profile = {
+  first_name: string;
+  age: number;
+  biography: string;
+  tags: string[];
+  images: Image[];
+  fame_rating: number;
+  distance: string;
+  is_online: boolean;
+  profileIndex:number;
+  profileImage: string;
+  userId: number;
+};
+
 export default function Dashboard() {
   const router = useRouter();
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const [showModal, setShowModal] = useState(false);
-  const [detailedInfo, setDetailedInfo] = useState<any>(null);
-  const [extraPictures, setExtraPictures] = useState<string[]>([]);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
   const handleShowInfo = async (userId: number) => {
     setIsModalLoading(true);
     setShowModal(true);
-
-    try {
-      // Parallel fetch for profile details and gallery
-      const [profileRes, picturesRes] = await Promise.all([
-        fetchWithAuth(`http://localhost:3001/profile/${userId}`),
-        fetchWithAuth(`http://localhost:3001/pictures/${userId}`),
-      ]);
-
-      const profileData = await profileRes.json();
-      const picturesData = await picturesRes.json();
-
-      setDetailedInfo(profileData);
-      setExtraPictures(picturesData.pictures); // Assuming this is an array of strings/URLs
-    } catch (err) {
-      console.error("Failed to load details", err);
-    } finally {
-      setIsModalLoading(false);
-    }
+    setIsModalLoading(false);
   };
   // ✅ Load data (mock OR backend)
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        if (USE_MOCK) {
-          await new Promise((res) => setTimeout(res, 300));
-          setProfiles(MOCK_PROFILES);
-        } else {
-          console.log("=======================");
-          const res = await fetchWithAuth(
-            "http://localhost:3001/profile/suggestions"
-          );
-          if (res.status === 403) {
-            router.push("profile/setup"); // onboarding page
-          }
-          const data = await res.json();
-          console.log(`data from fetch is ${data}`);
-          setProfiles(data);
+        console.log("=======================");
+        const res = await fetchWithAuth(
+          "http://localhost:3001/profile/suggestions"
+        );
+        if (res.status === 403) {
+          router.push("profile/setup"); // onboarding page
         }
+        const data = await res.json();
+        console.log(`data from fetch is ${data}`);
+        setProfiles(data);
+        console.log(profiles);
       } catch (err) {
         console.error("Error loading profiles:", err);
       } finally {
@@ -125,6 +122,7 @@ export default function Dashboard() {
   }
 
   const currentProfile = profiles[currentIndex];
+  console.log(currentProfile);
 
   const handleAction = async (type: "like" | "pass") => {
     const targetId = currentProfile.userId; // Or currentProfile.userId, ensure this matches your data structure
@@ -203,10 +201,10 @@ export default function Dashboard() {
               <div className="pb-12">
                 {/* Horizontal Photo Gallery */}
                 <div className="flex overflow-x-auto snap-x snap-mandatory h-[450px] bg-gray-100 no-scrollbar">
-                  {extraPictures.map((img, i) => (
+                  {currentProfile.images.map((img, i) => (
                     <img
                       key={i}
-                      src={img}
+                      src={img.url}
                       className="w-full h-full object-cover flex-shrink-0 snap-center"
                       alt="User gallery"
                     />
@@ -217,9 +215,9 @@ export default function Dashboard() {
                   {/* Name & Age Matching your ProfileCard style */}
                   <div className="flex items-center gap-3 mb-2">
                     <h2 className="text-4xl font-black text-gray-900">
-                      {detailedInfo?.first_name}, {detailedInfo?.age}
+                      {currentProfile.first_name}, {currentProfile.age}
                     </h2>
-                    {detailedInfo?.is_online && (
+                    {currentProfile?.is_online && (
                       <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
                     )}
                   </div>
@@ -231,11 +229,11 @@ export default function Dashboard() {
                         size={16}
                         className="text-orange-400 fill-orange-400"
                       />{" "}
-                      {detailedInfo?.fame_rating}
+                      {currentProfile?.fame_rating}
                     </span>
                     <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
                       <MapPin size={16} className="text-rose-500" />{" "}
-                      {detailedInfo?.distance}
+                      {currentProfile?.distance}
                     </span>
                   </div>
 
@@ -243,14 +241,14 @@ export default function Dashboard() {
                     About
                   </h3>
                   <p className="text-gray-700 text-lg leading-relaxed mb-8">
-                    {detailedInfo?.biography}
+                    {currentProfile?.biography}
                   </p>
 
                   <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
                     Interests
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {detailedInfo?.tags?.map((tag: string) => (
+                    {currentProfile?.tags?.map((tag: string) => (
                       <span
                         key={tag}
                         className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-sm font-bold border border-rose-100"

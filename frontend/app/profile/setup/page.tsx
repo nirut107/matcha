@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ProfilerProps } from "react";
 import { useRouter } from "next/navigation";
 import {
   Flame,
@@ -102,7 +102,8 @@ export default function ProfileSetupPage() {
     setGender(data.gender || "");
     setPreference(data.preference || "");
     setBiography(data.biography || "");
-    setSelectedTags(data.tags || []);
+    const tagWithShape = data.tags.map((tag: string) => "#" + tag);
+    setSelectedTags(tagWithShape || []);
     setAge(data.age || 18);
     setLocation({ lat: data.latitude || null, lng: data.longitude || null });
 
@@ -335,11 +336,16 @@ export default function ProfileSetupPage() {
 
     try {
       // ✅ 2. Create profile
-      const emailRes = await fetchWithAuth("http://localhost:3001/user/email", {
-        method: "POST",
-        body: JSON.stringify(email),
-      });
-
+      if (!hasGoogle) {
+        const emailRes = await fetchWithAuth(
+          "http://localhost:3001/user/email",
+          {
+            method: "POST",
+            body: JSON.stringify(email),
+          }
+        );
+      }
+      const cleanTags = selectedTags.map((tag) => tag.replace(/^#/, "").trim());
       const profileRes = await fetchWithAuth("http://localhost:3001/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -349,7 +355,7 @@ export default function ProfileSetupPage() {
           gender,
           preference,
           biography,
-          tags: selectedTags,
+          tags: cleanTags,
           age,
           latitude: location.lat,
           longitude: location.lng,
