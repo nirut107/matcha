@@ -537,3 +537,7 @@ SELECT pg_catalog.setval('public.users_id_seq', 500, true);
 
 \unrestrict YQejtdAWbvFEsG0rwu9vrsIQXIJU3ByYTJEmexHoh60tQm0KFirBGuOmrGJ06yn
 
+
+
+
+-- docker exec matcha_postgres pg_dump -U matcha -d matcha_db -t users --data-only --inserts > database/seed_users.sql

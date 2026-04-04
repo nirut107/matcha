@@ -45,7 +45,7 @@ export class UserController {
     };
   }
 
-  @Post("emil")
+  @Post("email")
   @UseGuards(JwtGuard)
   async updateEmail(@Req() req, @Body() email: string) {
     
