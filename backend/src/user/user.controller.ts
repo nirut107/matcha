@@ -51,7 +51,7 @@ export class UserController {
   @Post('email')
   @UseGuards(JwtGuard)
   async updateEmail(@Req() req, @Body() email: string) {
-    console.log("Email :", email)
+    console.log("Email :", email, req)
     return this.updateEmail(req.user.userId, email);
   }
 

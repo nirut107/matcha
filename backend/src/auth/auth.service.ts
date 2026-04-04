@@ -5,6 +5,7 @@ import { DatabaseService } from '../database/database.service';
 import { RegisterDto } from './dto/register.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
+import { BadRequestException } from '@nestjs/common';
 
 type RefreshTokenRow = {
   id: number;
@@ -44,30 +45,38 @@ export class AuthService {
 
   async register(dto: RegisterDto, res: Response) {
     const { username, email, password } = dto;
-    console.log(username, password, email);
-    const existing = await this.db.query(
-      'SELECT * FROM users WHERE username = $1 OR email = $2',
-      [username, email],
+
+    const existingUsername = await this.db.query(
+      'SELECT 1 FROM users WHERE username = $1',
+      [username],
     );
-    if (existing.rows.length > 0) {
-      const existingUser = existing.rows[0];
-      if (existingUser.username === username) {
-        throw new UnauthorizedException('Username already taken');
-      }
-      if (existingUser.email === email) {
-        throw new UnauthorizedException('Email already registered');
-      }
+
+    if (existingUsername.rows.length > 0) {
+      throw new BadRequestException('Username already taken');
+    }
+    const existingEmail = await this.db.query(
+      'SELECT 1 FROM users WHERE email = $1',
+      [email],
+    );
+
+    if (existingEmail.rows.length > 0) {
+      throw new BadRequestException('Email already registered');
     }
 
     const password_hash = await bcrypt.hash(password, 10);
-    const user = await this.db.query(
-      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id',
+
+    const result = await this.db.query(
+      `INSERT INTO users (username, email, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id`,
       [username, email, password_hash],
     );
 
-    const { accessToken, refreshToken } = await this.generateTokens(user.id);
+    const newUser = result.rows[0];
 
-    await this.storeRefreshToken(user.id, refreshToken);
+    const { accessToken, refreshToken } = await this.generateTokens(newUser.id);
+
+    await this.storeRefreshToken(newUser.id, refreshToken);
 
     this.setCookies(res, accessToken, refreshToken);
 
