@@ -225,7 +225,7 @@ export class ProfileService {
       `,
       [userId, me.latitude, me.longitude, me.preference, me.gender],
     );
-    console.log(result.rows.length);
+    console.log(result.rows);
     return result.rows.map((row) => ({
       first_name: row.first_name,
       age: row.age,
@@ -235,6 +235,7 @@ export class ProfileService {
       fame_rating: row.fame_rating,
       distance: `${row.distance.toFixed(1)} km`, // 🔥 format
       is_online: row.is_online,
+      userId: row.id
     }));
   }
 

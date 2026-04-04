@@ -1,11 +1,30 @@
 "use client";
 
-import { Flame, MessageCircle, Settings } from "lucide-react";
+import { Flame, MessageCircle, Settings, LogOut } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const handleLogout = async () => {
+    try {
+      // 1. Tell the backend to clear the session/cookie
+      await fetchWithAuth("http://localhost:3001/auth/logout", {
+        method: "POST",
+      });
+
+      // 2. Clear any local storage if you use it (optional)
+      // localStorage.removeItem('token');
+
+      // 3. Redirect to login
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Even if the API fails, you usually want to kick the user to login
+      router.push("/auth/login");
+    }
+  };
   return (
     <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50 hover:cursor-pointer">
       {/* Logo */}
@@ -27,7 +46,9 @@ export default function Header() {
 
       {/* Right icons */}
       <div className="flex gap-6">
-        <button className="text-gray-400 hover:text-rose-500 relative transition-colors cursor-pointer" onClick={() => {
+        <button
+          className="text-gray-400 hover:text-rose-500 relative transition-colors cursor-pointer"
+          onClick={() => {
             if (pathname !== "/chat") {
               router.push("/chat");
             }
@@ -47,6 +68,14 @@ export default function Header() {
           }}
         >
           <Settings size={24} />
+        </button>
+        {/* --- LOGOUT BUTTON --- */}
+        <button
+          className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer flex items-center gap-1"
+          onClick={handleLogout}
+          title="Logout"
+        >
+          <LogOut size={24} />
         </button>
       </div>
     </header>
