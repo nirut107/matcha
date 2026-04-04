@@ -95,8 +95,8 @@ export class ProfileService {
   async getMyProfile(userId: number) {
     const result = await this.db.query(
       `
-      SELECT 
-        p.*, 
+      SELECT
+        p.*,
         u.username,
         COALESCE(json_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '[]') AS tags
       FROM profiles p
@@ -150,6 +150,7 @@ export class ProfileService {
     );
 
     const me = meRes.rows[0];
+    console.log(me,"ME")
 
     if (!me) {
       throw new ForbiddenException('Complete your profile first');
@@ -157,14 +158,14 @@ export class ProfileService {
 
     const result = await this.db.query(
       `
-      SELECT 
+      SELECT
         u.id,
         u.first_name,
         u.is_online,
         p.age,
         p.biography,
         p.fame_rating,
-    
+
         -- 🔥 distance
         (
           6371 * acos(
@@ -175,51 +176,51 @@ export class ProfileService {
             sin(radians(p.latitude))
           )
         ) AS distance,
-    
+
         -- 🔥 images
         COALESCE(
           ARRAY_AGG(DISTINCT pic.url) FILTER (WHERE pic.url IS NOT NULL),
           '{}'
         ) AS images,
-    
+
         -- 🔥 tags
         COALESCE(
           ARRAY_AGG(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL),
           '{}'
         ) AS tags
-    
+
       FROM users u
       JOIN profiles p ON p.user_id = u.id
-    
+
       LEFT JOIN pictures pic ON pic.user_id = u.id
       LEFT JOIN user_tags ut ON ut.user_id = u.id
       LEFT JOIN tags t ON t.id = ut.tag_id
-    
+
       WHERE u.id != $1
-    
+
       -- ❌ blocked
       AND u.id NOT IN (
         SELECT blocked_id FROM blocks WHERE blocker_id = $1
         UNION
         SELECT blocker_id FROM blocks WHERE blocked_id = $1
       )
-    
+
       -- ❌ swiper
       AND u.id NOT IN (
         SELECT target_id FROM swipes WHERE swiper_id = $1
       )
-    
+
       -- ✅ gender
       AND (
         p.gender = $4 OR $4 = 'both'
       )
-    
+
       AND (
         p.preference = $5 OR p.preference = 'both'
       )
-    
+
       GROUP BY u.id, p.user_id
-    
+
       ORDER BY distance ASC, p.fame_rating DESC
       LIMIT 20
       `,
@@ -274,14 +275,14 @@ export class ProfileService {
 
     const result = await this.db.query(
       `
-      SELECT 
+      SELECT
         u.id,
         u.username,
         p.age,
         p.biography,
         p.fame_rating,
         pic.url AS profile_picture,
-  
+
         -- 📍 distance
         (
           6371 * acos(
@@ -292,20 +293,20 @@ export class ProfileService {
             sin(radians(p.latitude))
           )
         ) AS distance,
-  
+
         -- 🏷️ common tags
         COUNT(DISTINCT ut2.tag_id) AS common_tags
-  
+
       FROM users u
       JOIN profiles p ON p.user_id = u.id
-  
-      LEFT JOIN pictures pic 
+
+      LEFT JOIN pictures pic
         ON pic.user_id = u.id AND pic.is_profile = TRUE
-  
+
       -- 🔥 tag matching
       LEFT JOIN user_tags ut2 ON ut2.user_id = u.id
       LEFT JOIN tags t ON t.id = ut2.tag_id
-  
+
       WHERE u.id != $1
 
       AND u.id NOT IN (
@@ -313,22 +314,22 @@ export class ProfileService {
         UNION
         SELECT blocker_id FROM blocks WHERE blocked_id = $1
       )
-    
+
       AND u.id NOT IN (
         SELECT target_id FROM swipes WHERE swiper_id = $1
       )
-  
+
       -- ✅ AGE
       AND p.age BETWEEN $4 AND $5
-  
+
       -- ✅ FAME
       AND p.fame_rating BETWEEN $6 AND $7
-  
+
       -- ✅ TAG FILTER (if provided)
       ${tags.length ? `AND t.name = ANY($8)` : ''}
-  
+
       GROUP BY u.id, p.age, p.biography, p.fame_rating, pic.url
-  
+
       HAVING
         -- 📍 distance filter
         (
@@ -340,9 +341,9 @@ export class ProfileService {
             sin(radians(p.latitude))
           )
         ) <= $9
-  
+
       ORDER BY ${orderBy} ${orderDir}
-  
+
       LIMIT 50
       `,
       [
