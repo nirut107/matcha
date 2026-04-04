@@ -18,15 +18,24 @@ export class ProfileService {
       'dto:',
       dto,
     );
-    const { gender, preference, biography, tags, age, latitude, longitude } =
-      dto;
+    const {
+      gender,
+      preference,
+      biography,
+      first_name,
+      last_name,
+      tags,
+      age,
+      latitude,
+      longitude,
+    } = dto;
 
     await this.db.query('BEGIN');
     try {
       await this.db.query(
         `
         INSERT INTO profiles (
-          user_id, gender, preference, biography, age, latitude, longitude, is_setup
+          user_id, gender, preference, biography,first_name, last_name, age, latitude, longitude, is_setup
         )
         VALUES ($1,$2,$3,$4,$5,$6,$7, TRUE)
         ON CONFLICT (user_id)
@@ -39,7 +48,17 @@ export class ProfileService {
           longitude = EXCLUDED.longitude,
           is_setup = TRUE
         `,
-        [userId, gender, preference, biography, age, latitude, longitude],
+        [
+          userId,
+          gender,
+          preference,
+          biography,
+          first_name,
+          last_name,
+          age,
+          latitude,
+          longitude,
+        ],
       );
 
       await this.db.query(`DELETE FROM user_tags WHERE user_id = $1`, [userId]);
@@ -203,7 +222,7 @@ export class ProfileService {
       `,
       [userId, me.latitude, me.longitude, me.preference, me.gender],
     );
-    console.log(result.rows)
+    console.log(result.rows);
     return result.rows.map((row) => ({
       first_name: row.first_name,
       age: row.age,
@@ -238,7 +257,6 @@ export class ProfileService {
       sortBy = 'distance',
       sortDir = 'asc',
     } = query;
-
 
     const sortMap = {
       age: 'p.age',

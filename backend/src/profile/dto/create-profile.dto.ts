@@ -15,6 +15,14 @@ export class CreateProfileDto {
   @IsString()
   biography: string;
 
+  @ApiProperty({ example: 'Nirut' })
+  @IsString()
+  frist_name: string;
+
+  @ApiProperty({ example: 'Somrod' })
+  @IsString()
+  last_name: string;
+
   @ApiProperty({ type: [String], example: ['#coding', '#coffee'] })
   @IsArray()
   @ArrayMaxSize(20)
