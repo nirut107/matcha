@@ -319,6 +319,8 @@ export default function ProfileSetupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          firstName,
+          lastName,
           gender,
           preference,
           biography,
@@ -498,7 +500,7 @@ export default function ProfileSetupPage() {
                   <option value="">Select...</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
-                  <option value="other">Other</option>
+                  <option value="both">Other</option>
                 </select>
               </div>
               <div className="space-y-2">
@@ -525,7 +527,7 @@ export default function ProfileSetupPage() {
                 >
                   <option value="male">Men</option>
                   <option value="female">Women</option>
-                  <option value="bisexual">Everyone (Default)</option>
+                  <option value="both">Everyone (Default)</option>
                 </select>
               </div>
             </div>
