@@ -7,11 +7,13 @@ import {
   UseGuards,
   Req,
   Body,
+  Query
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { CreateProfileDto } from './dto/create-profile.dto';
+import { SearchDto } from './dto/search.dto';
 
 
 @ApiTags('Profile')
@@ -66,5 +68,9 @@ export class ProfileController {
     return { message: 'Visit recorded' };
   }
 
-  
+  @Get('search')
+  @UseGuards(JwtGuard)
+  async search(@Req() req, @Query() query: SearchDto) {
+    return this.profileService.searchProfiles(req.user.userId, query);
+  }
 }

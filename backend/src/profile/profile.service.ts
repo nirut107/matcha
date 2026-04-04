@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationService } from '../notification/notification.service';
 import { ForbiddenException } from '@nestjs/common';
+import { SearchDto } from './dto/search.dto';
 
 @Injectable()
 export class ProfileService {
@@ -134,7 +135,6 @@ export class ProfileService {
       throw new ForbiddenException('Complete your profile first');
     }
 
-    // 👉 main query
     const result = await this.db.query(
       `
       SELECT 
@@ -184,16 +184,9 @@ export class ProfileService {
         SELECT blocker_id FROM blocks WHERE blocked_id = $1
       )
     
-      -- ❌ liked
+      -- ❌ swiper
       AND u.id NOT IN (
         SELECT target_id FROM swipes WHERE swiper_id = $1
-      )
-    
-      -- ❌ matches
-      AND u.id NOT IN (
-        SELECT user1_id FROM matches WHERE user2_id = $1
-        UNION
-        SELECT user2_id FROM matches WHERE user1_id = $1
       )
     
       -- ✅ gender
@@ -232,5 +225,119 @@ export class ProfileService {
     );
 
     return res.rows[0];
+  }
+
+  async searchProfiles(userId: number, query: SearchDto) {
+    const me = await this.getMyProfile(userId);
+
+    const {
+      minAge = 18,
+      maxAge = 100,
+      minFame = 0,
+      maxFame = 1000,
+      maxDistance = 100,
+      tags = [],
+      sortBy = 'distance',
+      sortDir = 'asc',
+    } = query;
+
+
+    const sortMap = {
+      age: 'p.age',
+      distance: 'distance',
+      fame: 'p.fame_rating',
+      tags: 'common_tags',
+    };
+
+    const orderBy = sortMap[sortBy] || 'distance';
+    const orderDir = sortDir === 'asc' ? 'ASC' : 'DESC';
+
+    const result = await this.db.query(
+      `
+      SELECT 
+        u.id,
+        u.username,
+        p.age,
+        p.biography,
+        p.fame_rating,
+        pic.url AS profile_picture,
+  
+        -- 📍 distance
+        (
+          6371 * acos(
+            cos(radians($2)) *
+            cos(radians(p.latitude)) *
+            cos(radians(p.longitude) - radians($3)) +
+            sin(radians($2)) *
+            sin(radians(p.latitude))
+          )
+        ) AS distance,
+  
+        -- 🏷️ common tags
+        COUNT(DISTINCT ut2.tag_id) AS common_tags
+  
+      FROM users u
+      JOIN profiles p ON p.user_id = u.id
+  
+      LEFT JOIN pictures pic 
+        ON pic.user_id = u.id AND pic.is_profile = TRUE
+  
+      -- 🔥 tag matching
+      LEFT JOIN user_tags ut2 ON ut2.user_id = u.id
+      LEFT JOIN tags t ON t.id = ut2.tag_id
+  
+      WHERE u.id != $1
+
+      AND u.id NOT IN (
+        SELECT blocked_id FROM blocks WHERE blocker_id = $1
+        UNION
+        SELECT blocker_id FROM blocks WHERE blocked_id = $1
+      )
+    
+      AND u.id NOT IN (
+        SELECT target_id FROM swipes WHERE swiper_id = $1
+      )
+  
+      -- ✅ AGE
+      AND p.age BETWEEN $4 AND $5
+  
+      -- ✅ FAME
+      AND p.fame_rating BETWEEN $6 AND $7
+  
+      -- ✅ TAG FILTER (if provided)
+      ${tags.length ? `AND t.name = ANY($8)` : ''}
+  
+      GROUP BY u.id, p.age, p.biography, p.fame_rating, pic.url
+  
+      HAVING
+        -- 📍 distance filter
+        (
+          6371 * acos(
+            cos(radians($2)) *
+            cos(radians(p.latitude)) *
+            cos(radians(p.longitude) - radians($3)) +
+            sin(radians($2)) *
+            sin(radians(p.latitude))
+          )
+        ) <= $9
+  
+      ORDER BY ${orderBy} ${orderDir}
+  
+      LIMIT 50
+      `,
+      [
+        userId,
+        me.latitude,
+        me.longitude,
+        minAge,
+        maxAge,
+        minFame,
+        maxFame,
+        tags, // $8
+        maxDistance, // $9
+      ],
+    );
+
+    return result.rows;
   }
 }
