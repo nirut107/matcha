@@ -47,7 +47,7 @@ export class AuthController {
   }
 
   @Post('register')
-  @ApiBody({ type: RegisterDto })
+  // @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
     description: 'User registered successfully',
@@ -56,9 +56,10 @@ export class AuthController {
     status: 400,
     description: 'Username or email already exists',
   })
-  async resgister(@Body() body: RegisterDto, @Res({ passthrough: true }) res) {
-    return this.authService.register(body, res);
-  }
+  async resgister(@Body() dto: any, @Res({ passthrough: true }) res) {
+    console.log("Body is:", dto); // If this is still undefined, the issue is the Request, not the Code
+    return this.authService.register(dto, res);
+}
 
   @Get('google')
   @UseGuards(AuthGuard('google'))

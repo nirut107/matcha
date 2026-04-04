@@ -17,9 +17,9 @@ done
 
 echo "👤 Seeding users table..."
 
-docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/seed_users.sql
+# docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/seed_users.sql
 
-echo "🏷 Seeding tags..."
-docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/seed_tags.sql
+# echo "🏷 Seeding tags..."
+# docker exec -i matcha_postgres psql -U matcha -d matcha_db < database/seed_tags.sql
 
 echo "✅ Database reset and seeded successfully!"

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Flame, Mail, Lock, User, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Flame, Mail, Lock, User, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -11,29 +11,32 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: ''
+    username: "",
+    email: "",
+    password: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
-      const response = await fetch('http://localhost:3001/auth/register', {
-        method: 'POST',
+      const response = await fetch("http://localhost:3001/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        router.push('/profile/setup');
+        router.push("/profile/setup");
       } else {
         const data = await response.json();
-        setError(data.message || "Registration failed. Try a different username/email.");
+        setError(
+          data.message || "Registration failed. Try a different username/email."
+        );
       }
     } catch (err) {
       setError("Cannot connect to server. Check port 3001.");
@@ -45,7 +48,6 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
-
         <div className="flex flex-col items-center mb-8">
           <div className="bg-gradient-to-r from-rose-500 to-orange-400 p-3 rounded-2xl mb-4">
             <Flame size={40} color="white" fill="white" />
@@ -53,7 +55,11 @@ export default function RegisterPage() {
           <h1 className="text-3xl font-bold text-gray-800">Create Account</h1>
         </div>
 
-        {error && <div className="bg-red-50 text-red-700 p-3 mb-4 rounded-xl text-sm border border-red-100">{error}</div>}
+        {error && (
+          <div className="bg-red-50 text-red-700 p-3 mb-4 rounded-xl text-sm border border-red-100">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative text-gray-900">
@@ -63,7 +69,9 @@ export default function RegisterPage() {
               placeholder="Username"
               required
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, username: e.target.value })
+              }
             />
           </div>
 
@@ -74,7 +82,9 @@ export default function RegisterPage() {
               placeholder="Email address"
               required
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
             />
           </div>
 
@@ -85,7 +95,9 @@ export default function RegisterPage() {
               placeholder="Password"
               required
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
             />
           </div>
 
@@ -99,7 +111,10 @@ export default function RegisterPage() {
         </form>
 
         <p className="mt-6 text-center text-gray-600 text-sm">
-          Already a member? <Link href="/auth/login" className="text-rose-500 font-bold">Log In</Link>
+          Already a member?{" "}
+          <Link href="/auth/login" className="text-rose-500 font-bold">
+            Log In
+          </Link>
         </p>
       </div>
     </div>

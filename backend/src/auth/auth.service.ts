@@ -42,14 +42,13 @@ export class AuthService {
     return { success: true };
   }
 
-  async register(dto: RegisterDto, res: Response) {
+  async register(dto: any, res: Response) {
     const { username, email, password } = dto;
 
     const existingUsername = await this.db.query(
       'SELECT 1 FROM users WHERE username = $1',
       [username],
     );
-
     if (existingUsername.rows.length > 0) {
       throw new BadRequestException('Username already taken');
     }
@@ -57,11 +56,9 @@ export class AuthService {
       'SELECT 1 FROM users WHERE email = $1',
       [email],
     );
-
     if (existingEmail.rows.length > 0) {
       throw new BadRequestException('Email already registered');
     }
-
     const password_hash = await bcrypt.hash(password, 10);
 
     const result = await this.db.query(
@@ -78,7 +75,7 @@ export class AuthService {
     await this.storeRefreshToken(newUser.id, refreshToken);
 
     this.setCookies(res, accessToken, refreshToken);
-
+    console.log("====================")
     return { success: true };
   }
 
