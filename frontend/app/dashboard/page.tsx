@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   Calendar,
   User,
+  Globe,
 } from "lucide-react";
 import { MOCK_PROFILES } from "./mockData";
 import ProfileCard from "@/components/ProfileCard";
@@ -32,17 +33,17 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const [selectedProfile, setSelectedProfile] = useState<any>(null);
-  const [profileDetails, setProfileDetails] = useState<any>(null);
-  const [profilePictures, setProfilePictures] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [detailedInfo, setDetailedInfo] = useState<any>(null);
+  const [extraPictures, setExtraPictures] = useState<string[]>([]);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
   const handleShowInfo = async (userId: number) => {
     setIsModalLoading(true);
-    setSelectedProfile(true); // Open the modal UI immediately (shows loader)
+    setShowModal(true);
 
     try {
-      // Fetch profile and pictures in parallel
+      // Parallel fetch for profile details and gallery
       const [profileRes, picturesRes] = await Promise.all([
         fetchWithAuth(`http://localhost:3001/profile/${userId}`),
         fetchWithAuth(`http://localhost:3001/pictures/${userId}`),
@@ -51,8 +52,8 @@ export default function Dashboard() {
       const profileData = await profileRes.json();
       const picturesData = await picturesRes.json();
 
-      setProfileDetails(profileData);
-      setProfilePictures(picturesData);
+      setDetailedInfo(profileData);
+      setExtraPictures(picturesData); // Assuming this is an array of strings/URLs
     } catch (err) {
       console.error("Failed to load details", err);
     } finally {
@@ -183,82 +184,76 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* --- DETAIL MODAL --- */}
-      {selectedProfile && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white w-full max-w-2xl h-[90vh] sm:h-[80vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl relative animate-in slide-in-from-bottom duration-300">
-            {/* Close Button */}
+      {/* --- DETAILED PROFILE MODAL --- */}
+      {showModal && (
+        <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center">
+          <div className="bg-white w-full max-w-2xl h-[92vh] sm:h-[85vh] overflow-y-auto rounded-t-[3rem] sm:rounded-[3rem] relative shadow-2xl">
             <button
-              onClick={() => setSelectedProfile(null)}
-              className="absolute top-4 right-4 z-10 bg-black/20 hover:bg-black/40 p-2 rounded-full text-white transition-colors"
+              onClick={() => setShowModal(false)}
+              className="absolute top-6 right-6 z-20 bg-white/20 hover:bg-white/40 backdrop-blur-md p-2 rounded-full text-white sm:text-gray-900 sm:bg-gray-100"
             >
               <X size={24} />
             </button>
 
             {isModalLoading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-rose-500"></div>
               </div>
             ) : (
-              <div className="pb-10">
-                {/* Photo Gallery (Mobile Friendly Horizontal Scroll) */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory h-[400px] bg-gray-200">
-                  {profilePictures.length > 0 ? (
-                    profilePictures.map((pic, idx) => (
-                      <img
-                        key={idx}
-                        src={pic.url || pic} // Adjust based on your API structure
-                        className="w-full h-full object-cover flex-shrink-0 snap-center"
-                        alt="Profile"
-                      />
-                    ))
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <User size={64} />
-                    </div>
-                  )}
+              <div className="pb-12">
+                {/* Horizontal Photo Gallery */}
+                <div className="flex overflow-x-auto snap-x snap-mandatory h-[450px] bg-gray-100 no-scrollbar">
+                  {extraPictures.map((img, i) => (
+                    <img
+                      key={i}
+                      src={img}
+                      className="w-full h-full object-cover flex-shrink-0 snap-center"
+                      alt="User gallery"
+                    />
+                  ))}
                 </div>
 
-                {/* Profile Details */}
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h2 className="text-3xl font-bold text-gray-900">
-                        {profileDetails?.firstName},{" "}
-                        {profileDetails?.age || "24"}
-                      </h2>
-                      <div className="flex items-center text-gray-500 mt-1">
-                        <MapPin size={16} className="mr-1" />
-                        <span>
-                          {profileDetails?.distance || "2 miles"} away
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
-                      <Flame size={18} className="text-rose-500 mr-1" />
-                      <span className="text-rose-600 font-bold">
-                        {profileDetails?.fameRating || "99"}
-                      </span>
-                    </div>
+                <div className="p-8">
+                  {/* Name & Age Matching your ProfileCard style */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-4xl font-black text-gray-900">
+                      {detailedInfo?.first_name}, {detailedInfo?.age}
+                    </h2>
+                    {detailedInfo?.is_online && (
+                      <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
+                    )}
                   </div>
 
-                  <hr className="my-6 border-gray-100" />
+                  {/* Badges */}
+                  <div className="flex gap-3 mb-8">
+                    <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
+                      <Star
+                        size={16}
+                        className="text-orange-400 fill-orange-400"
+                      />{" "}
+                      {detailedInfo?.fame_rating}
+                    </span>
+                    <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
+                      <MapPin size={16} className="text-rose-500" />{" "}
+                      {detailedInfo?.distance}
+                    </span>
+                  </div>
 
-                  <h3 className="font-bold text-gray-800 mb-2 uppercase text-sm tracking-widest">
-                    About Me
+                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
+                    About
                   </h3>
-                  <p className="text-gray-600 leading-relaxed mb-6">
-                    {profileDetails?.bio || "No bio provided."}
+                  <p className="text-gray-700 text-lg leading-relaxed mb-8">
+                    {detailedInfo?.biography}
                   </p>
 
-                  <h3 className="font-bold text-gray-800 mb-3 uppercase text-sm tracking-widest">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
                     Interests
                   </h3>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {profileDetails?.interests?.map((tag: string) => (
+                  <div className="flex flex-wrap gap-2">
+                    {detailedInfo?.tags?.map((tag: string) => (
                       <span
                         key={tag}
-                        className="px-4 py-1.5 bg-gray-100 rounded-full text-sm text-gray-700 font-medium border border-gray-200"
+                        className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-sm font-bold border border-rose-100"
                       >
                         #{tag}
                       </span>
