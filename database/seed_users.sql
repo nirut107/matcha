@@ -528,9 +528,9 @@ INSERT INTO public.users VALUES (500, 'Helen98@hotmail.com', 'Arthur_Weber', 'ha
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: matcha
 --
 
--- SELECT pg_catalog.setval('public.users_id_seq', 500, true);
+SELECT pg_catalog.setval('public.users_id_seq', 500, true);
 
-
+-- docker exec matcha_postgres psql -U matcha -d matcha_db -c "SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 0) + 1, false) FROM users;"
 
 --
 -- PostgreSQL database dump complete
@@ -539,6 +539,9 @@ INSERT INTO public.users VALUES (500, 'Helen98@hotmail.com', 'Arthur_Weber', 'ha
 \unrestrict YQejtdAWbvFEsG0rwu9vrsIQXIJU3ByYTJEmexHoh60tQm0KFirBGuOmrGJ06yn
 
 
-SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 0) + 1, false) FROM users;
+-- SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 0) + 1, false) FROM users;
 
 -- docker exec matcha_postgres pg_dump -U matcha -d matcha_db -t users --data-only --inserts > database/seed_users.sql
+
+
+-- docker exec matcha_postgres psql -U matcha -d matcha_db -c "SELECT setval(pg_get_serial_sequence('users', 'id'), coalesce(max(id), 0) + 1, false) FROM users;"
