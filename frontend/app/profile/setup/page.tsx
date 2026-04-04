@@ -47,6 +47,8 @@ export default function ProfileSetupPage() {
   }>({ lat: null, lng: null });
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [hasGoogle, setHasGoogle] = useState(false);
   const [error, setError] = useState("");
 
   // Image State (Matcha requires up to 5)
@@ -75,6 +77,21 @@ export default function ProfileSetupPage() {
   const [age, setAge] = useState<number | "">("");
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const fetchUser = async () => {
+    try {
+      const res = await fetchWithAuth("http://localhost:3001/user/me");
+      if (res.status == 404) {
+        router.push("auth/login");
+      }
+      const data = await res.json();
+
+      setEmail(data.email || "");
+      setHasGoogle(data.hasGoogle || false);
+    } catch (err) {
+      console.error("Error fetching user:", err);
+    }
+  };
 
   const fetchProfile = async () => {
     const res = await fetchWithAuth("http://localhost:3001/profile/me");
@@ -118,6 +135,7 @@ export default function ProfileSetupPage() {
       .then((data) => setAvailableTags(data.tags))
       .catch((err) => console.error("Error fetching tags:", err));
     fetchProfile();
+    fetchUser();
   }, []);
 
   // Image Logic
@@ -315,6 +333,10 @@ export default function ProfileSetupPage() {
 
     try {
       // ✅ 2. Create profile
+      const emailRes = await fetchWithAuth("http://localhost:3001/user/email", {
+        method: "POST",
+        body: email
+      });
       const profileRes = await fetchWithAuth("http://localhost:3001/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -347,11 +369,12 @@ export default function ProfileSetupPage() {
   // Calculate completion percentage for the Progress Bar
   const calculateProgress = () => {
     let score = 0;
-    if (firstName && lastName) score += 20;
-    if (gender) score += 20;
-    if (biography && biography.length > 10) score += 20;
-    if (selectedTags && selectedTags.length >= 3) score += 20;
-    if (previews.filter((p) => p !== null).length >= 1) score += 10;
+    if (firstName && lastName) score += 15;
+    if (email) score += 15;
+    if (gender) score += 15;
+    if (biography && biography.length > 10) score += 15;
+    if (selectedTags && selectedTags.length >= 3) score += 15;
+    if (previews.filter((p) => p !== null).length >= 1) score += 15;
     if (location.lat) score += 10;
     return score;
   };
@@ -485,6 +508,30 @@ export default function ProfileSetupPage() {
                   className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 ml-1">
+                EMAIL
+              </label>
+
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={hasGoogle}
+                className={`w-full p-4 border-2 rounded-2xl outline-none transition
+      ${
+        hasGoogle
+          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+          : "bg-gray-50 border-gray-100 focus:border-rose-400"
+      }`}
+              />
+
+              {hasGoogle && (
+                <p className="text-xs text-gray-400">
+                  Email is managed via Google account and cannot be changed.
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
