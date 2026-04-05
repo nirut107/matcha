@@ -603,6 +603,9 @@ export default function ProfileSetupPage() {
                 value={biography}
                 onChange={(e) => setBiography(e.target.value)}
               />
+              <p className="text-xs text-gray-400">
+                  Type at least 10 characters
+                </p>
             </div>
 
             <div className="space-y-4">
