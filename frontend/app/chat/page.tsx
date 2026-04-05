@@ -7,7 +7,27 @@ import Header from "@/components/Header";
 import { getSocket } from "@/lib/socket";
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
-const USE_MOCK = true; // switch this ON/OFF
+const USE_MOCK = false; // switch this ON/OFF
+
+function formatTime(dateString: string, type: "chat" | "list" = "chat") {
+  const date = new Date(dateString);
+  const now = new Date();
+
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMin / 60);
+
+  if (type === "list") {
+    if (diffMin < 1) return "now";
+    if (diffMin < 60) return `${diffMin}m`;
+    if (diffHr < 24) return `${diffHr}h`;
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function mapMatch(apiMatch: any) {
   return {
@@ -19,6 +39,7 @@ function mapMatch(apiMatch: any) {
     online: apiMatch.is_online,
   };
 }
+
 const MOCK_MATCHES = [
   { id: 1, name: "Sarah", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400", lastMsg: "See you at 8?", time: "2m", online: true },
   { id: 2, name: "Alex", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400", lastMsg: "That sounds like a plan!", time: "1h", online: false },
@@ -64,7 +85,7 @@ export default function ChatPage() {
     setChatHistory(formatted);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
 
@@ -75,8 +96,17 @@ export default function ChatPage() {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setChatHistory([...chatHistory, newMsg]);
+    // optimistic UI
+    setChatHistory(prev => [...prev, newMsg]);
     setMessage("");
+
+    if (!USE_MOCK) {
+      const socket = getSocket();
+      socket.emit("sendMessage", {
+        matchId: activeChat.id,
+        content: message,
+      });
+    }
   };
 
   return (
