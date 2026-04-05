@@ -16,7 +16,6 @@ import {
   User,
   Globe,
 } from "lucide-react";
-import { MOCK_PROFILES } from "./mockData";
 import ProfileCard from "@/components/ProfileCard";
 import Header from "@/components/Header";
 import ActionButtons from "@/components/ActionButtons";
@@ -65,7 +64,6 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        console.log("=======================");
         const res = await fetchWithAuth(
           "http://localhost:3001/profile/suggestions"
         );

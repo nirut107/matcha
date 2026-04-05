@@ -74,7 +74,7 @@ export default function ProfileSetupPage() {
     null,
     null,
   ]);
-  const [age, setAge] = useState<number | "">("");
+  const [age, setAge] = useState<number>(18);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
@@ -95,26 +95,29 @@ export default function ProfileSetupPage() {
 
   const fetchProfile = async () => {
     const res = await fetchWithAuth("http://localhost:3001/profile/me");
-    const data = await res.json();
-    console.log(data);
-    setFirstName(data.first_name || "");
-    setLastName(data.last_name);
-    setGender(data.gender || "");
-    setPreference(data.preference || "");
-    setBiography(data.biography || "");
-    const tagWithShape = data.tags.map((tag: string) => "#" + tag);
-    setSelectedTags(tagWithShape || []);
-    setAge(data.age || 18);
-    setLocation({ lat: data.latitude || null, lng: data.longitude || null });
 
-    // images mapping
+    if (res.status == 200) {
+      const data = await res.json();
+      setFirstName(data.first_name || "");
+      setLastName(data.last_name);
+      setGender(data.gender || "");
+      setPreference(data.preference || "");
+      setBiography(data.biography || "");
+      let tagWithShape = [];
+      if (data.tags) {
+        tagWithShape = data.tags.map((tag: string) => "#" + tag);
+      }
+      setSelectedTags(tagWithShape);
+      setAge(data.age || 18);
+      setLocation({ lat: data.latitude || null, lng: data.longitude || null });
+    }
+
     const newPreviews = [null, null, null, null, null];
     const newExisting = [null, null, null, null, null];
     const res2 = await fetchWithAuth("http://localhost:3001/pictures/me");
-    console.log(res2);
-    const data2 = await res2.json();
-    console.log(data2, "=========");
-    if (data2) {
+
+    if (res2.status == 200) {
+      const data2 = await res2.json();
       data2.forEach((img: any) => {
         const index = img.position - 1;
 
