@@ -38,7 +38,7 @@ async function seed() {
     const userRes = await client.query(
       `
       INSERT INTO users (
-        email, username, password_hash, first_name, last_name, is_verified
+        email, username, password_hash, is_verified
       )
       VALUES ($1, $2, $3, $4, $5, true)
       RETURNING id
@@ -47,8 +47,6 @@ async function seed() {
         email,
         username,
         'hashed_password',
-        faker.person.firstName(),
-        faker.person.lastName(),
       ],
     );
 
@@ -70,7 +68,7 @@ async function seed() {
         user_id, gender, preference, age, biography,
         fame_rating, latitude, longitude, location_text
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11)
       `,
       [
         userId,
@@ -82,6 +80,8 @@ async function seed() {
         latitude,
         longitude,
         'Bangkok, Thailand',
+        faker.person.firstName(),
+        faker.person.lastName(),
       ],
     );
 

@@ -33,6 +33,11 @@ export default function SocketHandler() {
     socket.on("me", (data) => {
       console.log("Got userId from socket me", data);
     });
+
+    socket.on('newMessage', (message) => {
+      console.log(message)
+    });
+
     socket.emit("whoami");
 
     return () => {

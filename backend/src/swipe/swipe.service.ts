@@ -42,7 +42,7 @@ export class SwipeService {
           `,
           [userId, targetId],
         );
-
+        console.log(userId, targetId)
         if (res.rows.length) {
           isMatch = true;
 
@@ -50,10 +50,10 @@ export class SwipeService {
           await this.db.query(
             `
             INSERT INTO matches (user1_id, user2_id)
-            VALUES (LEAST($1,$2), GREATEST($1,$2))
+            VALUES (LEAST($1::int, $2::int), GREATEST($1::int, $2::int))
             ON CONFLICT DO NOTHING
             `,
-            [userId, targetId],
+            [Number(userId), Number(targetId)],
           );
 
           // 4. notify both

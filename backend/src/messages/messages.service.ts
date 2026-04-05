@@ -39,6 +39,6 @@ export class MessagesService {
           [matchId]
         );
       
-        return result.rows;
+        return {result: result.rows, userId};
       }
 }

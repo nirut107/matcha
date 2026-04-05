@@ -88,7 +88,7 @@ import {
       @MessageBody() data: { matchId: number },
     ) {
       const userId = socket.data.userId;
-  
+      console.log("joinchat", data.matchId)
       const valid = await this.isUserInMatch(userId, data.matchId);
       if (!valid) return;
   
@@ -118,7 +118,7 @@ import {
       data: { matchId: number; content: string },
     ) {
       const userId = socket.data.userId;
-  
+      console.log("sentmessage", userId, data.content)
       const valid = await this.isUserInMatch(userId, data.matchId);
       if (!valid) return;
   
@@ -133,7 +133,7 @@ import {
       );
   
       const message = result.rows[0];
-  
+      console.log(message)
       // emit to room
       this.server
         .to(`match_${data.matchId}`)

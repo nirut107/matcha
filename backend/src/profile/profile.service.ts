@@ -158,7 +158,7 @@ export class ProfileService {
       `
       SELECT
         u.id,
-        u.first_name,
+        p.first_name,
         u.is_online,
         p.age,
         p.biography,

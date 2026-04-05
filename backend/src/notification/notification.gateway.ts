@@ -94,7 +94,7 @@ export class NotificationGateway
   @SubscribeMessage('whoami')
   handleWhoAmI(@ConnectedSocket() socket: Socket) {
     const userId = socket.data.userId;
-
+    console.log("whoami")
     socket.emit('me', {
       userId,
     });

@@ -13,8 +13,8 @@ export class MatchesService {
         m.id,
         u.id as user_id,
         u.username,
-        u.first_name,
-        u.last_name,
+        o.first_name,
+        o.last_name,
         u.is_online,
         u.last_connection,
         p.url as profile_picture,
@@ -37,6 +37,9 @@ export class MatchesService {
     
       LEFT JOIN pictures p 
         ON p.user_id = u.id AND p.is_profile = TRUE
+      
+      LEFT JOIN profiles o 
+        ON o.user_id = u.id
     
       -- 🔥 last message (LATERAL = per row)
       LEFT JOIN LATERAL (

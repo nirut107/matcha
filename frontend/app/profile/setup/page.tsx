@@ -98,6 +98,7 @@ export default function ProfileSetupPage() {
 
     if (res.status == 200) {
       const data = await res.json();
+      console.log(data, "==============")
       setFirstName(data.first_name || "");
       setLastName(data.last_name);
       setGender(data.gender || "");
