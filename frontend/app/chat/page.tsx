@@ -59,11 +59,21 @@ export default function ChatPage() {
   const [matches, setMatches] = useState<MatchResponse[]>([]);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [socket, setSocket] = useState<any>(null); // Keep socket in state
+  const [userId, setUserId] = useState<number | null>(null);
   // const socket = getSocket();
 
   useEffect(() => {
     const s = getSocket();
+    let Id: number;
     setSocket(s);
+    fetchWithAuth("http://localhost:3001/user/me")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data.id);
+        Id = data.id;
+        setUserId(data.id);
+      });
+
     fetchWithAuth("http://localhost:3001/matches")
       .then((res) => res.json())
       .then((data) => {
@@ -79,18 +89,34 @@ export default function ChatPage() {
       })
       .catch(console.error);
     s.on("newMessage", (msg: any) => {
-      console.log("📩 New message received:", msg);
+      if (Number(msg.sender_id) != Number(Id)) {
+        const formattedMsg = {
+          id: msg.id || Date.now(),
+          sender: msg.sender_id === Id ? "me" : "them",
+          text: msg.content,
+          time: formatTime(msg.created_at || new Date().toISOString()),
+        };
+        setChatHistory((prev) => [...prev, formattedMsg]);
+      }
 
-      // Transform the incoming socket message to match your UI format
-      const formattedMsg = {
-        id: msg.id || Date.now(),
-        sender: "them", // Usually messages from socket are from the other person
-        text: msg.content,
-        time: formatTime(msg.created_at || new Date().toISOString()),
-      };
-
-      // Use functional update so we don't depend on stale 'chatHistory'
-      setChatHistory((prev) => [...prev, formattedMsg]);
+      setMatches((prevMatches) => {
+        return prevMatches
+          .map((match) => {
+            if (match.id === msg.match_id) {
+              return {
+                ...match,
+                last_message: msg.content,
+                last_message_time: formatTime(msg.created_at, "list"),
+              };
+            }
+            return match;
+          })
+          .sort((a, b) => {
+            if (a.id === msg.match_id) return -1;
+            if (b.id === msg.match_id) return 1;
+            return 0;
+          });
+      });
     });
     return () => {
       s.off("newMessage");
@@ -118,6 +144,7 @@ export default function ChatPage() {
     }));
 
     setChatHistory(formatted);
+    return data.userId;
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
