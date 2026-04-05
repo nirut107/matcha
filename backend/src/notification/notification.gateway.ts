@@ -3,6 +3,8 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
+  ConnectedSocket
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
@@ -72,7 +74,7 @@ export class NotificationGateway
   handleDisconnect(socket: Socket) {
     for (const [userId, sockets] of this.userSockets.entries()) {
       sockets.delete(socket.id);
-  
+
       if (sockets.size === 0) {
         this.userSockets.delete(userId);
       }
@@ -87,5 +89,14 @@ export class NotificationGateway
     for (const socketId of sockets) {
       this.server.to(socketId).emit('notification', notification);
     }
+  }
+
+  @SubscribeMessage('whoami')
+  handleWhoAmI(@ConnectedSocket() socket: Socket) {
+    const userId = socket.data.userId;
+
+    socket.emit('me', {
+      userId,
+    });
   }
 }
