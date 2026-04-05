@@ -1,10 +1,24 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, MoreVertical, Phone, Video, ChevronLeft, Search, Circle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import Header from "@/components/Header";
+import { getSocket } from "@/lib/socket";
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
+const USE_MOCK = true; // switch this ON/OFF
+
+function mapMatch(apiMatch: any) {
+  return {
+    id: apiMatch.id,
+    name: `${apiMatch.first_name} ${apiMatch.last_name}`,
+    avatar: apiMatch.profile_picture,
+    lastMsg: apiMatch.last_message,
+    time: formatTime(apiMatch.last_message_time),
+    online: apiMatch.is_online,
+  };
+}
 const MOCK_MATCHES = [
   { id: 1, name: "Sarah", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400", lastMsg: "See you at 8?", time: "2m", online: true },
   { id: 2, name: "Alex", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400", lastMsg: "That sounds like a plan!", time: "1h", online: false },
@@ -15,15 +29,39 @@ export default function ChatPage() {
   const [activeChat, setActiveChat] = useState(MOCK_MATCHES[0]);
   const [isChatOpen, setIsChatOpen] = useState(false); // Track if we are viewing a conversation on mobile
   const [message, setMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState([
-    { id: 1, sender: 'them', text: "Hey! I saw you're also into coding.", time: "10:00 AM" },
-    { id: 2, sender: 'me', text: "Yeah! Working on a project called Matcha right now.", time: "10:02 AM" },
-    { id: 3, sender: 'them', text: "That's cool! Is it for school?", time: "10:05 AM" },
-  ]);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
 
-  const handleSelectChat = (match: typeof MOCK_MATCHES[0]) => {
+  useEffect(() => {
+    if (USE_MOCK) {
+      setMatches(MOCK_MATCHES);
+    } else {
+      fetchWithAuth("http://localhost:3001/matches")
+        .then(res => res.json())
+        .then(data => {
+          setMatches(data.map(mapMatch));
+        })
+        .catch(console.error);
+    }
+  }, []);
+
+  const handleSelectChat = async (match: any) => {
     setActiveChat(match);
-    setIsChatOpen(true); // Open the chat window on mobile
+    setIsChatOpen(true);
+
+    if (USE_MOCK) return;
+
+    const res = await fetch(`http://localhost:3001/messages/${match.id}`);
+    const data = await res.json();
+
+    const formatted = data.map((msg: any) => ({
+      id: msg.id,
+      sender: msg.sender_id === "me" ? "me" : "them",
+      text: msg.content,
+      time: formatTime(msg.created_at),
+    }));
+
+    setChatHistory(formatted);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
