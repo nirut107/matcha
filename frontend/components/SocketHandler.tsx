@@ -44,11 +44,6 @@ export default function SocketHandler() {
       console.log("Got userId from socket me", data);
     });
 
-    socket.on("newMessage", (message) => {
-      console.log(message);
-      toast(`New message: ${message.text}`);
-    });
-
     socket.emit("whoami");
 
     return () => {

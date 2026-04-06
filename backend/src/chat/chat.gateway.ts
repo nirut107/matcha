@@ -155,7 +155,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
     }
-
+    console.log(isRecipientInRoom, "not on room")
     if (!isRecipientInRoom) {
       this.sendToUser(recipientId, {
         type: 'NEW_MESSAGE',
