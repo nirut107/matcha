@@ -36,7 +36,11 @@ export interface MatchResponse {
 }
 
 function formatTime(dateString: string, type: "chat" | "list" = "chat") {
-  const date = new Date(dateString);
+  let date = new Date(dateString);
+
+  // 🚨 HOTFIX: backend already applied +7 → revert it
+  date = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+
   const now = new Date();
 
   const diffMs = now.getTime() - date.getTime();
@@ -49,10 +53,9 @@ function formatTime(dateString: string, type: "chat" | "list" = "chat") {
     if (diffHr < 24) return `${diffHr}h`;
   }
 
-  return date.toLocaleTimeString("en-GB", {
+  return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Asia/Bangkok",
   });
 }
 
@@ -79,12 +82,18 @@ export default function ChatPage() {
   }, [chatHistory]); // Runs whenever chatHistory updates
 
   useEffect(() => {
-    return () => {
+    const handleLeave = () => {
       if (activeMatchRef.current) {
         socket?.emit("leaveMatch", { matchId: activeMatchRef.current });
       }
     };
-  }, [router]);
+
+    window.addEventListener("beforeunload", handleLeave);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleLeave);
+    };
+  }, [socket]);
   useEffect(() => {
     activeMatchRef.current = activeChat?.id ?? null;
   }, [activeChat]);
@@ -101,14 +110,6 @@ export default function ChatPage() {
           userIdRef.current = data.id;
         } else {
         }
-        return () => {
-          // ✅ leave current match room when leaving page
-          if (activeMatchRef.current) {
-            s.emit("leaveMatch", { matchId: activeMatchRef.current });
-          }
-
-          s.off("newMessage");
-        };
       });
 
     fetchWithAuth("http://localhost:3001/matches")
@@ -157,6 +158,11 @@ export default function ChatPage() {
       });
     });
     return () => {
+      // ✅ leave current match room when leaving page
+      if (activeMatchRef.current) {
+        s.emit("leaveMatch", { matchId: activeMatchRef.current });
+      }
+
       s.off("newMessage");
     };
   }, []);
@@ -170,7 +176,7 @@ export default function ChatPage() {
 
     if (USE_MOCK) return;
     if (socket) {
-      socket.emit("joinMatch", { matchId: activeChat?.id });
+      socket.emit("joinMatch", { matchId: match.id });
     }
     const res = await fetchWithAuth(
       `http://localhost:3001/messages/${match.id}`
