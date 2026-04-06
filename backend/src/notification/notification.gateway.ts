@@ -8,7 +8,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
-import { ac } from 'node_modules/@faker-js/faker/dist/airline-eVQV6kbz';
+import { DatabaseService } from '../database/database.service';
 
 @WebSocketGateway({
   cors: {
@@ -19,7 +19,10 @@ import { ac } from 'node_modules/@faker-js/faker/dist/airline-eVQV6kbz';
 export class NotificationGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly db: DatabaseService,
+  ) {}
 
   private extractTokenFromCookie(cookieHeader: string): string | null {
     const cookies = cookieHeader.split(';').map((c) => c.trim());
@@ -37,7 +40,7 @@ export class NotificationGateway
 
   private userSockets = new Map<number, Set<string>>();
 
-  handleConnection(socket: Socket) {
+  async handleConnection(socket: Socket) {
     try {
       const cookies = socket.handshake.headers.cookie;
       if (!cookies) return socket.disconnect();
@@ -52,13 +55,20 @@ export class NotificationGateway
       const userId = payload.sub;
       console.log('conect noti', userId);
       let sockets = this.userSockets.get(userId);
-
+      let isFirstConnection = false;
       if (!sockets) {
         sockets = new Set();
         this.userSockets.set(userId, sockets);
+        isFirstConnection = true;
       }
 
       sockets.add(socket.id);
+      if (isFirstConnection) {
+        await this.db.query(`UPDATE users SET is_online = TRUE WHERE id = $1`, [
+          userId,
+        ]);
+        console.log(`User ${userId} is now ONLINE in DB`);
+      }
     } catch {
       socket.disconnect();
     }
@@ -75,12 +85,27 @@ export class NotificationGateway
     return null;
   }
 
-  handleDisconnect(socket: Socket) {
-    for (const [userId, sockets] of this.userSockets.entries()) {
-      sockets.delete(socket.id);
+  async handleDisconnect(socket: Socket) {
+    const userId = socket.data.userId;
 
-      if (sockets.size === 0) {
-        this.userSockets.delete(userId);
+    if (!userId) return;
+
+    const sockets = this.userSockets.get(userId);
+    if (!sockets) return;
+
+    sockets.delete(socket.id);
+
+    if (sockets.size === 0) {
+      this.userSockets.delete(userId);
+
+      try {
+        await this.db.query(
+          `UPDATE users SET is_online = FALSE, last_connection = NOW() WHERE id = $1`,
+          [userId],
+        );
+        console.log(`User ${userId} is now OFFLINE in DB`);
+      } catch (err) {
+        console.error('Failed to update offline status', err);
       }
     }
   }

@@ -138,7 +138,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const message = result.rows[0];
 
     const roomName = `match_${data.matchId}`;
-    this.server.to(roomName).emit('newMessage', message);
+    socket.to(roomName).emit('newMessage', message);
 
     const recipientId =
       match.user1_id === userId ? match.user2_id : match.user1_id;

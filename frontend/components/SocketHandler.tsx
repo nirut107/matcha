@@ -20,7 +20,6 @@ export default function SocketHandler() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const socketRef = useRef<any>(null);
-  // Store the PeerConnection and LocalStream in Refs
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
 
@@ -30,10 +29,9 @@ export default function SocketHandler() {
 
     const onStartOutgoingCall = (e: Event) => {
       const customEvent = e as CustomEvent;
-      const { targetUserId, matchId } = customEvent.detail;
+      const { targetUserId, matchId, callType } = customEvent.detail;
 
-      // Call the function we created in the previous step
-      handleStartCall(targetUserId, matchId);
+      handleStartCall(targetUserId, matchId, callType);
     };
 
     window.addEventListener("START_OUTGOING_CALL", onStartOutgoingCall);
@@ -56,7 +54,6 @@ export default function SocketHandler() {
           break;
 
         case "INCOMING_CALL":
-          // When NestJS sends the 'INCOMING_CALL' notification
           setCallData(data);
           setIsCallModalOpen(true);
           break;
@@ -94,10 +91,14 @@ export default function SocketHandler() {
     };
   }, []);
 
-  const handleStartCall = async (targetUserId: number, matchId: number) => {
+  const handleStartCall = async (
+    targetUserId: number,
+    matchId: number,
+    callType: "audio" | "video"
+  ) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: callType === "video",
         audio: true,
       });
       localStreamRef.current = stream;
@@ -135,6 +136,7 @@ export default function SocketHandler() {
         toUserId: targetUserId,
         offer,
         matchId,
+        callType,
       });
 
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
@@ -145,13 +147,13 @@ export default function SocketHandler() {
 
   const handleStartWebRTC = async (incomingData: any) => {
     try {
+      const isVideo = incomingData.callType === "video";
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: isVideo,
         audio: true,
       });
       localStreamRef.current = stream;
 
-      // Show the UI
       setIsCallActive(true);
 
       const pc = new RTCPeerConnection({
@@ -159,7 +161,6 @@ export default function SocketHandler() {
       });
       pcRef.current = pc;
 
-      // Listen for the remote user's video stream
       pc.ontrack = (event) => {
         if (remoteVideoRef.current && event.streams[0]) {
           remoteVideoRef.current.srcObject = event.streams[0];

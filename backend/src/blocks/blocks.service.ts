@@ -27,26 +27,6 @@ import {
           [blockerId, blockedId],
         );
   
-        // 👉 2. remove match
-        await this.db.query(
-          `
-          DELETE FROM matches
-          WHERE user1_id = LEAST($1, $2)
-            AND user2_id = GREATEST($1, $2)
-          `,
-          [blockerId, blockedId],
-        );
-  
-        // 👉 3. remove likes
-        await this.db.query(
-          `
-          DELETE FROM likes
-          WHERE (liker_id = $1 AND liked_id = $2)
-             OR (liker_id = $2 AND liked_id = $1)
-          `,
-          [blockerId, blockedId],
-        );
-  
         await this.db.query('COMMIT');
   
         return { message: 'User blocked' };
@@ -55,8 +35,7 @@ import {
         throw e;
       }
     }
-  
-    // 🔥 UNBLOCK USER
+
     async unblockUser(blockerId: number, blockedId: number) {
       await this.db.query(
         `
@@ -69,7 +48,7 @@ import {
       return { message: 'User unblocked' };
     }
   
-    // 🔥 GET MY BLOCK LIST
+
     async getMyBlocks(userId: number) {
       const result = await this.db.query(
         `
@@ -91,7 +70,6 @@ import {
       return result.rows;
     }
   
-    // 🔥 CHECK BLOCK (for internal use)
     async isBlocked(userA: number, userB: number) {
       const result = await this.db.query(
         `
