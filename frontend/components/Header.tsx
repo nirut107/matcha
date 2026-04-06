@@ -24,6 +24,8 @@ export default function Header() {
       // Even if the API fails, you usually want to kick the user to login
       router.push("/auth/login");
     }
+
+    
   };
   return (
     <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50 hover:cursor-pointer">

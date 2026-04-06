@@ -155,7 +155,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
     }
-    console.log(isRecipientInRoom, "not on room")
+    console.log(isRecipientInRoom, 'not on room');
     if (!isRecipientInRoom) {
       this.sendToUser(recipientId, {
         type: 'NEW_MESSAGE',
@@ -202,5 +202,51 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
 
     return result.rows.length > 0;
+  }
+
+  @SubscribeMessage('callUser')
+  async handleCall(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { toUserId: number; offer: any; matchId: number },
+  ) {
+    const fromUserId = socket.data.userId;
+
+    const isMatch = await this.isUserInMatch(fromUserId, data.matchId);
+    if (!isMatch) return;
+
+    this.sendToUser(data.toUserId, {
+      type: 'INCOMING_CALL',
+      from: fromUserId,
+      offer: data.offer,
+      matchId: data.matchId,
+      senderName: socket.data.userName,
+    });
+
+    console.log(`☎️ Signaling: ${fromUserId} is calling ${data.toUserId}`);
+  }
+
+  @SubscribeMessage('answerCall')
+  async handleAnswer(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { toUserId: number; answer: any },
+  ) {
+    const fromUserId = socket.data.userId;
+
+    this.sendToUser(data.toUserId, {
+      type: 'CALL_ANSWERED',
+      from: fromUserId,
+      answer: data.answer,
+    });
+  }
+
+  @SubscribeMessage('iceCandidate')
+  async handleIceCandidate(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { toUserId: number; candidate: any },
+  ) {
+    this.sendToUser(data.toUserId, {
+      type: 'ICE_CANDIDATE',
+      candidate: data.candidate,
+    });
   }
 }
