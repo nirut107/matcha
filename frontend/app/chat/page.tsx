@@ -69,20 +69,24 @@ export default function ChatPage() {
     fetchWithAuth("http://localhost:3001/user/me")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data.id);
-        Id = data.id;
-        setUserId(data.id);
+        console.log(data,"-========")
+        if (data.length > 0) {
+          console.log(data.id);
+          Id = data.id;
+          setUserId(data.id);
+        }
+        else {
+
+        }
       });
 
     fetchWithAuth("http://localhost:3001/matches")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data);
-        if (data) {
+        console.log(data, "==========");
+        if (data.length > 0) {
           setMatches(data);
           setActiveChat(data[0]);
-
-          console.log(data[0].id);
           handleSelectChat(data[0]);
           s.emit("joinMatch", { matchId: Number(data[0]?.id) });
         }
