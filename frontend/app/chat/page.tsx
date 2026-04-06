@@ -222,6 +222,20 @@ export default function ChatPage() {
     setMessage("");
   };
 
+  const handleCallClick = (type: "audio" | "video") => {
+    if (!activeChat) return;
+
+    window.dispatchEvent(
+      new CustomEvent("START_OUTGOING_CALL", {
+        detail: {
+          targetUserId: activeChat.user_id,
+          matchId: activeChat.id,
+          callType: type, // Tell the SocketHandler which one we clicked
+        },
+      })
+    );
+  };
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <Header />
@@ -333,10 +347,16 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4 text-gray-400">
-                <button className="hover:text-rose-500 transition-colors">
+                <button
+                  onClick={() => handleCallClick("audio")}
+                  className="hover:text-rose-500 transition-colors"
+                >
                   <Phone size={20} />
                 </button>
-                <button className="hover:text-rose-500 transition-colors">
+                <button
+                  onClick={() => handleCallClick("video")}
+                  className="hover:text-rose-500 transition-colors"
+                >
                   <Video size={20} />
                 </button>
                 <button className="hover:text-rose-500 transition-colors">
