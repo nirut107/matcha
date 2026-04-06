@@ -5,6 +5,7 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   ConnectedSocket,
+  MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
@@ -127,5 +128,32 @@ export class NotificationGateway
     socket.emit('me', {
       userId,
     });
+  }
+
+  @SubscribeMessage('rejectCall')
+  handleRejectCall(
+    @MessageBody() data: { toUserId: number },
+    @ConnectedSocket() client: any, // Use any to access custom data properties
+  ) {
+    console.log("rejectCall")
+    const targetId = Number(data.toUserId);
+
+    // 2. Get the sender's ID (the person rejecting the call)
+    // This depends on how you store user info on the socket during connection
+    const rejectorId = client.user?.id || client.data?.userId;
+
+    // 3. Find the original caller's socket
+    const callerSocketId = this.userSockets.get(targetId);
+
+    if (callerSocketId) {
+      this.server.to([...callerSocketId]).emit('notification', {
+        type: 'CALL_REJECTED',
+        from: rejectorId,
+        message: 'User declined the call',
+      });
+      console.log(`Call rejected by ${rejectorId} for caller ${targetId}`);
+    } else {
+      console.log(`Could not find socket for caller ${targetId}`);
+    }
   }
 }

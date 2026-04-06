@@ -40,10 +40,27 @@ export default function SocketHandler() {
       console.log("Connected:", socket.id);
     });
 
+    socket.on("CALL_ENDED", () => {
+      handleEndCall();
+    });
+
+    socket.on("CALL_REJECTED", () => {
+      toast.error("Call was rejected");
+      handleEndCall();
+    });
+
     socket.on("notification", async (data: any) => {
       console.log("🔔 Notification:", data);
 
       switch (data.type) {
+        case "CALL_ANSWERED":
+          console.log("📞 Call Answered:", data);
+          if (pcRef.current && pcRef.current.signalingState !== "closed") {
+            await pcRef.current.setRemoteDescription(
+              new RTCSessionDescription(data.answer)
+            );
+          }
+          break;
         case "match":
           setMatch({ userName: data.userName, userImage: data.userImage });
           setIsOpen(true);
@@ -60,6 +77,22 @@ export default function SocketHandler() {
 
         case "visit":
           toast("Someone visited your profile", { icon: "👀" });
+          break;
+        case "ICE_CANDIDATE":
+          try {
+            const pc = pcRef.current;
+            // Check if PC exists AND is not closed AND has a remote description
+            if (pc && pc.signalingState !== "closed" && pc.remoteDescription) {
+              await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            } else if (pc && !pc.remoteDescription) {
+              // Logic: If candidate arrives before the offer/answer is processed,
+              // some developers queue it, but usually, ignoring it is safe
+              // as the browser will retry or use others.
+              console.warn("Candidate arrived before remote description");
+            }
+          } catch (e) {
+            console.error("Error adding ice candidate", e);
+          }
           break;
         case "ICE_CANDIDATE":
           try {
@@ -90,6 +123,19 @@ export default function SocketHandler() {
       window.removeEventListener("START_OUTGOING_CALL", onStartOutgoingCall);
     };
   }, []);
+
+  const handleEndCall = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    setIsCallActive(false);
+    setIsCallModalOpen(false);
+  };
 
   const handleStartCall = async (
     targetUserId: number,
@@ -147,6 +193,7 @@ export default function SocketHandler() {
 
   const handleStartWebRTC = async (incomingData: any) => {
     try {
+      console.log(incomingData);
       const isVideo = incomingData.callType === "video";
       const stream = await navigator.mediaDevices.getUserMedia({
         video: isVideo,
@@ -164,6 +211,15 @@ export default function SocketHandler() {
       pc.ontrack = (event) => {
         if (remoteVideoRef.current && event.streams[0]) {
           remoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socketRef.current.emit("iceCandidate", {
+            toUserId: incomingData.from, // Send it back to the caller
+            candidate: event.candidate,
+          });
         }
       };
 
