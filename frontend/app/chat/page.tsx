@@ -142,10 +142,20 @@ export default function ChatPage() {
         return prevMatches
           .map((match) => {
             if (match.id === msg.match_id) {
+              const isCurrentChat = activeMatchRef.current === msg.match_id;
+              const isMine = Number(msg.sender_id) === Number(myId);
+
               return {
                 ...match,
                 last_message: msg.content,
                 last_message_time: formatTime(msg.created_at, "list"),
+
+                // ✅ FIXED LOGIC
+                unread_count: isMine
+                  ? match.unread_count // don't change
+                  : isCurrentChat
+                  ? 0
+                  : (match.unread_count ?? 0) + 1,
               };
             }
             return match;
@@ -171,13 +181,22 @@ export default function ChatPage() {
     if (socket && activeChat?.id) {
       socket.emit("leaveMatch", { matchId: activeChat.id });
     }
+
+    // ✅ update ref immediately (IMPORTANT)
+    activeMatchRef.current = match.id;
+
     setActiveChat(match);
     setIsChatOpen(true);
 
-    if (USE_MOCK) return;
     if (socket) {
       socket.emit("joinMatch", { matchId: match.id });
     }
+
+    // reset unread
+    setMatches((prev) =>
+      prev.map((m) => (m.id === match.id ? { ...m, unread_count: 0 } : m))
+    );
+
     const res = await fetchWithAuth(
       `http://localhost:3001/messages/${match.id}`
     );
@@ -309,6 +328,13 @@ export default function ChatPage() {
                     <p className="text-sm text-gray-500 truncate mt-0.5">
                       {match.last_message}
                     </p>
+
+                    {/* UNREAD COUNTER BADGE */}
+                    {match.unread_count > 0 && activeChat?.id !== match.id && (
+                      <span className="ml-2 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                        {match.unread_count}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
