@@ -75,7 +75,7 @@ export class AuthService {
     await this.storeRefreshToken(newUser.id, refreshToken);
 
     this.setCookies(res, accessToken, refreshToken);
-    console.log("====================")
+    console.log('====================');
     return { success: true };
   }
 
@@ -182,9 +182,10 @@ export class AuthService {
 
     await this.storeRefreshToken(userId, newRefresh);
 
+    console.log('this have refresh', accessToken, newRefresh);
     this.setCookies(res, accessToken, newRefresh);
 
-    return { success: true };
+    return res.status(200).json({ success: true });
   }
 
   async generateTokens(userId: number) {
@@ -192,7 +193,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: '1d',
+      expiresIn: '15m',
     });
 
     const refreshToken = this.jwtService.sign(payload, {
@@ -208,6 +209,7 @@ export class AuthService {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
+      path: '/',
       maxAge: 15 * 60 * 1000,
     });
 
@@ -221,7 +223,7 @@ export class AuthService {
   }
 
   async logout(userId: number, res: Response) {
-    await this.db.query(`UPDATE users SET refresh_token = NULL WHERE id = $1`, [
+    await this.db.query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [
       userId,
     ]);
 

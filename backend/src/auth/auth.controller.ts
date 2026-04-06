@@ -8,7 +8,13 @@ import {
   Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiTags, ApiBody, ApiResponse, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBody,
+  ApiResponse,
+  ApiOkResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -43,7 +49,8 @@ export class AuthController {
     console.log(refreshToken);
     if (!refreshToken) throw new UnauthorizedException();
 
-    return this.authService.refresh(refreshToken, res);
+    await this.authService.refresh(refreshToken, res);
+    return { success: true };
   }
 
   @Post('register')
@@ -57,9 +64,9 @@ export class AuthController {
     description: 'Username or email already exists',
   })
   async resgister(@Body() dto: any, @Res({ passthrough: true }) res) {
-    console.log("Body is:", dto); // If this is still undefined, the issue is the Request, not the Code
+    console.log('Body is:', dto); // If this is still undefined, the issue is the Request, not the Code
     return this.authService.register(dto, res);
-}
+  }
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -75,7 +82,7 @@ export class AuthController {
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Logout successful' })
-  logout(@Req() req, @Res({ passthrough: true })  res) {
+  logout(@Req() req, @Res({ passthrough: true }) res) {
     return this.authService.logout(req.user.userId, res);
   }
 }
