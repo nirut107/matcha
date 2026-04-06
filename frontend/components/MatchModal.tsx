@@ -40,7 +40,7 @@ export default function MatchModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 bg-gray-200 py-2 rounded-xl font-bold"
+            className="flex-1 bg-gray-200 py-2 rounded-xl font-bold text-white"
           >
             Keep Swiping
           </button>
@@ -49,6 +49,7 @@ export default function MatchModal({
             onClick={() => {
               // later → route to chat
               //   console.log("Go to chat");
+              onClose();
               router.push(`/chat`);
             }}
             className="flex-1 bg-rose-500 text-white py-2 rounded-xl font-bold"

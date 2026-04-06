@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import MatchModal from "@/components/MatchModal";
-
+import toast, { Toaster } from "react-hot-toast";
 export default function SocketHandler() {
   const [match, setMatch] = useState<{
     userName: string;
@@ -28,14 +28,25 @@ export default function SocketHandler() {
           userImage: data.userImage,
         });
         setIsOpen(true);
+      } else if (data.type === "visit") {
+        console.log("got noti visit")
+        toast("Somone visited your profile", {
+          icon: "👀",
+        });
+      } else {
+        console.log("got some noti")
+        toast(data.type || "New notification received!", {
+          icon: "🔔",
+        });
       }
     });
     socket.on("me", (data) => {
       console.log("Got userId from socket me", data);
     });
 
-    socket.on('newMessage', (message) => {
-      console.log(message)
+    socket.on("newMessage", (message) => {
+      console.log(message);
+      toast(`New message: ${message.text}`);
     });
 
     socket.emit("whoami");
@@ -43,11 +54,13 @@ export default function SocketHandler() {
     return () => {
       socket.off("notification");
       socket.off("me");
+      socket.off("newMessage");
     };
   }, []);
 
   return (
     <>
+      <Toaster />
       <MatchModal
         isOpen={isOpen}
         match={match}
