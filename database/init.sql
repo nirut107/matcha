@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS refresh_tokens, reports, blocks, visits, notifications, messages, matches, swipes, user_tags, tags, pictures, profiles, users CASCADE;
+
 -- =========================
 -- USERS (auth)
 -- =========================
@@ -114,10 +116,15 @@ CREATE TABLE notifications (
 -- =========================
 CREATE TABLE visits (
     id SERIAL PRIMARY KEY,
-    visitor_id INT REFERENCES users(id) ON DELETE CASCADE,
-    visited_id INT REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    visitor_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    visited_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT unique_visit_pair UNIQUE (visitor_id, visited_id)
 );
+
+-- 2. Index for performance (helps when fetching "Who visited my profile?")
+CREATE INDEX idx_visited_id ON visits(visited_id);
 
 -- =========================
 -- BLOCKS
@@ -158,9 +165,10 @@ CREATE INDEX idx_profiles_user ON profiles(user_id);
 CREATE INDEX idx_blocks_blocker ON blocks(blocker_id);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_profiles_location ON profiles(latitude, longitude);
-CREATE INDEX idx_likes_liker ON likes(liker_id);
-CREATE INDEX idx_likes_liked ON likes(liked_id);
+CREATE INDEX idx_swipes_swiper ON swipes(swiper_id);
+CREATE INDEX idx_swipes_target ON swipes(target_id);
 CREATE INDEX idx_messages_match ON messages(match_id);
 CREATE INDEX idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE UNIQUE INDEX unique_user_position ON pictures(user_id, position);
+

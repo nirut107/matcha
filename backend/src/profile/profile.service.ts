@@ -126,15 +126,20 @@ export class ProfileService {
   }
 
   async visitProfile(visitorId: number, visitedId: number) {
-    await this.db.query(
+    const result = await this.db.query(
       `INSERT INTO visits (visitor_id, visited_id)
-       VALUES ($1, $2)`,
+       VALUES ($1, $2)
+       ON CONFLICT (visitor_id, visited_id) DO NOTHING
+       RETURNING *`,
       [visitorId, visitedId],
     );
 
-    await this.notificationService.create(visitedId, 'visit', {
-      fromUserId: visitorId,
-    });
+    // 2. Only send notification if a new row was actually inserted
+    if (result.rowCount > 0) {
+      await this.notificationService.create(visitedId, 'visit', {
+        fromUserId: visitorId,
+      });
+    }
   }
 
   async getSuggestions(userId: number) {

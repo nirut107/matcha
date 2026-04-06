@@ -8,8 +8,35 @@ const client = new Client({
 });
 
 const TAGS = [
-  'coding', 'coffee', 'music', 'travel', 'fitness',
-  'movies', 'gaming', 'art', 'food', 'photography',
+  'geek',
+  'vegan',
+  'fitness',
+  'travel',
+  'music',
+  'coffee',
+  'gaming',
+  'movies',
+  'reading',
+  'coding',
+  'art',
+  'photography',
+  'sports',
+  'yoga',
+  'hiking',
+  'fashion',
+  'foodie',
+  'pets',
+  'technology',
+  'anime',
+  'kpop',
+  'cars',
+  'nature',
+  'startup',
+  'finance',
+  'crypto',
+  'books',
+  'series',
+  'nightlife',
 ];
 
 async function seed() {
@@ -17,7 +44,6 @@ async function seed() {
 
   console.log('Seeding...');
 
-  // 👉 insert tags
   for (const tag of TAGS) {
     await client.query(
       `INSERT INTO tags (name) VALUES ($1) ON CONFLICT DO NOTHING`,
@@ -26,9 +52,9 @@ async function seed() {
   }
 
   const tagRes = await client.query(`SELECT * FROM tags`);
-  const tagIds = tagRes.rows.map(t => t.id);
+  const tagIds = tagRes.rows.map((t) => t.id);
 
-  for (let i = 0; i < 500; i++) {
+  for (let i = 0; i < 10; i++) {
     // =====================
     // USER
     // =====================
@@ -40,14 +66,10 @@ async function seed() {
       INSERT INTO users (
         email, username, password_hash, is_verified
       )
-      VALUES ($1, $2, $3, $4, $5, true)
+      VALUES ($1, $2, $3, true)
       RETURNING id
       `,
-      [
-        email,
-        username,
-        'hashed_password',
-      ],
+      [email, username, 'hashed_password'],
     );
 
     const userId = userRes.rows[0].id;
@@ -56,9 +78,9 @@ async function seed() {
     // PROFILE
     // =====================
     function randomInRange(min: number, max: number) {
-        return Math.random() * (max - min) + min;
-      }
-      
+      return Math.random() * (max - min) + min;
+    }
+
     const latitude = randomInRange(13.5, 13.9);
     const longitude = randomInRange(100.3, 100.9);
 
@@ -66,9 +88,10 @@ async function seed() {
       `
       INSERT INTO profiles (
         user_id, gender, preference, age, biography,
-        fame_rating, latitude, longitude, location_text
+        fame_rating, latitude, longitude, location_text,
+        first_name, last_name -- Add these two!
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       `,
       [
         userId,
@@ -80,8 +103,8 @@ async function seed() {
         latitude,
         longitude,
         'Bangkok, Thailand',
-        faker.person.firstName(),
-        faker.person.lastName(),
+        faker.person.firstName(), // $10
+        faker.person.lastName(), // $11
       ],
     );
 
