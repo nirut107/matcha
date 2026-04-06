@@ -6,7 +6,7 @@ import { NotificationGateway } from './notification.gateway';
 export class NotificationService {
   constructor(
     private readonly db: DatabaseService,
-    private gateway: NotificationGateway
+    private gateway: NotificationGateway,
   ) {}
 
   async create(userId: number, type: string, data: any) {
@@ -18,9 +18,9 @@ export class NotificationService {
       `,
       [userId, type, data],
     );
-
+    console.log('create noti');
     const notification = result.rows[0];
-    this.gateway.sendToUser(userId, type)
+    this.gateway.sendToUser(userId, type);
 
     return notification;
   }

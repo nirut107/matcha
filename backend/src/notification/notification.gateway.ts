@@ -4,10 +4,11 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
-  ConnectedSocket
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { ac } from 'node_modules/@faker-js/faker/dist/airline-eVQV6kbz';
 
 @WebSocketGateway({
   cors: {
@@ -37,27 +38,19 @@ export class NotificationGateway
   private userSockets = new Map<number, Set<string>>();
 
   handleConnection(socket: Socket) {
-    const cookies = socket.handshake.headers.cookie;
-
-    if (!cookies) {
-      socket.disconnect();
-      return;
-    }
-
-    const accessToken = this.extractTokenFromCookie(cookies);
-
-    if (!accessToken) {
-      socket.disconnect();
-      return;
-    }
-
     try {
-      const payload = this.jwtService.verify<{ userId: number }>(accessToken, {
+      const cookies = socket.handshake.headers.cookie;
+      if (!cookies) return socket.disconnect();
+
+      const token = this.extractToken(cookies);
+      if (!token) return socket.disconnect();
+
+      const payload = this.jwtService.verify<{ sub: number }>(token, {
         secret: process.env.JWT_ACCESS_SECRET,
       });
 
-      const userId = payload.userId;
-
+      const userId = payload.sub;
+      console.log('conect noti', userId);
       let sockets = this.userSockets.get(userId);
 
       if (!sockets) {
@@ -69,6 +62,17 @@ export class NotificationGateway
     } catch {
       socket.disconnect();
     }
+  }
+
+  private extractToken(cookieHeader: string): string | null {
+    const cookies = cookieHeader.split(';').map((c) => c.trim());
+
+    for (const c of cookies) {
+      if (c.startsWith('access_token=')) {
+        return c.split('=')[1];
+      }
+    }
+    return null;
   }
 
   handleDisconnect(socket: Socket) {
@@ -83,7 +87,7 @@ export class NotificationGateway
 
   sendToUser(userId: number, notification: any) {
     const sockets = this.userSockets.get(userId);
-
+    console.log('sentToUser', userId);
     if (!sockets) return;
 
     for (const socketId of sockets) {
@@ -94,7 +98,7 @@ export class NotificationGateway
   @SubscribeMessage('whoami')
   handleWhoAmI(@ConnectedSocket() socket: Socket) {
     const userId = socket.data.userId;
-    console.log("whoami")
+    console.log('whoami');
     socket.emit('me', {
       userId,
     });
