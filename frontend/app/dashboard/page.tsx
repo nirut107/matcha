@@ -55,10 +55,32 @@ export default function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
-  const handleShowInfo = async (userId: number) => {
-    setIsModalLoading(true);
+  const handleShowInfo = async (visitedId: number) => {
+    // 1. Open the modal immediately for a snappy UI
     setShowModal(true);
-    setIsModalLoading(false);
+    setIsModalLoading(true);
+
+    try {
+      // 2. Track the visit in the database
+      const response = await fetchWithAuth(
+        `http://localhost:3001/profile/visit/${visitedId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.warn("Failed to record profile visit");
+      }
+    } catch (err) {
+      console.error("Error sending visit record:", err);
+    } finally {
+      // 3. Stop loading state regardless of API success/failure
+      setIsModalLoading(false);
+    }
   };
   // ✅ Load data (mock OR backend)
   useEffect(() => {
@@ -162,6 +184,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* 🔥 HEADER */}
       <Header />
+      {/* <SocketHandler /> */}
 
       {/* 🔍 FILTER BAR */}
 

@@ -20,7 +20,7 @@ export class NotificationService {
     );
     console.log('create noti');
     const notification = result.rows[0];
-    this.gateway.sendToUser(userId, type);
+    this.gateway.sendToUser(userId, {type, data});
 
     return notification;
   }
