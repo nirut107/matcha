@@ -15,6 +15,9 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { getSocket } from "@/lib/socket";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { useRef } from "react";
+
+import { useRouter } from "next/navigation";
 
 const USE_MOCK = false; // switch this ON/OFF
 export interface MatchResponse {
@@ -46,9 +49,10 @@ function formatTime(dateString: string, type: "chat" | "list" = "chat") {
     if (diffHr < 24) return `${diffHr}h`;
   }
 
-  return date.toLocaleTimeString([], {
+  return date.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Bangkok",
   });
 }
 
@@ -60,24 +64,51 @@ export default function ChatPage() {
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [socket, setSocket] = useState<any>(null); // Keep socket in state
   const [userId, setUserId] = useState<number | null>(null);
-  // const socket = getSocket();
+  const activeMatchRef = useRef<number | null>(null);
+  const router = useRouter();
+  const userIdRef = useRef<number | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory]); // Runs whenever chatHistory updates
+
+  useEffect(() => {
+    return () => {
+      if (activeMatchRef.current) {
+        socket?.emit("leaveMatch", { matchId: activeMatchRef.current });
+      }
+    };
+  }, [router]);
+  useEffect(() => {
+    activeMatchRef.current = activeChat?.id ?? null;
+  }, [activeChat]);
+  useEffect(() => {
     const s = getSocket();
-    let Id: number;
     setSocket(s);
     fetchWithAuth("http://localhost:3001/user/me")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data,"-========")
-        if (data.length > 0) {
-          console.log(data.id);
-          Id = data.id;
+        console.log(data, "-========");
+        if (data) {
+          console.log(data.id, "this should be my Id");
           setUserId(data.id);
+          userIdRef.current = data.id;
+        } else {
         }
-        else {
+        return () => {
+          // ✅ leave current match room when leaving page
+          if (activeMatchRef.current) {
+            s.emit("leaveMatch", { matchId: activeMatchRef.current });
+          }
 
-        }
+          s.off("newMessage");
+        };
       });
 
     fetchWithAuth("http://localhost:3001/matches")
@@ -93,10 +124,13 @@ export default function ChatPage() {
       })
       .catch(console.error);
     s.on("newMessage", (msg: any) => {
-      if (Number(msg.sender_id) != Number(Id)) {
+      const myId = userIdRef.current;
+      // console.log(msg.sender_id, Id, "aaaaaaaa")
+      console.log(myId, "myId");
+      if (Number(msg.sender_id) != Number(myId)) {
         const formattedMsg = {
           id: msg.id || Date.now(),
-          sender: msg.sender_id === Id ? "me" : "them",
+          sender: "them",
           text: msg.content,
           time: formatTime(msg.created_at || new Date().toISOString()),
         };
@@ -128,6 +162,9 @@ export default function ChatPage() {
   }, []);
 
   const handleSelectChat = async (match: MatchResponse) => {
+    if (socket && activeChat?.id) {
+      socket.emit("leaveMatch", { matchId: activeChat.id });
+    }
     setActiveChat(match);
     setIsChatOpen(true);
 
@@ -329,6 +366,8 @@ export default function ChatPage() {
                   </div>
                 </div>
               ))}
+
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
