@@ -80,7 +80,7 @@ export default function ProfileSetupPage() {
 
   const fetchUser = async () => {
     try {
-      const res = await fetchWithAuth("http://localhost:3001/user/me");
+      const res = await fetchWithAuth("/user/me");
       if (res.status == 404) {
         router.push("auth/login");
       }
@@ -94,11 +94,11 @@ export default function ProfileSetupPage() {
   };
 
   const fetchProfile = async () => {
-    const res = await fetchWithAuth("http://localhost:3001/profile/me");
+    const res = await fetchWithAuth("/profile/me");
 
     if (res.status == 200) {
       const data = await res.json();
-      console.log(data, "==============")
+      console.log(data, "==============");
       setFirstName(data.first_name || "");
       setLastName(data.last_name);
       setGender(data.gender || "");
@@ -115,7 +115,7 @@ export default function ProfileSetupPage() {
 
     const newPreviews = [null, null, null, null, null];
     const newExisting = [null, null, null, null, null];
-    const res2 = await fetchWithAuth("http://localhost:3001/pictures/me");
+    const res2 = await fetchWithAuth("/pictures/me");
 
     if (res2.status == 200) {
       const data2 = await res2.json();
@@ -137,7 +137,8 @@ export default function ProfileSetupPage() {
 
   // Load existing tags from NestJS
   useEffect(() => {
-    fetch("http://localhost:3001/tags")
+    const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
+    fetch(`${baseUrl}/tags`)
       .then((res) => res.json())
       .then((data) => setAvailableTags(data.tags))
       .catch((err) => console.error("Error fetching tags:", err));
@@ -231,7 +232,7 @@ export default function ProfileSetupPage() {
       console.log(key, value);
     }
 
-    const res = await fetchWithAuth("http://localhost:3001/pictures/sync", {
+    const res = await fetchWithAuth("/pictures/sync", {
       method: "POST",
       body: formData,
     });
@@ -341,16 +342,13 @@ export default function ProfileSetupPage() {
     try {
       // ✅ 2. Create profile
       if (!hasGoogle) {
-        const emailRes = await fetchWithAuth(
-          "http://localhost:3001/user/email",
-          {
-            method: "POST",
-            body: JSON.stringify(email),
-          }
-        );
+        const emailRes = await fetchWithAuth("/user/email", {
+          method: "POST",
+          body: JSON.stringify(email),
+        });
       }
       const cleanTags = selectedTags.map((tag) => tag.replace(/^#/, "").trim());
-      const profileRes = await fetchWithAuth("http://localhost:3001/profile", {
+      const profileRes = await fetchWithAuth("/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -605,8 +603,8 @@ export default function ProfileSetupPage() {
                 onChange={(e) => setBiography(e.target.value)}
               />
               <p className="text-xs text-gray-400">
-                  Type at least 10 characters
-                </p>
+                Type at least 10 characters
+              </p>
             </div>
 
             <div className="space-y-4">

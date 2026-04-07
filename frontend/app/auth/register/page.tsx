@@ -15,13 +15,14 @@ export default function RegisterPage() {
     email: "",
     password: "",
   });
+  const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("http://localhost:3001/auth/register", {
+      const response = await fetch(`${baseUrl}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

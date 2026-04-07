@@ -100,7 +100,7 @@ export default function ChatPage() {
   useEffect(() => {
     const s = getSocket();
     setSocket(s);
-    fetchWithAuth("http://localhost:3001/user/me")
+    fetchWithAuth("/user/me")
       .then((res) => res.json())
       .then((data) => {
         console.log(data, "-========");
@@ -112,7 +112,7 @@ export default function ChatPage() {
         }
       });
 
-    fetchWithAuth("http://localhost:3001/matches")
+    fetchWithAuth("/matches")
       .then((res) => res.json())
       .then((data) => {
         console.log(data, "==========");
@@ -198,7 +198,7 @@ export default function ChatPage() {
     );
 
     const res = await fetchWithAuth(
-      `http://localhost:3001/messages/${match.id}`
+      `/messages/${match.id}`
     );
     const data = await res.json();
     console.log(data, "message");

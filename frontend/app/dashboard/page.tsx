@@ -64,7 +64,7 @@ export default function Dashboard() {
     try {
       // 2. Track the visit in the database
       const response = await fetchWithAuth(
-        `http://localhost:3001/profile/visit/${visitedId}`,
+        `/profile/visit/${visitedId}`,
         {
           method: "POST",
           headers: {
@@ -88,7 +88,7 @@ export default function Dashboard() {
     const fetchProfiles = async () => {
       try {
         const res = await fetchWithAuth(
-          "http://localhost:3001/profile/suggestions"
+          "/profile/suggestions"
         );
         if (res.status === 403) {
           router.push("profile/setup"); // onboarding page
@@ -151,7 +151,7 @@ export default function Dashboard() {
 
     try {
       const response = await fetchWithAuth(
-        "http://localhost:3001/swipe/swipe",
+        "/swipe/swipe",
         {
           method: "POST",
           headers: {

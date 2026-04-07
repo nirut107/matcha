@@ -10,7 +10,7 @@ export default function Header() {
   const handleLogout = async () => {
     try {
       // 1. Tell the backend to clear the session/cookie
-      await fetchWithAuth("http://localhost:3001/auth/logout", {
+      await fetchWithAuth("/auth/logout", {
         method: "POST",
       });
 

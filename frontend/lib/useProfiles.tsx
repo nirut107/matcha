@@ -10,6 +10,7 @@ export function useProfiles() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
     const fetchProfiles = async () => {
       try {
         if (USE_MOCK) {
@@ -17,7 +18,7 @@ export function useProfiles() {
           await new Promise((res) => setTimeout(res, 500));
           setProfiles(MOCK_PROFILES);
         } else {
-          const res = await fetch("http://localhost:3001/profiles/suggestions");
+          const res = await fetch(`${baseUrl}/profiles/suggestions`);
           const data = await res.json();
           setProfiles(data);
         }
