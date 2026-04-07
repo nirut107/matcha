@@ -19,7 +19,7 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
   app.enableCors({
-    origin: ['http://localhost:3000','http://z3t11c4.42bangkok.com:3000/'],
+    origin: ['http://localhost:3000'],
     credentials: true,
   });
   app.use('/uploads', express.static('uploads'));

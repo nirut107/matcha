@@ -22,6 +22,7 @@ import ActionButtons from "@/components/ActionButtons";
 import FilterBar from "@/components/FilterBar";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useRouter } from "next/navigation";
+import Loading from "@/app/loading"
 
 // 🔥 Toggle here (switch to false when backend ready)
 const USE_MOCK = false;
@@ -109,9 +110,7 @@ export default function Dashboard() {
   // ✅ Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">Loading profiles...</p>
-      </div>
+      <Loading />
     );
   }
 

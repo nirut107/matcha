@@ -83,7 +83,7 @@ export class PicturesService {
 
       // 👉 5. INSERT new images
       let fileIndex = 0;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
       for (const img of incomingNew) {
         const file = files[fileIndex++];
@@ -95,7 +95,7 @@ export class PicturesService {
         if (!file.mimetype.startsWith('image/')) {
           throw new BadRequestException('Only image files allowed');
         }
-
+        console.log(baseUrl)
         const url = `${baseUrl}/uploads/${file.filename}`;
 
         await this.db.query(
