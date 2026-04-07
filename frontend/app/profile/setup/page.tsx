@@ -629,6 +629,9 @@ export default function ProfileSetupPage() {
                     </span>
                   ))}
               </div>
+              <p className="text-xs text-gray-400">
+                  Choose at least 3 tags
+                </p>
               <div className="relative">
                 <input
                   type="text"
