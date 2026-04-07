@@ -1,7 +1,7 @@
 // src/lib/fetchWithAuth.ts
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   let res = await fetch(`${baseUrl}${url}`, {
     ...options,
     credentials: "include",

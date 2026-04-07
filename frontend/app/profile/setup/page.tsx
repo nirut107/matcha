@@ -137,7 +137,7 @@ export default function ProfileSetupPage() {
 
   // Load existing tags from NestJS
   useEffect(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     fetch(`${baseUrl}/tags`)
       .then((res) => res.json())
       .then((data) => setAvailableTags(data.tags))
@@ -627,9 +627,7 @@ export default function ProfileSetupPage() {
                     </span>
                   ))}
               </div>
-              <p className="text-xs text-gray-400">
-                  Choose at least 3 tags
-                </p>
+              <p className="text-xs text-gray-400">Choose at least 3 tags</p>
               <div className="relative">
                 <input
                   type="text"

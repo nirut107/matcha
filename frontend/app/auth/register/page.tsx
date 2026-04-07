@@ -15,7 +15,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
   });
-  const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

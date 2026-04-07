@@ -10,7 +10,7 @@ export function useProfiles() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URLL;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     const fetchProfiles = async () => {
       try {
         if (USE_MOCK) {

@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Flame, Lock, User, Loader2 } from "lucide-react";
-const baseUrl = process.env.NEXT_PUBLIC_API_URLL || "http://localhost:3001";
-console.log(process.env.NEXT_PUBLIC_API_URLL);
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export default function LoginPage() {
   const router = useRouter();
