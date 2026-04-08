@@ -299,88 +299,138 @@ export class ProfileService {
       `
       SELECT
         u.id,
-        u.username,
+        p.first_name,
+        u.is_online,
         p.age,
         p.biography,
         p.fame_rating,
-        pic.url AS profile_picture,
 
-        -- 📍 distance
+        -- 📍 distance (km)
         (
           6371 * acos(
-            cos(radians($2)) *
+            cos(radians($2::float)) *
             cos(radians(p.latitude)) *
-            cos(radians(p.longitude) - radians($3)) +
-            sin(radians($2)) *
+            cos(radians(p.longitude) - radians($3::float)) +
+            sin(radians($2::float)) *
             sin(radians(p.latitude))
           )
         ) AS distance,
 
-        -- 🏷️ common tags
-        COUNT(DISTINCT ut2.tag_id) AS common_tags
+        -- 📸 full images array
+        (
+          SELECT COALESCE(
+            JSON_AGG(
+              JSONB_BUILD_OBJECT(
+                'url', pic.url,
+                'is_profile', pic.is_profile,
+                'position', pic.position
+              ) ORDER BY pic.position
+            ), '[]'
+          )
+          FROM pictures pic WHERE pic.user_id = u.id
+        ) AS images,
+
+        -- 🏷️ full tags array
+        (
+          SELECT COALESCE(ARRAY_AGG(t_all.name), '{}')
+          FROM user_tags ut_all
+          JOIN tags t_all ON t_all.id = ut_all.tag_id
+          WHERE ut_all.user_id = u.id
+        ) AS tags,
+
+        -- 🔢 common tags count (Always uses $8 now, so Postgres knows its type)
+        (
+          SELECT COUNT(ut_common.tag_id)
+          FROM user_tags ut_common
+          JOIN tags t_common ON t_common.id = ut_common.tag_id
+          WHERE ut_common.user_id = u.id
+          AND t_common.name = ANY($8::text[])
+        ) AS common_tags
 
       FROM users u
       JOIN profiles p ON p.user_id = u.id
 
-      LEFT JOIN pictures pic
-        ON pic.user_id = u.id AND pic.is_profile = TRUE
+      WHERE u.id != $1::int
 
-      -- 🔥 tag matching
-      LEFT JOIN user_tags ut2 ON ut2.user_id = u.id
-      LEFT JOIN tags t ON t.id = ut2.tag_id
-
-      WHERE u.id != $1
-
+      -- ❌ blocked
       AND u.id NOT IN (
-        SELECT blocked_id FROM blocks WHERE blocker_id = $1
+        SELECT blocked_id FROM blocks WHERE blocker_id = $1::int
         UNION
-        SELECT blocker_id FROM blocks WHERE blocked_id = $1
+        SELECT blocker_id FROM blocks WHERE blocked_id = $1::int
       )
 
+      -- ❌ swiped
       AND u.id NOT IN (
-        SELECT target_id FROM swipes WHERE swiper_id = $1
+        SELECT target_id FROM swipes WHERE swiper_id = $1::int
       )
 
       -- ✅ AGE
-      AND p.age BETWEEN $4 AND $5
+      AND p.age BETWEEN $4::int AND $5::int
 
       -- ✅ FAME
-      AND p.fame_rating BETWEEN $6 AND $7
+      AND p.fame_rating BETWEEN $6::int AND $7::int
 
-      -- ✅ TAG FILTER (if provided)
-      ${tags.length ? `AND t.name = ANY($8)` : ''}
+      -- ✅ DISTANCE FILTER
+      AND (
+        6371 * acos(
+          cos(radians($2::float)) *
+          cos(radians(p.latitude)) *
+          cos(radians(p.longitude) - radians($3::float)) +
+          sin(radians($2::float)) *
+          sin(radians(p.latitude))
+        )
+      ) <= $9::float
 
-      GROUP BY u.id, p.age, p.biography, p.fame_rating, pic.url
-
-      HAVING
-        -- 📍 distance filter
-        (
-          6371 * acos(
-            cos(radians($2)) *
-            cos(radians(p.latitude)) *
-            cos(radians(p.longitude) - radians($3)) +
-            sin(radians($2)) *
-            sin(radians(p.latitude))
-          )
-        ) <= $9
+      -- ✅ TAG FILTER
+      ${
+        tags.length
+          ? `
+      AND EXISTS (
+        SELECT 1 FROM user_tags ut_filt
+        JOIN tags t_filt ON t_filt.id = ut_filt.tag_id
+        WHERE ut_filt.user_id = u.id AND t_filt.name = ANY($8::text[])
+      )`
+          : ''
+      }
 
       ORDER BY ${orderBy} ${orderDir}
 
       LIMIT 50
       `,
       [
-        userId,
-        me.latitude,
-        me.longitude,
-        minAge,
-        maxAge,
-        minFame,
-        maxFame,
+        userId, // $1
+        me.latitude, // $2
+        me.longitude, // $3
+        minAge, // $4
+        maxAge, // $5
+        minFame, // $6
+        maxFame, // $7
         tags, // $8
         maxDistance, // $9
       ],
     );
 
-    return result.rows;
+    // 🔥 Map the data exactly like getSuggestions!
+    return result.rows.map((row) => {
+      const images = row.images || [];
+
+      const profileIndex = images.findIndex((img) => img.is_profile);
+      const profileImage =
+        profileIndex !== -1 ? images[profileIndex].url : null;
+
+      return {
+        userId: row.id,
+        first_name: row.first_name,
+        age: row.age,
+        biography: row.biography,
+        tags: row.tags || [],
+        images,
+        profileIndex,
+        profileImage,
+        fame_rating: row.fame_rating,
+        distance: `${Number(row.distance).toFixed(1)} km`,
+        is_online: row.is_online,
+      };
+    });
   }
 }

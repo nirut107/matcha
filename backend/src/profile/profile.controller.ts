@@ -50,6 +50,13 @@ export class ProfileController {
     return this.getSetupStatus(req.user.userId);
   }
 
+  @Get('search')
+  @UseGuards(JwtGuard)
+  async search(@Req() req, @Query() query: SearchDto) {
+    console.log(req.user.userId, query, "==========================")
+    return this.profileService.searchProfiles(req.user.userId, query);
+  }
+
   @Get(':id')
   getUser(@Param('id') id: string) {
     return this.profileService.getProfileById(Number(id));
@@ -68,9 +75,5 @@ export class ProfileController {
     return { message: 'Visit recorded' };
   }
 
-  @Get('search')
-  @UseGuards(JwtGuard)
-  async search(@Req() req, @Query() query: SearchDto) {
-    return this.profileService.searchProfiles(req.user.userId, query);
-  }
+  
 }
