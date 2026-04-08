@@ -119,11 +119,9 @@ CREATE TABLE visits (
     visitor_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     visited_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
     CONSTRAINT unique_visit_pair UNIQUE (visitor_id, visited_id)
 );
 
--- 2. Index for performance (helps when fetching "Who visited my profile?")
 CREATE INDEX idx_visited_id ON visits(visited_id);
 
 -- =========================

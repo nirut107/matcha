@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { NotificationService } from '../notification/notification.service';
 import { ForbiddenException } from '@nestjs/common';
 import { SearchDto } from './dto/search.dto';
+import { min } from 'rxjs';
 
 @Injectable()
 export class ProfileService {
