@@ -20,8 +20,9 @@ import ProfileCard from "@/components/ProfileCard";
 import Header from "@/components/Header";
 import ActionButtons from "@/components/ActionButtons";
 import FilterBar from "@/components/FilterBar";
+import FilterModal from "@/components/FilterModal";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Loading from "@/app/loading"
 
 // 🔥 Toggle here (switch to false when backend ready)
@@ -49,6 +50,7 @@ type Profile = {
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -56,13 +58,14 @@ export default function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
   const handleShowInfo = async (visitedId: number) => {
-    // 1. Open the modal immediately for a snappy UI
+
     setShowModal(true);
     setIsModalLoading(true);
 
     try {
-      // 2. Track the visit in the database
       const response = await fetchWithAuth(
         `/profile/visit/${visitedId}`,
         {
@@ -79,17 +82,17 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Error sending visit record:", err);
     } finally {
-      // 3. Stop loading state regardless of API success/failure
       setIsModalLoading(false);
     }
   };
-  // ✅ Load data (mock OR backend)
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const res = await fetchWithAuth(
-          "/profile/suggestions"
-        );
+        const query = searchParams.toString();
+        const endpoint = query
+          ? `/profile/search?${query}`
+          : "/profile/suggestions";
+          const res = await fetchWithAuth(endpoint);
         if (res.status === 403) {
           router.push("profile/setup"); // onboarding page
         }
@@ -105,16 +108,14 @@ export default function Dashboard() {
     };
 
     fetchProfiles();
-  }, []);
+  }, [searchParams, router]);
 
-  // ✅ Loading state
   if (loading) {
     return (
       <Loading />
     );
   }
 
-  // ✅ Empty state
   if (!profiles.length || currentIndex >= profiles.length) {
     return (
       <>
@@ -181,15 +182,13 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* 🔥 HEADER */}
       <Header />
-      {/* <SocketHandler /> */}
-
-      {/* 🔍 FILTER BAR */}
-
-      {/* 🔥 MAIN CARD */}
       <main className="flex-grow flex flex-col items-center justify-center p-4">
-        <FilterBar onOpenFilters={() => console.log("open filter modal")} />
+        <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
+        <FilterModal
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+        />
         <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl">
           <ProfileCard profile={currentProfile} />
 
