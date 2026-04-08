@@ -10,6 +10,7 @@ import {
   Search,
   Circle,
   ArrowLeft,
+  Ban, // <-- Imported Ban icon
 } from "lucide-react";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -20,6 +21,7 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 
 const USE_MOCK = false; // switch this ON/OFF
+
 export interface MatchResponse {
   id: number;
   user_id: number;
@@ -33,6 +35,7 @@ export interface MatchResponse {
   profile_picture: string | null;
   last_message: string | null;
   last_message_time: string | null;
+  i_blocked_them: boolean;
 }
 
 function formatTime(dateString: string, type: "chat" | "list" = "chat") {
@@ -94,9 +97,11 @@ export default function ChatPage() {
       window.removeEventListener("beforeunload", handleLeave);
     };
   }, [socket]);
+
   useEffect(() => {
     activeMatchRef.current = activeChat?.id ?? null;
   }, [activeChat]);
+
   useEffect(() => {
     const s = getSocket();
     setSocket(s);
@@ -124,9 +129,9 @@ export default function ChatPage() {
         }
       })
       .catch(console.error);
+
     s.on("newMessage", (msg: any) => {
       const myId = userIdRef.current;
-      // console.log(msg.sender_id, Id, "aaaaaaaa")
       console.log(myId, "myId");
       if (Number(msg.sender_id) != Number(myId)) {
         const formattedMsg = {
@@ -168,7 +173,7 @@ export default function ChatPage() {
       });
     });
     return () => {
-      // ✅ leave current match room when leaving page
+      // leave current match room when leaving page
       if (activeMatchRef.current) {
         s.emit("leaveMatch", { matchId: activeMatchRef.current });
       }
@@ -182,7 +187,7 @@ export default function ChatPage() {
       socket.emit("leaveMatch", { matchId: activeChat.id });
     }
 
-    // ✅ update ref immediately (IMPORTANT)
+    //  update ref immediately (IMPORTANT)
     activeMatchRef.current = match.id;
 
     setActiveChat(match);
@@ -197,9 +202,7 @@ export default function ChatPage() {
       prev.map((m) => (m.id === match.id ? { ...m, unread_count: 0 } : m))
     );
 
-    const res = await fetchWithAuth(
-      `/messages/${match.id}`
-    );
+    const res = await fetchWithAuth(`/messages/${match.id}`);
     const data = await res.json();
     console.log(data, "message");
     const formatted = data.result.map((msg: any) => ({
@@ -255,6 +258,36 @@ export default function ChatPage() {
     );
   };
 
+  //  Handle Block/Unblock
+  const handleToggleBlock = async () => {
+    if (!activeChat) return;
+
+    const isCurrentlyBlocked = activeChat.i_blocked_them;
+    const method = isCurrentlyBlocked ? "DELETE" : "POST";
+
+    try {
+      const res = await fetchWithAuth(`/blocks/${activeChat.user_id}`, {
+        method,
+      });
+
+      if (res.ok) {
+        // Optimistically update the UI
+        const updatedChat = { ...activeChat, i_blocked_them: !isCurrentlyBlocked };
+        setActiveChat(updatedChat);
+
+        // Update the matches list so the state persists as you switch chats
+        setMatches((prev) =>
+          prev.map((m) => (m.id === activeChat.id ? updatedChat : m))
+        );
+		console.log("Successfully block")
+      } else {
+        console.error("Failed to toggle block status");
+      }
+    } catch (error) {
+      console.error("Error blocking/unblocking user", error);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <Header />
@@ -300,7 +333,7 @@ export default function ChatPage() {
                     activeChat?.id === match.id
                       ? "bg-white border-rose-500 shadow-sm"
                       : "border-transparent hover:bg-gray-100"
-                  }`}
+                  } ${match.i_blocked_them ? "opacity-50" : ""}`} // Slightly fade blocked chats in sidebar
                 >
                   <div className="relative">
                     <img
@@ -308,7 +341,7 @@ export default function ChatPage() {
                       className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm"
                       alt=""
                     />
-                    {match.is_online && (
+                    {match.is_online && !match.i_blocked_them && (
                       <Circle
                         size={12}
                         fill="#22c55e"
@@ -319,7 +352,7 @@ export default function ChatPage() {
                   <div className="flex-grow min-w-0">
                     <div className="flex justify-between items-baseline">
                       <h3 className="font-bold text-gray-900 truncate">
-                        {match.first_name}
+                        {match.first_name} {match.i_blocked_them && "(Blocked)"}
                       </h3>
                       <span className="text-[10px] font-bold text-gray-400 uppercase">
                         {match.last_message_time}
@@ -368,23 +401,41 @@ export default function ChatPage() {
                     {activeChat?.first_name}
                   </h2>
                   <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest">
-                    {activeChat?.is_online ? "Online" : "Away"}
+                    {activeChat?.i_blocked_them
+                      ? "Blocked"
+                      : activeChat?.is_online
+                      ? "Online"
+                      : "Away"}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-gray-400">
                 <button
                   onClick={() => handleCallClick("audio")}
-                  className="hover:text-rose-500 transition-colors"
+                  className="hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={activeChat?.i_blocked_them}
                 >
                   <Phone size={20} />
                 </button>
                 <button
                   onClick={() => handleCallClick("video")}
-                  className="hover:text-rose-500 transition-colors"
+                  className="hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={activeChat?.i_blocked_them}
                 >
                   <Video size={20} />
                 </button>
+
+                {/*  Block/Unblock Toggle Button */}
+                <button
+                  onClick={handleToggleBlock}
+                  title={activeChat?.i_blocked_them ? "Unblock user" : "Block user"}
+                  className={`transition-colors ${
+                    activeChat?.i_blocked_them ? "text-rose-500" : "hover:text-rose-500"
+                  }`}
+                >
+                  <Ban size={20} />
+                </button>
+
                 <button className="hover:text-rose-500 transition-colors">
                   <MoreVertical size={20} />
                 </button>
@@ -422,27 +473,33 @@ export default function ChatPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <form
-              onSubmit={handleSendMessage}
-              className="p-4 bg-white border-t border-gray-100"
-            >
-              <div className="relative flex items-center gap-2 max-w-4xl mx-auto">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-grow py-4 pl-6 pr-14 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-900 text-sm transition-all"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 bg-gradient-to-r from-rose-500 to-orange-400 p-2.5 rounded-full text-white shadow-lg hover:scale-105 active:scale-95 transition-all"
-                >
-                  <Send size={20} />
-                </button>
+            {/* Input Area - Hidden if user is blocked */}
+            {activeChat.i_blocked_them ? (
+              <div className="p-4 bg-gray-100 border-t border-gray-200 text-center text-sm text-gray-500">
+                You have blocked this user. Unblock them to send a message.
               </div>
-            </form>
+            ) : (
+              <form
+                onSubmit={handleSendMessage}
+                className="p-4 bg-white border-t border-gray-100"
+              >
+                <div className="relative flex items-center gap-2 max-w-4xl mx-auto">
+                  <input
+                    type="text"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-grow py-4 pl-6 pr-14 bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-900 text-sm transition-all"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-2 bg-gradient-to-r from-rose-500 to-orange-400 p-2.5 rounded-full text-white shadow-lg hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <Send size={20} />
+                  </button>
+                </div>
+              </form>
+            )}
           </main>
         )}
       </div>

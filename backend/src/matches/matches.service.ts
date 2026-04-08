@@ -9,7 +9,7 @@ export class MatchesService {
   async getMyMatches(userId: number) {
     const result = await this.db.query(
       `
-      SELECT 
+      SELECT
         m.id,
         u.id as user_id,
         u.username,
@@ -19,28 +19,33 @@ export class MatchesService {
         u.last_connection,
         p.url as profile_picture,
         m.created_at,
-    
+        EXISTS (
+        SELECT 1
+        FROM blocks b2
+        WHERE b2.blocker_id = $1 AND b2.blocked_id = u.id
+      ) AS i_blocked_them,
+
         -- 🔥 last message
         lm.content AS last_message,
         lm.created_at AS last_message_time,
-    
+
         -- 🔥 unread count
         COALESCE(unread.count, 0) AS unread_count
-    
+
       FROM matches m
-    
-      JOIN users u 
-        ON u.id = CASE 
+
+      JOIN users u
+        ON u.id = CASE
           WHEN m.user1_id = $1 THEN m.user2_id
           ELSE m.user1_id
         END
-    
-      LEFT JOIN pictures p 
+
+      LEFT JOIN pictures p
         ON p.user_id = u.id AND p.is_profile = TRUE
-      
-      LEFT JOIN profiles o 
+
+      LEFT JOIN profiles o
         ON o.user_id = u.id
-    
+
       -- 🔥 last message (LATERAL = per row)
       LEFT JOIN LATERAL (
         SELECT content, created_at
@@ -50,7 +55,7 @@ export class MatchesService {
         ORDER BY created_at DESC
         LIMIT 1
       ) lm ON TRUE
-    
+
       -- 🔥 unread count
       LEFT JOIN LATERAL (
         SELECT COUNT(*) as count
@@ -59,10 +64,17 @@ export class MatchesService {
           AND sender_id != $1
           AND is_read = FALSE
       ) unread ON TRUE
-    
-      WHERE m.user1_id = $1 OR m.user2_id = $1
-    
-      ORDER BY 
+
+      -- SELECT blocker_id FROM blocks WHERE blocked_id = $1
+      WHERE $1 IN (m.user1_id, m.user2_id)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM blocks b
+          WHERE b.blocked_id = $1
+            AND b.blocker_id IN (m.user1_id, m.user2_id)
+      )
+
+      ORDER BY
         lm.created_at DESC NULLS LAST, -- 🔥 sort by last message
         m.created_at DESC
       `,
