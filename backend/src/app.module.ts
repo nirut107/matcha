@@ -16,6 +16,7 @@ import { NotificationModule } from './notification/notification.module';
 import { ChatModule } from './chat/chat.module';
 import { SwipeModule } from './swipe/swipe.module';
 import { MessagesModule } from './messages/messages.module';
+import { MapModule } from './map/map.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MessagesModule } from './messages/messages.module';
     ChatModule,
     SwipeModule,
     MessagesModule,
+    MapModule,
   ],
   controllers: [AppController],
   providers: [AppService],

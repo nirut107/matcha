@@ -13,6 +13,7 @@ CREATE TABLE users (
     google_id TEXT UNIQUE,
     is_verified BOOLEAN DEFAULT FALSE,
     is_online BOOLEAN DEFAULT FALSE,
+    allow_map BOOLEAN DEFAULT FALSE,
     last_connection TIMESTAMP DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
