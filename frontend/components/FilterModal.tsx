@@ -77,35 +77,35 @@ export default function FilterModal({ isOpen, onClose, onApply, currentFilters }
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Age Range</label>
             <div className="flex items-center gap-2">
-              <input type="number" name="minAge" value={filters.minAge} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
+              <input type="number" name="minAge" value={filters.minAge} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
               <span className="text-gray-400">-</span>
-              <input type="number" name="maxAge" value={filters.maxAge} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
+              <input type="number" name="maxAge" value={filters.maxAge} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Fame Rating</label>
             <div className="flex items-center gap-2">
-              <input type="number" name="minFame" value={filters.minFame} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
+              <input type="number" name="minFame" value={filters.minFame} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
               <span className="text-gray-400">-</span>
-              <input type="number" name="maxFame" value={filters.maxFame} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
+              <input type="number" name="maxFame" value={filters.maxFame} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Max Distance (km)</label>
-            <input type="number" name="maxDistance" value={filters.maxDistance} onChange={handleChange} placeholder="e.g. 50" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
+            <input type="number" name="maxDistance" value={filters.maxDistance} onChange={handleChange} placeholder="e.g. 50" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Tags (comma separated)</label>
-            <input type="text" name="tags" value={filters.tags} onChange={handleChange} placeholder="vegan, art, fitness" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
+            <input type="text" name="tags" value={filters.tags} onChange={handleChange} placeholder="vegan, art, fitness" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
-              <select name="sortBy" value={filters.sortBy} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none text-gray-700 focus:ring-2 focus:ring-rose-400/20">
+              <select name="sortBy" value={filters.sortBy} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none text-gray-700 focus:ring-2 focus:ring-rose-400/20 text-gray-700">
                 <option value="distance">Distance</option>
                 <option value="age">Age</option>
                 <option value="fame">Fame</option>
@@ -114,7 +114,7 @@ export default function FilterModal({ isOpen, onClose, onApply, currentFilters }
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Direction</label>
-              <select name="sortDir" value={filters.sortDir} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none text-gray-700 focus:ring-2 focus:ring-rose-400/20">
+              <select name="sortDir" value={filters.sortDir} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none text-gray-700 focus:ring-2 focus:ring-rose-400/20 text-gray-700">
                 <option value="asc">Ascending</option>
                 <option value="desc">Descending</option>
               </select>
