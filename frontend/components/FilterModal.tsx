@@ -1,46 +1,46 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { X } from "lucide-react";
+
+type FilterState = {
+  minAge: string;
+  maxAge: string;
+  minFame: string;
+  maxFame: string;
+  maxDistance: string;
+  tags: string;
+  sortBy: string;
+  sortDir: string;
+};
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
+  onApply: (filters: FilterState | null) => void;
+  currentFilters: FilterState | null;
 };
 
-export default function FilterModal({ isOpen, onClose }: Props) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+const defaultFilters: FilterState = {
+  minAge: "",
+  maxAge: "",
+  minFame: "",
+  maxFame: "",
+  maxDistance: "",
+  tags: "",
+  sortBy: "distance",
+  sortDir: "asc",
+};
 
-  // Local state to hold form values before applying
-  const [filters, setFilters] = useState({
-    minAge: searchParams.get("minAge") || "",
-    maxAge: searchParams.get("maxAge") || "",
-    minFame: searchParams.get("minFame") || "",
-    maxFame: searchParams.get("maxFame") || "",
-    maxDistance: searchParams.get("maxDistance") || "",
-    tags: searchParams.get("tags") || "", // Storing as comma-separated string for the input
-    sortBy: searchParams.get("sortBy") || "distance",
-    sortDir: searchParams.get("sortDir") || "asc",
-  });
+export default function FilterModal({ isOpen, onClose, onApply, currentFilters }: Props) {
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
-  // Sync state if URL changes outside the modal
+  // When modal opens, populate with current active filters if they exist
   useEffect(() => {
     if (isOpen) {
-      setFilters({
-        minAge: searchParams.get("minAge") || "",
-        maxAge: searchParams.get("maxAge") || "",
-        minFame: searchParams.get("minFame") || "",
-        maxFame: searchParams.get("maxFame") || "",
-        maxDistance: searchParams.get("maxDistance") || "",
-        tags: searchParams.get("tags") || "",
-        sortBy: searchParams.get("sortBy") || "distance",
-        sortDir: searchParams.get("sortDir") || "asc",
-      });
+      setFilters(currentFilters || defaultFilters);
     }
-  }, [isOpen, searchParams]);
+  }, [isOpen, currentFilters]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -48,31 +48,20 @@ export default function FilterModal({ isOpen, onClose }: Props) {
   };
 
   const handleApply = () => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    // Loop through filters and apply them to URL params
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key); // Remove empty parameters to keep URL clean
-      }
-    });
-
-    // Push new URL
-    router.push(`${pathname}?${params.toString()}`);
+    onApply(filters); // Send the data back to Dashboard
     onClose();
   };
 
   const handleClear = () => {
-    router.push(pathname); // Clears all query params
+    setFilters(defaultFilters);
+    onApply(null); // Tell Dashboard to clear filters
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
@@ -83,46 +72,40 @@ export default function FilterModal({ isOpen, onClose }: Props) {
           </button>
         </div>
 
-        {/* Scrollable Form Area */}
+        {/* Form Area */}
         <div className="p-6 overflow-y-auto flex-grow space-y-6">
-
-          {/* Age Range */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Age Range</label>
             <div className="flex items-center gap-2">
-              <input type="number" name="minAge" value={filters.minAge} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
+              <input type="number" name="minAge" value={filters.minAge} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
               <span className="text-gray-400">-</span>
-              <input type="number" name="maxAge" value={filters.maxAge} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
+              <input type="number" name="maxAge" value={filters.maxAge} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
             </div>
           </div>
 
-          {/* Fame Range */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Fame Rating</label>
             <div className="flex items-center gap-2">
-              <input type="number" name="minFame" value={filters.minFame} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
+              <input type="number" name="minFame" value={filters.minFame} onChange={handleChange} placeholder="Min" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
               <span className="text-gray-400">-</span>
-              <input type="number" name="maxFame" value={filters.maxFame} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
+              <input type="number" name="maxFame" value={filters.maxFame} onChange={handleChange} placeholder="Max" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
             </div>
           </div>
 
-          {/* Max Distance */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Max Distance (km)</label>
-            <input type="number" name="maxDistance" value={filters.maxDistance} onChange={handleChange} placeholder="e.g. 50" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
+            <input type="number" name="maxDistance" value={filters.maxDistance} onChange={handleChange} placeholder="e.g. 50" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
           </div>
 
-          {/* Tags */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Tags (comma separated)</label>
-            <input type="text" name="tags" value={filters.tags} onChange={handleChange} placeholder="vegan, art, fitness" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700" />
+            <input type="text" name="tags" value={filters.tags} onChange={handleChange} placeholder="vegan, art, fitness" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20" />
           </div>
 
-          {/* Sorting */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
-              <select name="sortBy" value={filters.sortBy} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700">
+              <select name="sortBy" value={filters.sortBy} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none text-gray-700 focus:ring-2 focus:ring-rose-400/20">
                 <option value="distance">Distance</option>
                 <option value="age">Age</option>
                 <option value="fame">Fame</option>
@@ -131,13 +114,12 @@ export default function FilterModal({ isOpen, onClose }: Props) {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Direction</label>
-              <select name="sortDir" value={filters.sortDir} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400/20 text-gray-700">
+              <select name="sortDir" value={filters.sortDir} onChange={handleChange} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none text-gray-700 focus:ring-2 focus:ring-rose-400/20">
                 <option value="asc">Ascending</option>
                 <option value="desc">Descending</option>
               </select>
             </div>
           </div>
-
         </div>
 
         {/* Footer Actions */}

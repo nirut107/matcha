@@ -22,7 +22,7 @@ import ActionButtons from "@/components/ActionButtons";
 import FilterBar from "@/components/FilterBar";
 import FilterModal from "@/components/FilterModal";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Loading from "@/app/loading"
 
 // 🔥 Toggle here (switch to false when backend ready)
@@ -50,7 +50,6 @@ type Profile = {
 
 export default function Dashboard() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -59,6 +58,7 @@ export default function Dashboard() {
   const [isModalLoading, setIsModalLoading] = useState(false);
 
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<any | null>(null);
 
   const handleShowInfo = async (visitedId: number) => {
 
@@ -88,10 +88,14 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const query = searchParams.toString();
-        const endpoint = query
-          ? `/profile/search?${query}`
-          : "/profile/suggestions";
+        let endpoint = "/profile/suggestions"; // Default
+        if (activeFilters) {
+          const params = new URLSearchParams();
+          Object.entries(activeFilters).forEach(([key, value]) => {
+            if (value) params.append(key, value as string);
+          });
+          endpoint = `/profile/search?${params.toString()}`;
+        }
           const res = await fetchWithAuth(endpoint);
         if (res.status === 403) {
           router.push("profile/setup"); // onboarding page
@@ -99,6 +103,7 @@ export default function Dashboard() {
         const data = await res.json();
         console.log(`data from fetch is ${data}`);
         setProfiles(data);
+        setCurrentIndex(0);
         console.log(profiles);
       } catch (err) {
         console.error("Error loading profiles:", err);
@@ -108,7 +113,7 @@ export default function Dashboard() {
     };
 
     fetchProfiles();
-  }, [searchParams, router]);
+  }, [activeFilters, router]);
 
   if (loading) {
     return (
@@ -120,6 +125,13 @@ export default function Dashboard() {
     return (
       <>
         <Header />
+        <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
+        <FilterModal
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          onApply={setActiveFilters}
+          currentFilters={activeFilters}
+        />
         <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
           <div className="bg-gray-100 p-6 rounded-full mb-4">
             <Flame size={48} className="text-gray-300" />
@@ -131,10 +143,13 @@ export default function Dashboard() {
             Try changing filters or come back later.
           </p>
           <button
-            onClick={() => setCurrentIndex(0)}
+            onClick={() => {
+              setCurrentIndex(0);
+              setActiveFilters(null);
+            }}
             className="mt-6 text-rose-500 font-bold hover:underline"
           >
-            Reset
+            Clear Filters & Reset
           </button>
         </div>
       </>
@@ -188,6 +203,8 @@ export default function Dashboard() {
         <FilterModal
           isOpen={isFilterModalOpen}
           onClose={() => setIsFilterModalOpen(false)}
+          onApply={setActiveFilters}
+          currentFilters={activeFilters}
         />
         <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl">
           <ProfileCard profile={currentProfile} />
