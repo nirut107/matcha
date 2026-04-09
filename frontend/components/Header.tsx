@@ -1,6 +1,13 @@
 "use client";
 
-import { Flame, MessageCircle, Settings, LogOut, Map } from "lucide-react";
+import {
+  Flame,
+  MessageCircle,
+  Settings,
+  LogOut,
+  Map,
+  Calendar,
+} from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
@@ -69,6 +76,18 @@ export default function Header() {
           }}
         >
           <Map size={24} />
+        </button>
+
+        {/* --- CALENDAR BUTTON --- */}
+        <button
+          className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
+          onClick={() => {
+            if (pathname !== "/calendar") {
+              router.push("/calendar");
+            }
+          }}
+        >
+          <Calendar size={24} />
         </button>
 
         <button
