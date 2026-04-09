@@ -17,6 +17,7 @@ import { ChatModule } from './chat/chat.module';
 import { SwipeModule } from './swipe/swipe.module';
 import { MessagesModule } from './messages/messages.module';
 import { MapModule } from './map/map.module';
+import { DatesModule } from './dates/dates.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { MapModule } from './map/map.module';
     SwipeModule,
     MessagesModule,
     MapModule,
+    DatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
