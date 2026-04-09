@@ -23,7 +23,7 @@ import FilterBar from "@/components/FilterBar";
 import FilterModal from "@/components/FilterModal";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useRouter } from "next/navigation";
-import Loading from "@/app/loading"
+import Loading from "@/app/loading";
 
 // 🔥 Toggle here (switch to false when backend ready)
 const USE_MOCK = false;
@@ -43,7 +43,7 @@ type Profile = {
   fame_rating: number;
   distance: string;
   is_online: boolean;
-  profileIndex:number;
+  profileIndex: number;
   profileImage: string;
   userId: number;
 };
@@ -59,22 +59,19 @@ export default function Dashboard() {
 
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<any | null>(null);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   const handleShowInfo = async (visitedId: number) => {
-
     setShowModal(true);
     setIsModalLoading(true);
 
     try {
-      const response = await fetchWithAuth(
-        `/profile/visit/${visitedId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetchWithAuth(`/profile/visit/${visitedId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
         console.warn("Failed to record profile visit");
@@ -96,10 +93,12 @@ export default function Dashboard() {
           });
           endpoint = `/profile/search?${params.toString()}`;
         }
-          const res = await fetchWithAuth(endpoint);
+        const minDelay = new Promise((resolve) => setTimeout(resolve, 1000));
+        const res = await fetchWithAuth(endpoint);
         if (res.status === 403) {
           router.push("profile/setup"); // onboarding page
         }
+        await Promise.all([minDelay, res]);
         const data = await res.json();
         console.log(`data from fetch is ${data}`);
         setProfiles(data);
@@ -108,49 +107,61 @@ export default function Dashboard() {
       } catch (err) {
         console.error("Error loading profiles:", err);
       } finally {
-        setLoading(false);
+        setIsFadingOut(true);
+
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
       }
     };
 
     fetchProfiles();
   }, [activeFilters, router]);
 
-  if (loading) {
-    return (
-      <Loading />
-    );
-  }
 
   if (!profiles.length || currentIndex >= profiles.length) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        {/* <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} /> */}
-        {/* <FilterModal
+      <div className="relative min-h-screen">
+        {loading && (
+          <div
+            className={`
+          fixed inset-0 z-50 
+            transition-opacity duration-2000 ease-in-out
+            ${isFadingOut ? "opacity-0" : "opacity-100"}
+          `}
+          >
+            <Loading />
+          </div>
+        )}
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          {/* <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} /> */}
+          {/* <FilterModal
           isOpen={isFilterModalOpen}
           onClose={() => setIsFilterModalOpen(false)}
           onApply={setActiveFilters}
           currentFilters={activeFilters}
         /> */}
-        <div className="flex flex-col items-center justify-center grow text-center p-6">
-          <div className="bg-gray-100 p-6 rounded-full mb-4">
-            <Flame size={48} className="text-gray-300" />
+          <div className="flex flex-col items-center justify-center grow text-center p-6">
+            <div className="bg-gray-100 p-6 rounded-full mb-4">
+              <Flame size={48} className="text-gray-300" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              That's everyone for now!
+            </h2>
+            <p className="text-gray-500 mt-2">
+              Try changing filters or come back later.
+            </p>
+            <button
+              onClick={() => {
+                setCurrentIndex(0);
+                setActiveFilters(null);
+              }}
+              className="mt-6 text-rose-500 font-bold hover:underline"
+            >
+              Clear Filters & Reset
+            </button>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            That's everyone for now!
-          </h2>
-          <p className="text-gray-500 mt-2">
-            Try changing filters or come back later.
-          </p>
-          <button
-            onClick={() => {
-              setCurrentIndex(0);
-              setActiveFilters(null);
-            }}
-            className="mt-6 text-rose-500 font-bold hover:underline"
-          >
-            Clear Filters & Reset
-          </button>
         </div>
       </div>
     );
@@ -166,19 +177,16 @@ export default function Dashboard() {
     setCurrentIndex((prev) => prev + 1);
 
     try {
-      const response = await fetchWithAuth(
-        "/swipe/swipe",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            targetId: targetId,
-            action: type,
-          }),
-        }
-      );
+      const response = await fetchWithAuth("/swipe/swipe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetId: targetId,
+          action: type,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to record swipe");

@@ -15,8 +15,8 @@ export class MapService {
             p.age,
             p.biography,
             p.fame_rating,
-            p.latitude,   -- 🔥 Added for Mapbox markers
-            p.longitude,  -- 🔥 Added for Mapbox markers
+            p.latitude,   
+            p.longitude,  
       
             -- 🔥 distance (km) calculated from the center of the Mapbox view
             (
@@ -28,6 +28,21 @@ export class MapService {
                 sin(radians(p.latitude))
               )
             ) AS distance,
+
+            -- 🔥 i_blocked_them
+            EXISTS (
+              SELECT 1
+              FROM blocks b2
+              WHERE b2.blocker_id = $1 AND b2.blocked_id = u.id
+            ) AS i_blocked_them,
+
+            -- 🔥 i_liked_them
+            -- Note: Adjust 'likes', 'liker_id', and 'liked_id' if your table/columns are named differently
+            EXISTS (
+              SELECT 1
+              FROM likes l2
+              WHERE l2.liker_id = $1 AND l2.liked_id = u.id
+            ) AS i_liked_them,
       
             -- 🔥 images
             COALESCE(
@@ -58,23 +73,21 @@ export class MapService {
           LEFT JOIN pictures pic ON pic.user_id = u.id
       
           WHERE u.id != $1
-          AND p.latitude IS NOT NULL   -- Ensure they have location data
+          AND p.latitude IS NOT NULL   
           AND p.longitude IS NOT NULL
       
-          -- ❌ blocked (Do not show if blocked)
+          -- ⚠️ NOTE: If you want 'i_blocked_them' to ever be true, 
+          -- you must REMOVE or COMMENT OUT this block filter below:
           AND u.id NOT IN (
             SELECT blocked_id FROM blocks WHERE blocker_id = $1
             UNION
             SELECT blocker_id FROM blocks WHERE blocked_id = $1
           )
       
-          -- ✅ Swiped filter REMOVED (Show everyone)
-          -- ✅ Gender/Preference filter REMOVED (Show everyone)
-      
           GROUP BY u.id, p.user_id
       
           ORDER BY distance ASC
-          LIMIT 100 -- Limit to 100 so the map doesn't lag with too many markers
+          LIMIT 100 
           `,
       [userId, centerLat, centerLng],
     );
@@ -82,7 +95,7 @@ export class MapService {
     return result.rows.map((row) => {
       const images = row.images || [];
 
-      const profileIndex = images.findIndex((img) => img.is_profile);
+      const profileIndex = images.findIndex((img: any) => img.is_profile);
       const profileImage =
         profileIndex !== -1 ? images[profileIndex].url : null;
 
@@ -96,10 +109,12 @@ export class MapService {
         profileIndex,
         profileImage,
         fame_rating: row.fame_rating,
-        latitude: parseFloat(row.latitude), // Converted to number for Mapbox
-        longitude: parseFloat(row.longitude), // Converted to number for Mapbox
+        latitude: parseFloat(row.latitude),
+        longitude: parseFloat(row.longitude),
         distance: `${Number(row.distance).toFixed(1)} km`,
         is_online: row.is_online,
+        i_blocked_them: row.i_blocked_them,
+        i_liked_them: row.i_liked_them,
       };
     });
   }
