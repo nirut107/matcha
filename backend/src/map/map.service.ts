@@ -6,6 +6,11 @@ export class MapService {
   constructor(private db: DatabaseService) {}
 
   async getMapUsers(userId: number, centerLat: number, centerLng: number) {
+
+    const test = await this.db.query(`SELECT u.id, p.user_id
+FROM users u
+LEFT JOIN profiles p ON p.user_id = u.id;`)
+      console.log(test.rows)
     const result = await this.db.query(
       `
           SELECT
@@ -18,30 +23,30 @@ export class MapService {
             p.latitude,   
             p.longitude,  
       
-            -- 🔥 distance (km) calculated from the center of the Mapbox view
             (
               6371 * acos(
-                cos(radians($2)) *
-                cos(radians(p.latitude)) *
-                cos(radians(p.longitude) - radians($3)) +
-                sin(radians($2)) *
-                sin(radians(p.latitude))
+                LEAST(1, GREATEST(-1,
+                  cos(radians($2)) *
+                  cos(radians(p.latitude)) *
+                  cos(radians(p.longitude) - radians($3)) +
+                  sin(radians($2)) *
+                  sin(radians(p.latitude))
+                ))
               )
             ) AS distance,
 
-            -- 🔥 i_blocked_them
             EXISTS (
               SELECT 1
               FROM blocks b2
               WHERE b2.blocker_id = $1 AND b2.blocked_id = u.id
             ) AS i_blocked_them,
 
-            -- 🔥 i_liked_them
-            -- Note: Adjust 'likes', 'liker_id', and 'liked_id' if your table/columns are named differently
             EXISTS (
               SELECT 1
-              FROM likes l2
-              WHERE l2.liker_id = $1 AND l2.liked_id = u.id
+              FROM swipes s2
+              WHERE s2.swiper_id = $1 
+                AND s2.target_id = u.id 
+                AND s2.action = 'like'
             ) AS i_liked_them,
       
             -- 🔥 images
@@ -76,25 +81,22 @@ export class MapService {
           AND p.latitude IS NOT NULL   
           AND p.longitude IS NOT NULL
       
-          -- ⚠️ NOTE: If you want 'i_blocked_them' to ever be true, 
-          -- you must REMOVE or COMMENT OUT this block filter below:
-          AND u.id NOT IN (
-            SELECT blocked_id FROM blocks WHERE blocker_id = $1
-            UNION
-            SELECT blocker_id FROM blocks WHERE blocked_id = $1
+          AND NOT EXISTS (
+              SELECT 1 FROM blocks b 
+              WHERE (b.blocker_id = $1 AND b.blocked_id = u.id) 
+                OR (b.blocked_id = $1 AND b.blocker_id = u.id)
           )
       
           GROUP BY u.id, p.user_id
       
-          ORDER BY distance ASC
           LIMIT 100 
           `,
       [userId, centerLat, centerLng],
     );
 
+
     return result.rows.map((row) => {
       const images = row.images || [];
-
       const profileIndex = images.findIndex((img: any) => img.is_profile);
       const profileImage =
         profileIndex !== -1 ? images[profileIndex].url : null;

@@ -1,15 +1,19 @@
 import { IsNotEmpty, IsLatitude, IsLongitude } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+
 
 export class GetMapUsersDto {
   @IsNotEmpty()
   @IsLatitude()
-  @Type(() => Number) // Automatically converts the query string to a number
+  @ApiProperty({ example: 13.7563, description: 'ละติจูดปัจจุบัน' })
+  @Type(() => Number)
   lat: number;
 
   @IsNotEmpty()
   @IsLongitude()
   @Type(() => Number)
+  @ApiProperty({ example: 100.5018, description: 'ลองจิจูดปัจจุบัน' })
   lng: number;
 }
 

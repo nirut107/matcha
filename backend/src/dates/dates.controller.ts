@@ -11,28 +11,28 @@ export class DatesController {
   @Post('request')
   @UseGuards(JwtGuard)
   async requestDate(@Req() req, @Body() dto: RequestDateDto) {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return this.datesService.requestDate(userId, dto);
   }
 
   @Post('respond')
   @UseGuards(JwtGuard)
   async respondDate(@Req() req, @Body() dto: RespondDateDto) {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return this.datesService.respondDate(userId, dto);
   }
 
   @Post('cancel')
   @UseGuards(JwtGuard)
   async cancelDate(@Req() req, @Body() dto: CancelDateDto) {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return this.datesService.cancelDate(userId, dto);
   }
 
   @Get('calendar')
   @UseGuards(JwtGuard)
   async getCalendar(@Req() req) {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return this.datesService.getCalendar(userId);
   }
 }

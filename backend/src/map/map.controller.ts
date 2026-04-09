@@ -15,7 +15,7 @@ export class MapController {
     @Req() req,
     @Query() query: GetMapUsersDto,
   ): Promise<MapUserResponseDto[]> {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return this.Mapservice.getMapUsers(userId, query.lat, query.lng);
   }
 }
