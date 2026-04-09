@@ -123,16 +123,16 @@ export default function Dashboard() {
 
   if (!profiles.length || currentIndex >= profiles.length) {
     return (
-      <>
+      <div className="min-h-screen flex flex-col">
         <Header />
-        <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
-        <FilterModal
+        {/* <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} /> */}
+        {/* <FilterModal
           isOpen={isFilterModalOpen}
           onClose={() => setIsFilterModalOpen(false)}
           onApply={setActiveFilters}
           currentFilters={activeFilters}
-        />
-        <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
+        /> */}
+        <div className="flex flex-col items-center justify-center grow text-center p-6">
           <div className="bg-gray-100 p-6 rounded-full mb-4">
             <Flame size={48} className="text-gray-300" />
           </div>
@@ -152,7 +152,7 @@ export default function Dashboard() {
             Clear Filters & Reset
           </button>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -198,7 +198,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      <main className="flex-grow flex flex-col items-center justify-center p-4">
+      <main className="grow flex flex-col items-center justify-center p-4">
         <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
         <FilterModal
           isOpen={isFilterModalOpen}
@@ -220,7 +220,7 @@ export default function Dashboard() {
 
       {/* --- DETAILED PROFILE MODAL --- */}
       {showModal && (
-        <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center">
           <div className="bg-white w-full max-w-2xl h-[92vh] sm:h-[85vh] overflow-y-auto rounded-t-[3rem] sm:rounded-[3rem] relative shadow-2xl">
             <button
               onClick={() => setShowModal(false)}
@@ -236,12 +236,12 @@ export default function Dashboard() {
             ) : (
               <div className="pb-12">
                 {/* Horizontal Photo Gallery */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory h-[450px] bg-gray-100 no-scrollbar">
+                <div className="flex overflow-x-auto snap-x snap-mandatory h-450px bg-gray-100 no-scrollbar">
                   {currentProfile.images.map((img, i) => (
                     <img
                       key={i}
                       src={img.url}
-                      className="w-full h-full object-cover flex-shrink-0 snap-center"
+                      className="w-full h-full object-cover shrink-0 snap-center"
                       alt="User gallery"
                     />
                   ))}
