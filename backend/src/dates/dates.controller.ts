@@ -1,8 +1,6 @@
-// dates.controller.ts
 import { Controller, Post, Get, Body, Req, UseGuards } from '@nestjs/common';
 import { DatesService } from './dates.service';
 import { RequestDateDto, RespondDateDto, CancelDateDto } from './dto/dates.dto';
-// สมมติว่าคุณมี AuthGuard เพื่อดึงข้อมูล user ที่ล็อกอินอยู่
 import { JwtGuard } from 'src/auth/jwt.guard';
 
 
