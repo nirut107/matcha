@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, MessageCircle, Settings, LogOut } from "lucide-react";
+import { Flame, MessageCircle, Settings, LogOut, Map } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
@@ -24,8 +24,6 @@ export default function Header() {
       // Even if the API fails, you usually want to kick the user to login
       router.push("/auth/login");
     }
-
-    
   };
   return (
     <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50 hover:cursor-pointer">
@@ -59,6 +57,18 @@ export default function Header() {
           <MessageCircle size={24} />
           {/* Notification dot */}
           <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full border-2 border-white"></span>
+        </button>
+
+        {/* --- MAP BUTTON --- */}
+        <button
+          className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
+          onClick={() => {
+            if (pathname !== "/map") {
+              router.push("/map");
+            }
+          }}
+        >
+          <Map size={24} />
         </button>
 
         <button
