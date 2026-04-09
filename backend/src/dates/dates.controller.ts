@@ -33,6 +33,7 @@ export class DatesController {
   @UseGuards(JwtGuard)
   async getCalendar(@Req() req) {
     const userId = req.user.userId;
+    console.log(userId)
     return this.datesService.getCalendar(userId);
   }
 }

@@ -157,21 +157,21 @@ CREATE TABLE refresh_tokens (
 );
 
 CREATE TABLE dates (
-    id INT AUTO_INCREMENT PRIMARY KEY,          -- ไอดีของการนัดเดตฃ
-    sender_id INT NOT NULL,                     -- ไอดีคนที่ส่งคำขอเดต (User A)ฃ
-    receiver_id INT NOT NULL,                   -- ไอดีคนที่ถูกขอเดต (User B)ฃ
-    start_time DATETIME NOT NULL,               -- วันเวลาที่เริ่มเดต
-    end_time DATETIME NOT NULL,                 -- วันเวลาที่จบเดต
-    details TEXT NULL,                          -- รายละเอียดเล็กน้อย (สถานที่, กิจกรรม ฯลฯ)ฃ
-    status VARCHAR(20) DEFAULT 'pending',       -- สถานะ: pending, accepted, rejected, canceledฃ
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    id SERIAL PRIMARY KEY,                      -- ใน Postgres ใช้ SERIAL แทน AUTO_INCREMENT
+    sender_id INT NOT NULL,                     
+    receiver_id INT NOT NULL,                   
+    start_time TIMESTAMP NOT NULL,              -- ใน Postgres ใช้ TIMESTAMP
+    end_time TIMESTAMP NOT NULL,                 
+    details TEXT NULL,                          
+    status VARCHAR(20) DEFAULT 'pending',       
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Postgres ไม่มี ON UPDATE อัตโนมัติใน CREATE TABLE
     
     CONSTRAINT chk_date_time CHECK (end_time > start_time),
-    
     CONSTRAINT chk_date_status CHECK (status IN ('pending', 'accepted', 'rejected', 'canceled'))
 );
 
+-- สร้าง Index (เหมือนเดิม)
 CREATE INDEX idx_dates_users ON dates (sender_id, receiver_id);
 CREATE INDEX idx_dates_time ON dates (start_time, end_time);
 CREATE INDEX idx_dates_status ON dates (status);
