@@ -11,6 +11,7 @@ import {
   Circle,
   ArrowLeft,
   Ban, // <-- Imported Ban icon
+  HeartOff,
 } from "lucide-react";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -19,6 +20,7 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useRef } from "react";
 
 import { useRouter } from "next/navigation";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const USE_MOCK = false; // switch this ON/OFF
 
@@ -73,6 +75,8 @@ export default function ChatPage() {
   const activeMatchRef = useRef<number | null>(null);
   const router = useRouter();
   const userIdRef = useRef<number | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -216,6 +220,26 @@ export default function ChatPage() {
     return data.userId;
   };
 
+  const executeUnlike = async () => {
+    if (!activeChat) return;
+    try {
+      const res = await fetchWithAuth("/swipe/unlike", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId: activeChat.user_id }),
+      });
+
+      if (!res.ok) throw new Error("Failed to unlike user");
+
+      setMatches((prev) => prev.filter((m) => m.id !== activeChat.id));
+      const remainingMatches = matches.filter((m) => m.id !== activeChat.id);
+      if (remainingMatches.length > 0) handleSelectChat(remainingMatches[0]);
+    } catch (err) {
+      console.error("Error unliking user:", err);
+      // Optional: Show a toast error
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -272,14 +296,17 @@ export default function ChatPage() {
 
       if (res.ok) {
         // Optimistically update the UI
-        const updatedChat = { ...activeChat, i_blocked_them: !isCurrentlyBlocked };
+        const updatedChat = {
+          ...activeChat,
+          i_blocked_them: !isCurrentlyBlocked,
+        };
         setActiveChat(updatedChat);
 
         // Update the matches list so the state persists as you switch chats
         setMatches((prev) =>
           prev.map((m) => (m.id === activeChat.id ? updatedChat : m))
         );
-		console.log("Successfully block")
+        console.log("Successfully block");
       } else {
         console.error("Failed to toggle block status");
       }
@@ -424,13 +451,25 @@ export default function ChatPage() {
                 >
                   <Video size={20} />
                 </button>
+                <button
+                  onClick={() => setIsConfirmOpen(true)}
+                  title="Unmatch / Unlike"
+                  className="hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={activeChat?.i_blocked_them}
+                >
+                  <HeartOff size={20} />
+                </button>
 
                 {/*  Block/Unblock Toggle Button */}
                 <button
-                  onClick={handleToggleBlock}
-                  title={activeChat?.i_blocked_them ? "Unblock user" : "Block user"}
+                  onClick={() => setIsBlockModalOpen(true)}
+                  title={
+                    activeChat?.i_blocked_them ? "Unblock user" : "Block user"
+                  }
                   className={`transition-colors ${
-                    activeChat?.i_blocked_them ? "text-rose-500" : "hover:text-rose-500"
+                    activeChat?.i_blocked_them
+                      ? "text-rose-500"
+                      : "hover:text-rose-500"
                   }`}
                 >
                   <Ban size={20} />
@@ -503,6 +542,26 @@ export default function ChatPage() {
           </main>
         )}
       </div>
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="UnLike User"
+        message={`Are you sure you want to unlike with ${activeChat?.first_name}? They will be removed from your messages.`}
+        confirmText="Yes, UnLike"
+        cancelText="Cancel"
+        onConfirm={executeUnlike}
+        onCancel={() => setIsConfirmOpen(false)}
+        isDestructive={true}
+      />
+      <ConfirmModal
+        isOpen={isBlockModalOpen}
+        title="Block User"
+        message="Are you sure you want to block this user? They will not be able to view your profile or send you messages."
+        confirmText="Block"
+        cancelText="Cancel"
+        onConfirm={handleToggleBlock}
+        onCancel={() => setIsBlockModalOpen(false)}
+        isDestructive={true}
+      />
     </div>
   );
 }

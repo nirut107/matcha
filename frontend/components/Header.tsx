@@ -9,11 +9,14 @@ import {
   Calendar,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { useState } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import ConfirmModal from "./ConfirmModal";
 
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
   const handleLogout = async () => {
     try {
       // 1. Tell the backend to clear the session/cookie
@@ -32,6 +35,7 @@ export default function Header() {
       router.push("/auth/login");
     }
   };
+
   return (
     <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50 hover:cursor-pointer">
       {/* Logo */}
@@ -103,12 +107,22 @@ export default function Header() {
         {/* --- LOGOUT BUTTON --- */}
         <button
           className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer flex items-center gap-1"
-          onClick={handleLogout}
+          onClick={() => setIsLogoutModalOpen(true)}
           title="Logout"
         >
           <LogOut size={24} />
         </button>
       </div>
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        title="Log Out"
+        message="Are you sure you want to log out of Matcha?"
+        confirmText="Yes, Log Out"
+        cancelText="Stay"
+        onConfirm={handleLogout}
+        onCancel={() => setIsLogoutModalOpen(false)}
+        isDestructive={true}
+      />
     </header>
   );
 }
