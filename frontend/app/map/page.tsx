@@ -69,7 +69,14 @@ export default function MapPage() {
   useEffect(() => {
     const fetchMapData = async () => {
       try {
-        const response = await fetchWithAuth("/map", { method: "GET" });
+        const res1 = await fetchWithAuth("/profile/me");
+        if (res1.status === 403) {
+          router.push("profile/setup");
+          return;
+        }
+        const { latitude,longitude } = await res1.json()
+        console.log(latitude, longitude)
+        const response = await fetchWithAuth(`/map?lat=${latitude}&lng=${longitude}`, { method: "GET" });
         if (response.status === 403) {
           router.push("profile/setup");
           return;
@@ -90,7 +97,6 @@ export default function MapPage() {
   }, [router]);
 
   // 2. Initialize Map ONCE
-
 
   // 3. Update Markers when users list changes
   useEffect(() => {
