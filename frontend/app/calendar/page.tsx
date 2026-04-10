@@ -56,7 +56,7 @@ export default function CalendarPage() {
   const fetchData = async () => {
     try {
       const [calendarRes, matchesRes] = await Promise.all([
-        fetchWithAuth("/date/calendar"),
+        fetchWithAuth("/dates/calendar"),
         fetchWithAuth("/matches"),
       ]);
 
