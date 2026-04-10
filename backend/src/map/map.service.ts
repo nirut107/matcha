@@ -88,6 +88,8 @@ LEFT JOIN profiles p ON p.user_id = u.id;`)
           )
       
           GROUP BY u.id, p.user_id
+
+        ORDER BY distance
       
           LIMIT 100 
           `,
