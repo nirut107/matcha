@@ -8,13 +8,13 @@ export class GetMapUsersDto {
   @IsLatitude()
   @ApiProperty({ example: 13.7563, description: 'ละติจูดปัจจุบัน' })
   @Type(() => Number)
-  lat: number;
+  lat?: number;
 
   @IsNotEmpty()
   @IsLongitude()
   @Type(() => Number)
   @ApiProperty({ example: 100.5018, description: 'ลองจิจูดปัจจุบัน' })
-  lng: number;
+  lng?: number;
 }
 
 export class MapUserImageDto {

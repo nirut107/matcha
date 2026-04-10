@@ -42,7 +42,7 @@ export class SwipeService {
           `,
           [userId, targetId],
         );
-        console.log(userId, targetId)
+        console.log(userId, targetId);
         if (res.rows.length) {
           isMatch = true;
 
@@ -75,6 +75,45 @@ export class SwipeService {
       await this.db.query('COMMIT');
 
       return { success: true, match: isMatch };
+    } catch (e) {
+      await this.db.query('ROLLBACK');
+      throw e;
+    }
+  }
+
+  async unlikeUser(userId: number, targetId: number) {
+    if (userId === targetId) {
+      throw new Error('Invalid action');
+    }
+
+    await this.db.query('BEGIN');
+
+    try {
+      await this.db.query(
+        `
+        INSERT INTO swipes (swiper_id, target_id, action)
+        VALUES ($1, $2, 'pass')
+        ON CONFLICT (swiper_id, target_id)
+        DO UPDATE SET action = 'pass'
+        `,
+        [userId, targetId],
+      );
+
+      const deleteMatchRes = await this.db.query(
+        `
+        DELETE FROM matches
+        WHERE user1_id = LEAST($1::int, $2::int)
+          AND user2_id = GREATEST($1::int, $2::int)
+        RETURNING id
+        `,
+        [Number(userId), Number(targetId)],
+      );
+
+      const matchBroken = (deleteMatchRes.rowCount ?? 0) > 0;
+
+      await this.db.query('COMMIT');
+
+      return { success: true, matchBroken };
     } catch (e) {
       await this.db.query('ROLLBACK');
       throw e;

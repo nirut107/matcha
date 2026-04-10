@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsArray, ArrayMaxSize, IsNumber } from 'class-validator';
 
+export class TargetDto {
+  @ApiProperty({ example: 2 })
+  @IsNumber()
+  targetId: number;
+}
+
 export class ActionSwipeDto {
   @ApiProperty({ example: 2 })
   @IsNumber()
@@ -8,5 +14,5 @@ export class ActionSwipeDto {
 
   @ApiProperty({ example: 'like' })
   @IsString()
-  action: "like" | "pass";
+  action: 'like' | 'pass';
 }
