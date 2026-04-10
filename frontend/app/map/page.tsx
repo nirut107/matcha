@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import Header from "@/components/Header"; // Adjust path if necessary
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Add your Mapbox token to your .env.local file as NEXT_PUBLIC_MAPBOX_TOKEN
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -29,6 +30,7 @@ interface MapUser {
 }
 
 export default function MapPage() {
+  const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -41,10 +43,13 @@ export default function MapPage() {
     const fetchMapData = async () => {
       try {
         // Adjust this endpoint to wherever your backend serves the map user data
-        const response = await fetchWithAuth("/api/users/map", {
+        const response = await fetchWithAuth("/map", {
           method: "GET",
         });
-
+        console.log(response,"map response")
+        if (response.status === 403) {
+          router.push("profile/setup");
+        }
         if (!response.ok) throw new Error("Failed to fetch map data");
 
         const data = await response.json();
