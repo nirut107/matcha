@@ -17,6 +17,7 @@ import {
 import Header from "@/components/Header";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import Loading from "@/app/loading";
+import { useRouter } from "next/navigation";
 
 // --- TYPES ---
 type DateEvent = {
@@ -41,6 +42,8 @@ type Match = {
 };
 
 export default function CalendarPage() {
+  const router = useRouter();
+
   const [dates, setDates] = useState<DateEvent[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +70,9 @@ export default function CalendarPage() {
         fetchWithAuth("/dates/calendar"),
         fetchWithAuth("/matches"),
       ]);
-
+      if (calendarRes.status === 403) {
+        router.push("profile/setup");
+      }
       if (calendarRes.ok) {
         const calendarData = await calendarRes.json();
         setDates(calendarData);
@@ -140,7 +145,7 @@ export default function CalendarPage() {
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-	setError("")
+    setError("");
     try {
       const res = await fetchWithAuth("/dates/request", {
         method: "POST",
