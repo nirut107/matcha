@@ -14,11 +14,18 @@ export class DatesService {
 
   // 🔥 1. ส่งคำขอเดต
   async requestDate(senderId: number, dto: RequestDateDto) {
-    if (new Date(dto.startTime) >= new Date(dto.endTime)) {
-      throw new BadRequestException('เวลาจบเดตต้องมากกว่าเวลาเริ่มเดต');
+    const startTime = new Date(dto.startTime);
+    const endTime = new Date(dto.endTime);
+    const now = new Date();
+
+    if (startTime < now) {
+      throw new BadRequestException('Start time cannot be in the past.');
     }
 
-    // ตรวจสอบว่า "ผู้ส่ง (Sender)" มีเดตอื่นที่ตอบรับแล้วในช่วงเวลานี้หรือไม่
+    if (startTime >= endTime) {
+      throw new BadRequestException('End time must be after the start time.');
+    }
+
     const overlapCheck = await this.db.query(
       `SELECT 1 FROM dates 
        WHERE (sender_id = $1 OR receiver_id = $1)
@@ -30,10 +37,11 @@ export class DatesService {
     );
 
     if (overlapCheck.rows.length > 0) {
-      throw new BadRequestException('คุณมีเดตนัดหมายอื่นในช่วงเวลานี้แล้ว');
+      throw new BadRequestException(
+        'You already have another date scheduled during this time.',
+      );
     }
 
-    // บันทึกคำขอเดต (สถานะ default เป็น pending)
     const result = await this.db.query(
       `INSERT INTO dates (sender_id, receiver_id, start_time, end_time, details, status)
        VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *`,
@@ -51,20 +59,23 @@ export class DatesService {
 
   // 🔥 2. ตอบรับหรือปฏิเสธคำขอเดต
   async respondDate(receiverId: number, dto: RespondDateDto) {
-    // เช็คก่อนว่ามีเดตนี้อยู่จริง และส่งมาถึงผู้ใช้คนนี้ สถานะต้องเป็น pending
+    // Check if the date exists, belongs to the receiver, and is still pending
     const dateQuery = await this.db.query(
       `SELECT * FROM dates WHERE id = $1 AND receiver_id = $2 AND status = 'pending'`,
       [dto.dateId, receiverId],
     );
 
+    // Translated: Not found error
     if (dateQuery.rows.length === 0) {
-      throw new NotFoundException('ไม่พบคำขอเดต หรือคำขอนี้ถูกจัดการไปแล้ว');
+      throw new NotFoundException(
+        'Date request not found or has already been processed.',
+      );
     }
 
     const dateRecord = dateQuery.rows[0];
 
     if (dto.action === 'accept') {
-      // ตรวจสอบว่า "ผู้รับ (Receiver)" มีเดตอื่นที่ตอบรับแล้วในช่วงเวลานี้หรือไม่
+      // Check if the receiver has an overlapping accepted date
       const overlapCheck = await this.db.query(
         `SELECT 1 FROM dates 
          WHERE (sender_id = $1 OR receiver_id = $1)
@@ -74,28 +85,25 @@ export class DatesService {
          LIMIT 1`,
         [receiverId, dateRecord.start_time, dateRecord.end_time],
       );
-
       if (overlapCheck.rows.length > 0) {
         throw new BadRequestException(
-          'คุณมีเดตนัดหมายอื่นในช่วงเวลานี้แล้ว ไม่สามารถตอบรับได้',
+          'You already have an overlapping date scheduled. Cannot accept.',
         );
       }
 
-      // อัปเดตสถานะเป็น accepted
       await this.db.query(
         `UPDATE dates SET status = 'accepted' WHERE id = $1`,
         [dto.dateId],
       );
-      return { message: 'ตอบรับคำขอเดตเรียบร้อยแล้ว' };
+      return { message: 'Date request accepted successfully.' };
     }
 
     if (dto.action === 'reject') {
-      // อัปเดตสถานะเป็น rejected
       await this.db.query(
         `UPDATE dates SET status = 'rejected' WHERE id = $1`,
         [dto.dateId],
       );
-      return { message: 'ปฏิเสธคำขอเดตเรียบร้อยแล้ว' };
+      return { message: 'Date request rejected successfully.' };
     }
   }
 
@@ -112,13 +120,14 @@ export class DatesService {
     );
 
     if (result.rowCount === 0) {
-      throw new BadRequestException('ไม่สามารถยกเลิกเดตนี้ได้');
+      throw new BadRequestException(
+        'Cannot cancel this date. It may not exist or has already been processed.',
+      );
     }
 
-    return { message: 'ยกเลิกเดตเรียบร้อยแล้ว' };
+    return { message: 'Date cancelled successfully.' };
   }
 
-  // 🔥 4. ดึงข้อมูลปฏิทิน (แสดงเดตที่ accepted และ pending)
   async getCalendar(userId: number) {
     const result = await this.db.query(
       `SELECT d.id, d.start_time, d.end_time, d.details, d.status,
