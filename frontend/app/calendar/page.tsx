@@ -13,6 +13,7 @@ import {
   LayoutList,
   ChevronLeft,
   ChevronRight,
+  MapPin
 } from "lucide-react";
 import Header from "@/components/Header";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
@@ -63,6 +64,8 @@ export default function CalendarPage() {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [details, setDetails] = useState("");
+
+  const [selectedDate, setSelectedDate] = useState<DateEvent | null>(null);
 
   const fetchData = async () => {
     try {
@@ -376,25 +379,33 @@ export default function CalendarPage() {
                       {dayDates.map((dd) => (
                         <div
                           key={dd.id}
-                          className={`text-xs px-2 py-1.5 rounded-lg border font-medium truncate ${
+                          onClick={() => setSelectedDate(dd)} // <-- 1. Add click handler
+                          className={`text-xs px-2 py-1.5 rounded-lg border font-medium cursor-pointer hover:opacity-80 transition-opacity flex flex-col gap-0.5 ${
+                            // <-- Added cursor-pointer and flex col
                             dd.status === "accepted"
                               ? "bg-gradient-to-r from-orange-50 to-rose-50 border-orange-100 text-orange-800"
                               : "bg-gray-50 border-gray-200 text-gray-600 border-dashed"
                           }`}
-                          title={`${new Date(dd.start_time).toLocaleTimeString(
-                            [],
-                            { hour: "2-digit", minute: "2-digit" }
-                          )} - ${dd.details}`}
                         >
-                          <span className="font-bold mr-1">
+                          <span className="font-bold text-[10px] leading-tight opacity-75">
+                            {/* <-- 2. Show both Start and End Time */}
                             {new Date(dd.start_time)
                               .toLocaleTimeString([], {
                                 hour: "numeric",
                                 minute: "2-digit",
                               })
                               .toLowerCase()}
+                            {" - "}
+                            {new Date(dd.end_time)
+                              .toLocaleTimeString([], {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })
+                              .toLowerCase()}
                           </span>
-                          {dd.other_first_name}
+                          <span className="truncate">
+                            {dd.other_first_name}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -643,6 +654,115 @@ export default function CalendarPage() {
                 {isSubmitting ? "Sending..." : "Send Invitation"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* --- DATE DETAILS MODAL --- */}
+      {selectedDate && (
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2rem] shadow-2xl relative overflow-hidden">
+            <div className="p-6">
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"
+              >
+                <X size={20} className="text-gray-600" />
+              </button>
+
+              <h3 className="text-2xl font-black text-gray-900 mb-2">
+                Date with {selectedDate.other_first_name}
+              </h3>
+
+              <div className="space-y-5 mt-6">
+                {/* Time Block */}
+                <div className="flex items-start gap-3">
+                  <Clock
+                    className="text-orange-500 mt-0.5 shrink-0"
+                    size={20}
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                      Time
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(selectedDate.start_time).toLocaleDateString(
+                        [],
+                        { weekday: "long", month: "short", day: "numeric" }
+                      )}
+                      <br />
+                      {new Date(selectedDate.start_time).toLocaleTimeString(
+                        [],
+                        { hour: "2-digit", minute: "2-digit" }
+                      )}
+                      {" to "}
+                      {new Date(selectedDate.end_time).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Details Block */}
+                <div className="flex items-start gap-3">
+                  <MapPin className="text-rose-500 mt-0.5 shrink-0" size={20} />
+                  <div className="w-full">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                      Location / Details
+                    </p>
+                    <p className="font-medium text-gray-700 bg-gray-50 p-3 rounded-xl border border-gray-100 mt-1 whitespace-pre-wrap">
+                      {selectedDate.details}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="mt-8 pt-4 border-t border-gray-100 flex justify-end gap-2">
+                {selectedDate.status === "accepted" ? (
+                  <button
+                    onClick={() => {
+                      handleCancel(selectedDate.id);
+                      setSelectedDate(null);
+                    }}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold transition-colors w-full sm:w-auto"
+                  >
+                    Cancel Date
+                  </button>
+                ) : selectedDate.direction === "received" ? (
+                  <div className="flex gap-2 w-full">
+                    <button
+                      onClick={() => {
+                        handleRespond(selectedDate.id, "accept");
+                        setSelectedDate(null);
+                      }}
+                      className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2.5 rounded-xl font-bold flex-1"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleRespond(selectedDate.id, "decline");
+                        setSelectedDate(null);
+                      }}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold flex-1"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      handleCancel(selectedDate.id);
+                      setSelectedDate(null);
+                    }}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2.5 rounded-xl font-bold w-full"
+                  >
+                    Revoke Request
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
