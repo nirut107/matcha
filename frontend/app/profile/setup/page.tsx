@@ -487,7 +487,7 @@ export default function ProfileSetupPage() {
                     draggable={!!url}
                     onDragStart={() => setDragIndex(i)}
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleDrop(i, e)}
+                    onDrop={(e) => handleDrop(i, e)}
                     className={`relative aspect-[3/4] rounded-2xl border-2 overflow-hidden bg-gray-50 transition-all cursor-move
                 ${
                   i === profilePicIndex
