@@ -17,102 +17,86 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
+
   const handleLogout = async () => {
     try {
-      // 1. Tell the backend to clear the session/cookie
-      await fetchWithAuth("/auth/logout", {
-        method: "POST",
-      });
-
-      // 2. Clear any local storage if you use it (optional)
-      // localStorage.removeItem('token');
-
-      // 3. Redirect to login
+      await fetchWithAuth("/auth/logout", { method: "POST" });
       router.push("/auth/login");
     } catch (error) {
       console.error("Logout failed:", error);
-      // Even if the API fails, you usually want to kick the user to login
       router.push("/auth/login");
     }
   };
 
+  // Helper to highlight active icons
+  const getIconClass = (path: string) =>
+    `transition-colors cursor-pointer p-1 rounded-md ${
+      pathname === path ? "text-rose-500 bg-rose-50" : "text-gray-400 hover:text-rose-500"
+    }`;
+
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50 hover:cursor-pointer">
-      {/* Logo */}
+    <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-50">
+      {/* Logo - Text hides on very small screens to save space */}
       <div
-        className="flex items-center gap-2"
-        onClick={() => {
-          if (pathname !== "/dashboard") {
-            router.push("/dashboard");
-          }
-        }}
+        className="flex items-center gap-2 cursor-pointer group"
+        onClick={() => pathname !== "/dashboard" && router.push("/dashboard")}
       >
-        <div className="bg-gradient-to-tr from-rose-500 to-orange-400 p-1.5 rounded-lg">
-          <Flame size={24} color="white" fill="white" />
+        <div className="bg-gradient-to-tr from-rose-500 to-orange-400 p-1.5 rounded-lg shadow-sm group-hover:scale-105 transition-transform">
+          <Flame size={20} className="sm:w-6 sm:h-6" color="white" fill="white" />
         </div>
-        <span className="text-xl font-black text-gray-900 uppercase">
+        <span className="text-lg sm:text-xl font-black text-gray-900 uppercase tracking-tight">
           Matcha
         </span>
       </div>
 
-      {/* Right icons */}
-      <div className="flex gap-6">
+      {/* Right Navigation */}
+      <div className="flex items-center gap-3 sm:gap-6">
+        {/* CHAT */}
         <button
-          className="text-gray-400 hover:text-rose-500 relative transition-colors cursor-pointer"
-          onClick={() => {
-            if (pathname !== "/chat") {
-              router.push("/chat");
-            }
-          }}
+          className={`${getIconClass("/chat")} relative`}
+          onClick={() => pathname !== "/chat" && router.push("/chat")}
         >
-          <MessageCircle size={24} />
-          {/* Notification dot */}
-          <span className="absolute -top-1 -right-1 bg-rose-500 w-2.5 h-2.5 rounded-full border-2 border-white"></span>
+          <MessageCircle size={22} className="sm:w-6 sm:h-6" />
+          <span className="absolute top-1 right-1 bg-rose-500 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-2 border-white"></span>
         </button>
 
-        {/* --- MAP BUTTON --- */}
+        {/* MAP */}
         <button
-          className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
-          onClick={() => {
-            if (pathname !== "/map") {
-              router.push("/map");
-            }
-          }}
+          className={getIconClass("/map")}
+          onClick={() => pathname !== "/map" && router.push("/map")}
         >
-          <Map size={24} />
+          <Map size={22} className="sm:w-6 sm:h-6" />
         </button>
 
-        {/* --- CALENDAR BUTTON --- */}
+        {/* CALENDAR */}
         <button
-          className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
-          onClick={() => {
-            if (pathname !== "/calendar") {
-              router.push("/calendar");
-            }
-          }}
+          className={getIconClass("/calendar")}
+          onClick={() => pathname !== "/calendar" && router.push("/calendar")}
         >
-          <Calendar size={24} />
+          <Calendar size={22} className="sm:w-6 sm:h-6" />
         </button>
 
+        {/* SETTINGS */}
         <button
-          className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
-          onClick={() => {
-            if (pathname !== "/profile/setup") {
-              router.push("/profile/setup");
-            }
-          }}
+          className={getIconClass("/profile/setup")}
+          onClick={() => pathname !== "/profile/setup" && router.push("/profile/setup")}
         >
-          <Settings size={24} />
+          <Settings size={22} className="sm:w-6 sm:h-6" />
         </button>
-        {/* --- LOGOUT BUTTON --- */}
+
+        {/* Divider - Hidden on mobile */}
+        <div className="hidden sm:block h-6 w-[1px] bg-gray-200 mx-1"></div>
+
+        {/* LOGOUT */}
         <button
-          className="text-gray-400 hover:text-rose-500 transition-colors cursor-pointer flex items-center gap-1"
+          className="text-gray-400 hover:text-rose-600 transition-colors cursor-pointer p-1"
           onClick={() => setIsLogoutModalOpen(true)}
           title="Logout"
         >
-          <LogOut size={24} />
+          <LogOut size={22} className="sm:w-6 sm:h-6" />
         </button>
       </div>
+
       <ConfirmModal
         isOpen={isLogoutModalOpen}
         title="Log Out"
