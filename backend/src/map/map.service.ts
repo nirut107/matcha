@@ -110,8 +110,7 @@ export class MapService {
   
       AND NOT EXISTS (
           SELECT 1 FROM blocks b 
-          WHERE (b.blocker_id = $1 AND b.blocked_id = u.id) 
-             OR (b.blocked_id = $1 AND b.blocker_id = u.id)
+          WHERE b.blocked_id = $1 AND b.blocker_id = u.id
       )
   
       GROUP BY u.id, p.user_id

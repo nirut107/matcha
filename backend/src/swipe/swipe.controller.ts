@@ -20,8 +20,9 @@ export class SwipeController {
 
   @Post('unlike')
   @UseGuards(JwtGuard)
-  async unlike(@Req() req, @Body('targetId') body: TargetDto) {
+  async unlike(@Req() req, @Body() body: TargetDto) {
     const userId = req.user.userId;
+    console.log(userId, body.targetId, body)
     return this.swipeService.unlikeUser(userId, body.targetId);
   }
 }
