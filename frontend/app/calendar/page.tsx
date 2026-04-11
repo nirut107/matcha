@@ -766,6 +766,12 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+      {/*  FOOTER */}
+      <footer className="bg-white border-t p-4 text-center">
+        <p className="text-xs text-gray-300">
+          Matcha © 2026 • Because love can be industrialized
+        </p>
+      </footer>
     </div>
   );
 }
