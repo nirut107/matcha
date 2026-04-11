@@ -36,7 +36,6 @@ export default function ConfirmModal({
           {message}
         </p>
 
-        {/* Action Buttons */}
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
