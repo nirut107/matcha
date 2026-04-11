@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import Header from "@/components/Header";
+import PhotoEditorModal from "@/components/PhotoEditorModal";
 
 export interface ImageItem {
   id?: number; // existing image (from DB)
@@ -77,6 +78,10 @@ export default function ProfileSetupPage() {
   const [age, setAge] = useState<number>(18);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [editingImage, setEditingImage] = useState<{
+    index: number;
+    src: string;
+  } | null>(null);
 
   const fetchUser = async () => {
     try {
@@ -147,31 +152,69 @@ export default function ProfileSetupPage() {
   }, []);
 
   // Image Logic
+  // const handleImageChange = (
+  //   index: number,
+  //   e: React.ChangeEvent<HTMLInputElement>
+  // ) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+
+  //   // ✅ update files
+  //   const newFiles = [...files];
+  //   newFiles[index] = file;
+  //   setFiles(newFiles);
+
+  //   // ✅ remove existing image at this index (IMPORTANT)
+  //   const newExisting = [...existingImages];
+  //   newExisting[index] = null;
+  //   setExistingImages(newExisting);
+
+  //   // ✅ update preview
+  //   const reader = new FileReader();
+  //   reader.onloadend = () => {
+  //     const newPreviews = [...previews];
+  //     newPreviews[index] = reader.result as string;
+  //     setPreviews(newPreviews);
+  //   };
+  //   reader.readAsDataURL(file);
+  // };
+
   const handleImageChange = (
     index: number,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    openEditor(index, file);
+    e.target.value = ""; // Clear input so the same file can be re-selected if they cancel
+  };
+  // Intercepts the file and opens the editor modal
+  const openEditor = (index: number, file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditingImage({ index, src: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
 
-    // ✅ update files
+  // Callback when the editor modal finishes processing
+  const handleSaveEdit = (editedFile: File, newPreviewUrl: string) => {
+    if (!editingImage) return;
+    const { index } = editingImage;
+
     const newFiles = [...files];
-    newFiles[index] = file;
+    newFiles[index] = editedFile;
     setFiles(newFiles);
 
-    // ✅ remove existing image at this index (IMPORTANT)
     const newExisting = [...existingImages];
     newExisting[index] = null;
     setExistingImages(newExisting);
 
-    // ✅ update preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const newPreviews = [...previews];
-      newPreviews[index] = reader.result as string;
-      setPreviews(newPreviews);
-    };
-    reader.readAsDataURL(file);
+    const newPreviews = [...previews];
+    newPreviews[index] = newPreviewUrl;
+    setPreviews(newPreviews);
+
+    setEditingImage(null); // Close modal
   };
 
   const buildImagesPayload = (): ImageItem[] => {
@@ -252,33 +295,44 @@ export default function ProfileSetupPage() {
     console.log("Success:", data);
   };
 
-  const handleDrop = (dropIndex: number) => {
+  const handleDrop = (dropIndex: number, e?: React.DragEvent) => {
+    if (e) e.preventDefault();
+
+    // 1. Check if a file was dragged from the Computer/OS
+    if (e?.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/")) {
+        openEditor(dropIndex, file);
+      }
+      return;
+    }
+
+    // 2. Reordering internal gallery images
     if (dragIndex === null) return;
 
     const newPreviews = [...previews];
     const newFiles = [...files];
+    const newExisting = [...existingImages]; // Don't forget to swap existing IDs too!
 
-    // swap previews
     [newPreviews[dragIndex], newPreviews[dropIndex]] = [
       newPreviews[dropIndex],
       newPreviews[dragIndex],
     ];
-
-    // swap files
     [newFiles[dragIndex], newFiles[dropIndex]] = [
       newFiles[dropIndex],
       newFiles[dragIndex],
     ];
+    [newExisting[dragIndex], newExisting[dropIndex]] = [
+      newExisting[dropIndex],
+      newExisting[dragIndex],
+    ];
 
     setPreviews(newPreviews);
     setFiles(newFiles);
+    setExistingImages(newExisting);
 
-    // fix profile pic index
-    if (profilePicIndex === dragIndex) {
-      setProfilePicIndex(dropIndex);
-    } else if (profilePicIndex === dropIndex) {
-      setProfilePicIndex(dragIndex);
-    }
+    if (profilePicIndex === dragIndex) setProfilePicIndex(dropIndex);
+    else if (profilePicIndex === dropIndex) setProfilePicIndex(dragIndex);
 
     setDragIndex(null);
   };
@@ -433,7 +487,7 @@ export default function ProfileSetupPage() {
                     draggable={!!url}
                     onDragStart={() => setDragIndex(i)}
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleDrop(i)}
+                    onDrop={() => handleDrop(i, e)}
                     className={`relative aspect-[3/4] rounded-2xl border-2 overflow-hidden bg-gray-50 transition-all cursor-move
                 ${
                   i === profilePicIndex
@@ -708,6 +762,14 @@ export default function ProfileSetupPage() {
               )}
             </button>
           </form>
+          {/* Render the Editor Modal if an image is queued for editing */}
+          {editingImage && (
+              <PhotoEditorModal
+                src={editingImage.src}
+                onClose={() => setEditingImage(null)}
+                onSave={handleSaveEdit}
+              />
+            )}
         </div>
       </div>
     </>
