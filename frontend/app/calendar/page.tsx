@@ -13,12 +13,13 @@ import {
   LayoutList,
   ChevronLeft,
   ChevronRight,
-  MapPin
+  MapPin,
 } from "lucide-react";
 import Header from "@/components/Header";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import Loading from "@/app/loading";
 import { useRouter } from "next/navigation";
+import ConfirmModal from "@/components/ConfirmModal";
 
 // --- TYPES ---
 type DateEvent = {
@@ -66,6 +67,8 @@ export default function CalendarPage() {
   const [details, setDetails] = useState("");
 
   const [selectedDate, setSelectedDate] = useState<DateEvent | null>(null);
+
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
 
   const fetchData = async () => {
     try {
@@ -477,7 +480,11 @@ export default function CalendarPage() {
                             </>
                           ) : (
                             <button
-                              onClick={() => handleCancel(date.id)}
+                              // onClick={() => handleCancel(date.id)}
+                              onClick={() => {
+                                setSelectedDate(date); // Set the date in state first
+                                setIsCancelModalOpen(true); // Then open the confirm modal
+                              }}
                               className="bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 px-4 py-2 rounded-xl font-bold transition-colors"
                             >
                               Cancel Request
@@ -721,10 +728,11 @@ export default function CalendarPage() {
               <div className="mt-8 pt-4 border-t border-gray-100 flex justify-end gap-2">
                 {selectedDate.status === "accepted" ? (
                   <button
-                    onClick={() => {
-                      handleCancel(selectedDate.id);
-                      setSelectedDate(null);
-                    }}
+                    // onClick={() => {
+                    //   handleCancel(selectedDate.id);
+                    //   setSelectedDate(null);
+                    // }}
+                    onClick={() => setIsCancelModalOpen(true)}
                     className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold transition-colors w-full sm:w-auto"
                   >
                     Cancel Date
@@ -752,10 +760,11 @@ export default function CalendarPage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => {
-                      handleCancel(selectedDate.id);
-                      setSelectedDate(null);
-                    }}
+                    // onClick={() => {
+                    //   handleCancel(selectedDate.id);
+                    //   setSelectedDate(null);
+                    // }}
+                    onClick={() => setIsCancelModalOpen(true)}
                     className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2.5 rounded-xl font-bold w-full"
                   >
                     Revoke Request
@@ -765,6 +774,33 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
+      )}
+      {/* --- CONFIRM CANCEL MODAL --- */}
+      {selectedDate && (
+        <ConfirmModal
+          isOpen={isCancelModalOpen}
+          title={
+            selectedDate.status === "accepted"
+              ? "Cancel Date"
+              : "Revoke Request"
+          }
+          message={`Are you sure you want to ${
+            selectedDate.status === "accepted"
+              ? "cancel your date"
+              : "revoke this request"
+          } with ${
+            selectedDate.other_first_name
+          }? This action cannot be undone.`}
+          confirmText="Yes, Cancel"
+          cancelText="Keep it"
+          onConfirm={() => {
+            handleCancel(selectedDate.id);
+            setIsCancelModalOpen(false);
+            setSelectedDate(null);
+          }}
+          onCancel={() => setIsCancelModalOpen(false)}
+          isDestructive={true}
+        />
       )}
       {/*  FOOTER */}
       <footer className="bg-white border-t p-4 text-center">
