@@ -51,7 +51,7 @@ export default function PhotoEditorModal({ src, onClose, onSave }: PhotoEditorMo
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="font-black text-gray-800">Edit Photo</h3>
-          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600">
             <X size={18} />
           </button>
         </div>
@@ -86,7 +86,7 @@ export default function PhotoEditorModal({ src, onClose, onSave }: PhotoEditorMo
             </div>
             <button
               onClick={() => setRotation((r) => r + 90)}
-              className="mt-6 p-3 bg-gray-100 rounded-xl hover:bg-gray-200"
+              className="mt-6 p-3 bg-gray-100 rounded-xl hover:bg-gray-200 text-gray-600"
             >
               <RotateCw size={20} />
             </button>
