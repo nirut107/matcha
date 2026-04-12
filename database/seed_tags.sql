@@ -37,3 +37,5 @@ ON CONFLICT (name) DO NOTHING;
 -- docker exec -it matcha_postgres psql -U matcha -d matcha_db
 -- ALTER TABLE pictures
 -- ADD CONSTRAINT unique_user_position UNIQUE (user_id, position);
+
+-- docker exec -t matcha_postgres pg_dump -U matcha -d matcha > seed_profile.sql

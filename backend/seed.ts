@@ -54,7 +54,7 @@ async function seed() {
   const tagRes = await client.query(`SELECT * FROM tags`);
   const tagIds = tagRes.rows.map((t) => t.id);
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 500; i++) {
     // =====================
     // USER
     // =====================
