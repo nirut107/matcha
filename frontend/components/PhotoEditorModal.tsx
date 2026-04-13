@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import Cropper from "react-easy-crop";
 import { X, Check, RotateCw, Loader2 } from "lucide-react";
 import { getEditedImage } from "@/lib/imageUtils"; // Adjust import path
+import Cropper, { Area } from "react-easy-crop";
 
 interface PhotoEditorModalProps {
   src: string;
@@ -25,12 +25,15 @@ export default function PhotoEditorModal({ src, onClose, onSave }: PhotoEditorMo
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [filter, setFilter] = useState("none");
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const onCropComplete = useCallback((_, croppedPixels) => {
-    setCroppedAreaPixels(croppedPixels);
-  }, []);
+  const onCropComplete = useCallback(
+    (_: Area, croppedPixels: Area) => {
+      setCroppedAreaPixels(croppedPixels);
+    },
+    []
+  );
 
   const handleSave = async () => {
     if (!croppedAreaPixels) return;
