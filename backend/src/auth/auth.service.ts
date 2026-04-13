@@ -240,6 +240,8 @@ export class AuthService {
       path: '/auth/refresh',
     });
 
-    return res.json({ message: 'Logged out successfully' });
+    return {
+      message: 'Logged out successfully',
+    };
   }
 }

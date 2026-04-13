@@ -15,4 +15,6 @@ export class MeResponseDto {
     description: 'True if user registered with Google',
   })
   hasGoogle: boolean;
+  hasProfile: boolean;
+  isSetup: boolean;
 }

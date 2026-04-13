@@ -93,12 +93,10 @@ export default function Dashboard() {
           });
           endpoint = `/profile/search?${params.toString()}`;
         }
-        const minDelay = new Promise((resolve) => setTimeout(resolve, 1000));
         const res = await fetchWithAuth(endpoint);
         if (res.status === 403) {
           router.push("profile/setup"); // onboarding page
         }
-        await Promise.all([minDelay, res]);
         const data = await res.json();
         console.log(`data from fetch is ${data}`);
         setProfiles(data);
@@ -114,10 +112,16 @@ export default function Dashboard() {
         }, 1000);
       }
     };
+    const run = async () => {
+      await new Promise((r) => setTimeout(r, 1000));
+      setIsFadingOut(true);
+      await new Promise((r) => setTimeout(r, 1000));
+      setLoading(false);
+    };
 
     fetchProfiles();
+    run();
   }, [activeFilters, router]);
-
 
   if (!profiles.length || currentIndex >= profiles.length) {
     return (
@@ -205,6 +209,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {loading && (
+        <div
+          className={`
+                    fixed inset-0 z-50 
+                      transition-opacity duration-1000 ease-in-out
+                      ${isFadingOut ? "opacity-0" : "opacity-100"}
+                    `}
+        >
+          <Loading />
+        </div>
+      )}
       <Header />
       <main className="grow flex flex-col items-center justify-center p-4">
         <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />

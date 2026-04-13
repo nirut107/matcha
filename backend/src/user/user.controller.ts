@@ -30,7 +30,18 @@ export class UserController {
     const userId = req.user.userId;
 
     const result = await this.db.query(
-      `SELECT id, username, email, google_id FROM users WHERE id = $1`,
+      `
+      SELECT 
+        u.id, 
+        u.username, 
+        u.email, 
+        u.google_id,
+        CASE WHEN p.user_id IS NOT NULL THEN true ELSE false END AS has_profile,
+        COALESCE(p.is_setup, false) AS is_setup
+      FROM users u
+      LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE u.id = $1
+      `,
       [userId],
     );
 
@@ -45,13 +56,15 @@ export class UserController {
       username: user.username,
       email: user.email,
       hasGoogle: !!user.google_id,
+      hasProfile: user.has_profile,
+      isSetup: user.is_setup,
     };
   }
 
   @Post('email')
   @UseGuards(JwtGuard)
   async updateEmail(@Req() req, @Body() email: string) {
-    console.log("Email :", email, req)
+    console.log('Email :', email, req);
     return this.updateEmail(req.user.userId, email);
   }
 

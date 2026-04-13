@@ -254,7 +254,7 @@ export default function MapPage() {
     const fetchInitialLocation = async () => {
       try {
         const res = await fetchWithAuth("/profile/me");
-        if (res.status === 403) return router.push("profile/setup");
+        if (res.status === 404) return router.push("profile/setup");
         const { latitude, longitude } = await res.json();
         setMapCenter({ lat: latitude, lng: longitude }); 
       } catch (err) {
@@ -271,7 +271,6 @@ export default function MapPage() {
       setIsSearchingArea(true);
       try {
         const response = await fetchWithAuth(`/map?lat=${mapCenter.lat}&lng=${mapCenter.lng}`);
-        if (response.status === 403) return router.push("profile/setup");
         if (!response.ok) throw new Error("Failed to fetch map data");
 
         const data = await response.json();

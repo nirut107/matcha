@@ -72,6 +72,8 @@ export default function CalendarPage() {
 
   const fetchData = async () => {
     try {
+      const res = await fetchWithAuth("/profile/me");
+      if (res.status === 404) return router.push("profile/setup");
       const [calendarRes, matchesRes] = await Promise.all([
         fetchWithAuth("/dates/calendar"),
         fetchWithAuth("/matches"),
@@ -242,20 +244,19 @@ export default function CalendarPage() {
   const pendingDates = dates.filter((d) => d.status === "pending");
   const upcomingDates = dates.filter((d) => d.status === "accepted");
 
-  if (loading) {
-    return (
-      <div
-        className={`fixed inset-0 z-50 transition-opacity duration-1000 ease-in-out ${
-          isFadingOut ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        <Loading />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+            {loading && (
+              <div
+                className={`
+                    fixed inset-0 z-50 
+                      transition-opacity duration-1000 ease-in-out
+                      ${isFadingOut ? "opacity-0" : "opacity-100"}
+                    `}
+              >
+                <Loading />
+              </div>
+            )}
       <Header />
 
       <main className="grow w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">

@@ -18,27 +18,12 @@ import Header from "@/components/Header";
 import { getSocket } from "@/lib/socket";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useRef } from "react";
-
+import Loading from "../loading";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/ConfirmModal";
+import { UserRespone, MatchResponse } from "@/lib/interface";
 
 const USE_MOCK = false; // switch this ON/OFF
-
-export interface MatchResponse {
-  id: number;
-  user_id: number;
-  username: string;
-  first_name: string;
-  last_name: string;
-  is_online: boolean;
-  unread_count: number;
-  created_at: string; // ISO Date string
-  last_connection: string | null;
-  profile_picture: string | null;
-  last_message: string | null;
-  last_message_time: string | null;
-  i_blocked_them: boolean;
-}
 
 function formatTime(dateString: string, type: "chat" | "list" = "chat") {
   let date = new Date(dateString);
@@ -77,7 +62,8 @@ export default function ChatPage() {
   const userIdRef = useRef<number | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
-
+  const [loading, setLoading] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -86,7 +72,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatHistory]); // Runs whenever chatHistory updates
+  }, [chatHistory]);
 
   useEffect(() => {
     const handleLeave = () => {
@@ -111,9 +97,11 @@ export default function ChatPage() {
     setSocket(s);
     fetchWithAuth("/user/me")
       .then((res) => res.json())
-      .then((data) => {
-        console.log(data, "-========");
+      .then((data: UserRespone) => {
         if (data) {
+          if (!data.hasProfile) {
+            router.push("profile/setup");
+          }
           console.log(data.id, "this should be my Id");
           setUserId(data.id);
           userIdRef.current = data.id;
@@ -124,7 +112,6 @@ export default function ChatPage() {
     fetchWithAuth("/matches")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data, "==========");
         if (data.length > 0) {
           setMatches(data);
           setActiveChat(data[0]);
@@ -176,6 +163,14 @@ export default function ChatPage() {
           });
       });
     });
+    const run = async () => {
+      await new Promise((r) => setTimeout(r, 1000));
+      setIsFadingOut(true);
+      await new Promise((r) => setTimeout(r, 1000));
+      setLoading(false);
+    };
+
+    run();
     return () => {
       // leave current match room when leaving page
       if (activeMatchRef.current) {
@@ -317,6 +312,17 @@ export default function ChatPage() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
+      {loading && (
+        <div
+          className={`
+                    fixed inset-0 z-50 
+                      transition-opacity duration-1000 ease-in-out
+                      ${isFadingOut ? "opacity-0" : "opacity-100"}
+                    `}
+        >
+          <Loading />
+        </div>
+      )}
       <Header />
       <div className="flex flex-grow bg-white overflow-hidden font-sans relative">
         {/* 1. MATCHES SIDEBAR */}
