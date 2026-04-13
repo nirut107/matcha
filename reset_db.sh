@@ -1,12 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "🛑 Wiping old data..."
-docker-compose down -v
-
-echo "🚀 Starting Postgres..."
-docker-compose up postgres -d
-
 echo "⏳ Waiting for Readiness..."
 until docker exec matcha_postgres pg_isready -U matcha; do
   sleep 1

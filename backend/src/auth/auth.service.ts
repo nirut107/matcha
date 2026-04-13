@@ -123,7 +123,7 @@ export class AuthService {
 
     this.setCookies(res, accessToken, refreshToken);
 
-    return res.redirect('http://localhost:3000/dashboard');
+    return res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   }
 
   async storeRefreshToken(userId: number, refreshToken: string) {

@@ -32,10 +32,10 @@ services:
     container_name: matcha_backend
     ports:
       - "3001:3001"
-    environment:
-      DATABASE_URL: postgresql://matcha:matcha123@postgres:5432/matcha_db
     depends_on:
       - postgres
+    env_file:
+      - .env
 
   frontend:
     build: ./frontend
