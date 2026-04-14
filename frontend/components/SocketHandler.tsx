@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
 import MatchModal from "@/components/MatchModal";
 import toast, { Toaster } from "react-hot-toast";
@@ -16,9 +16,9 @@ export default function SocketHandler() {
   const [callData, setCallData] = useState<any>(null);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
-
+  
   const [peerId, setPeerId] = useState<number | null>(null);
-
+  
   const socketRef = useRef<any>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const iceQueue = useRef<RTCIceCandidate[]>([]);
@@ -29,19 +29,24 @@ export default function SocketHandler() {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  const setLocalVideoNode = (node: HTMLVideoElement | null) => {
+  // 🔥 ใช้ useCallback ล็อกไว้ เพื่อไม่ให้ React ถอด/ใส่วิดีโอใหม่รัวๆ ทุกครั้งที่ Render
+  const setLocalVideoNode = useCallback((node: HTMLVideoElement | null) => {
     localVideoRef.current = node;
     if (node && localStreamRef.current) {
-      node.srcObject = localStreamRef.current;
+      if (node.srcObject !== localStreamRef.current) {
+        node.srcObject = localStreamRef.current;
+      }
     }
-  };
+  }, []);
 
-  const setRemoteVideoNode = (node: HTMLVideoElement | null) => {
+  const setRemoteVideoNode = useCallback((node: HTMLVideoElement | null) => {
     remoteVideoRef.current = node;
     if (node && remoteStreamRef.current) {
-      node.srcObject = remoteStreamRef.current;
+      if (node.srcObject !== remoteStreamRef.current) {
+        node.srcObject = remoteStreamRef.current;
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     socketRef.current = getSocket();
@@ -71,21 +76,21 @@ export default function SocketHandler() {
     });
 
     socket.on("notification", async (data: any) => {
-      console.log("🔔 Notification:", data);
+      console.log("🔔 Notification:", data.type);
 
       switch (data.type) {
         case "CALL_ANSWERED":
-          console.log("📞 Call Answered:", data);
-
           if (pcRef.current && pcRef.current.signalingState !== "closed") {
             await pcRef.current.setRemoteDescription(
               new RTCSessionDescription(data.answer)
             );
 
-            iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c));
+            // เอา ICE ที่แอบเก็บไว้มาเชื่อมต่อ
+            iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c).catch(console.error));
             iceQueue.current = [];
           }
           break;
+
         case "match":
           setMatch({ userName: data.userName, userImage: data.userImage });
           setIsOpen(true);
@@ -101,25 +106,22 @@ export default function SocketHandler() {
           setIsCallModalOpen(true);
           break;
 
-        case "visit":
-          toast("Someone visited your profile", { icon: "👀" });
-          break;
         case "ICE_CANDIDATE":
           if (pcRef.current && pcRef.current.remoteDescription) {
-            await pcRef.current
-              .addIceCandidate(new RTCIceCandidate(data.candidate))
-              .catch((e) => console.error("ICE Error", e));
+            await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => console.error("ICE Error", e));
           } else {
             iceQueue.current.push(new RTCIceCandidate(data.candidate));
-            console.log("Queued ICE Candidate", iceQueue.current.length);
           }
           break;
+
         case "CALL_ENDED":
-          console.log("end call");
           handleEndCall();
           break;
+
         default:
-          toast(data.type || "New notification received!", { icon: "🔔" });
+          if (data.type !== "visit") {
+             toast(data.type || "New notification received!", { icon: "🔔" });
+          }
       }
     });
 
@@ -128,17 +130,15 @@ export default function SocketHandler() {
     return () => {
       socket.off("notification");
       socket.off("me");
-      socket.off("newMessage");
+      socket.off("CALL_REJECTED");
       window.removeEventListener("START_OUTGOING_CALL", onStartOutgoingCall);
     };
   }, []);
 
   const handleEndCall = () => {
-    // ปิดกล้องฝั่งเรา
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
-
-    // เคลียร์ remote
+    
     remoteStreamRef.current = null;
 
     pcRef.current?.close();
@@ -149,7 +149,6 @@ export default function SocketHandler() {
     setIsCallModalOpen(false);
   };
 
-  // 🔥 ฟังก์ชันของคนโทร
   const handleStartCall = async (
     targetUserId: number,
     matchId: number,
@@ -161,24 +160,27 @@ export default function SocketHandler() {
         audio: true,
       });
       localStreamRef.current = stream;
-      setIsCallActive(true); // <--- สั่งเปิด Modal วิดีโอ
-
-      // ถ้าวิดีโอโหลดมาพร้อมแล้ว ให้ยัดใส่เลย (เผื่อไว้)
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      setIsCallActive(true);
 
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
-
-      // ✅ เก็บ Remote Stream ไว้เสมอ กันแท็กวิดีโอยังไม่โผล่
+      
       pc.ontrack = (event) => {
         console.log("REMOTE STREAM RECEIVED (Caller)", event.streams);
         remoteStreamRef.current = event.streams[0];
         if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
+          if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+          }
+          // บังคับให้วิดีโอเล่นทันทีที่ Stream มาถึง
+          remoteVideoRef.current.play().catch(e => console.log("Play err", e));
         }
       };
+
+      // เพิ่ม Log ไว้เช็คสถานะ
+      pc.onconnectionstatechange = () => console.log("Connection (Caller):", pc.connectionState);
 
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
@@ -206,7 +208,6 @@ export default function SocketHandler() {
     }
   };
 
-  // 🔥 ฟังก์ชันของคนรับสาย
   const handleStartWebRTC = async (incomingData: any) => {
     try {
       const isVideo = incomingData.callType === "video";
@@ -215,26 +216,27 @@ export default function SocketHandler() {
         audio: true,
       });
       localStreamRef.current = stream;
-      setIsCallActive(true); // <--- สั่งเปิด Modal วิดีโอ
-
-      // ถ้าวิดีโอโหลดมาพร้อมแล้ว ให้ยัดใส่เลย (เผื่อไว้)
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+      setIsCallActive(true);
 
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
-
-      // ✅ เก็บ Remote Stream ไว้เสมอ กันแท็กวิดีโอยังไม่โผล่
+      
       pc.ontrack = (event) => {
         console.log("REMOTE STREAM RECEIVED (Receiver)", event.streams);
         remoteStreamRef.current = event.streams[0];
         if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
+          if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+          }
+          // บังคับให้วิดีโอเล่นทันทีที่ Stream มาถึง
+          remoteVideoRef.current.play().catch(e => console.log("Play err", e));
         }
       };
+
+      // เพิ่ม Log ไว้เช็คสถานะ
+      pc.onconnectionstatechange = () => console.log("Connection (Receiver):", pc.connectionState);
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
@@ -250,10 +252,10 @@ export default function SocketHandler() {
       await pc.setRemoteDescription(
         new RTCSessionDescription(incomingData.offer)
       );
-
-      iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c));
+      
+      iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c).catch(console.error));
       iceQueue.current = [];
-
+      
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -287,29 +289,24 @@ export default function SocketHandler() {
           handleStartWebRTC(callData);
         }}
       />
-
+      
       {isCallActive && (
         <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
-          {/* 🔴 รีเฟอเรนซ์กล้องเพื่อน (ใช้ setRemoteVideoNode แทนการใส่ Ref ตรงๆ) */}
+          
           <video
             ref={setRemoteVideoNode}
             autoPlay
             playsInline
-            className="w-full h-full object-cover" // เติม Class ให้กล้องเพื่อนเต็มจอ
-            onLoadedMetadata={(e) => {
-              const video = e.currentTarget;
-              video.play().catch(() => {});
-            }}
+            className="w-full h-full object-cover"
           />
 
           <div className="absolute bottom-24 right-6 w-32 h-48 bg-gray-800 rounded-xl overflow-hidden border-2 border-white shadow-lg">
-            {/* 🔴 รีเฟอเรนซ์กล้องตัวเอง (ใช้ setLocalVideoNode) */}
             <video
               ref={setLocalVideoNode}
               autoPlay
               playsInline
-              muted
-              className="w-full h-full object-cover -scale-x-100"
+              muted 
+              className="w-full h-full object-cover -scale-x-100" 
             />
           </div>
 
