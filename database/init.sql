@@ -95,7 +95,8 @@ CREATE TABLE messages (
     id SERIAL PRIMARY KEY,
     match_id INT REFERENCES matches(id) ON DELETE CASCADE,
     sender_id INT REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
+    content TEXT,
+    type TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_read BOOLEAN DEFAULT FALSE,
     deleted BOOLEAN DEFAULT FALSE

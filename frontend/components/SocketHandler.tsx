@@ -18,10 +18,11 @@ export default function SocketHandler() {
   const [isCallActive, setIsCallActive] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-
+  const [peerId, setPeerId] = useState<number | null>(null);
   const socketRef = useRef<any>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const iceQueue = useRef<RTCIceCandidate[]>([]);
 
   useEffect(() => {
     socketRef.current = getSocket();
@@ -32,6 +33,7 @@ export default function SocketHandler() {
       const { targetUserId, matchId, callType } = customEvent.detail;
 
       handleStartCall(targetUserId, matchId, callType);
+      setPeerId(targetUserId);
     };
 
     window.addEventListener("START_OUTGOING_CALL", onStartOutgoingCall);
@@ -40,13 +42,13 @@ export default function SocketHandler() {
       console.log("Connected:", socket.id);
     });
 
-    socket.on("CALL_ENDED", () => {
-      handleEndCall();
-    });
-
     socket.on("CALL_REJECTED", () => {
       toast.error("Call was rejected");
-      handleEndCall();
+      setIsCallActive(false);
+
+      setTimeout(() => {
+        handleEndCall();
+      }, 1500);
     });
 
     socket.on("notification", async (data: any) => {
@@ -55,10 +57,14 @@ export default function SocketHandler() {
       switch (data.type) {
         case "CALL_ANSWERED":
           console.log("📞 Call Answered:", data);
+
           if (pcRef.current && pcRef.current.signalingState !== "closed") {
             await pcRef.current.setRemoteDescription(
               new RTCSessionDescription(data.answer)
             );
+
+            iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c));
+            iceQueue.current = [];
           }
           break;
         case "match":
@@ -72,6 +78,7 @@ export default function SocketHandler() {
 
         case "INCOMING_CALL":
           setCallData(data);
+          setPeerId(data.from);
           setIsCallModalOpen(true);
           break;
 
@@ -79,31 +86,19 @@ export default function SocketHandler() {
           toast("Someone visited your profile", { icon: "👀" });
           break;
         case "ICE_CANDIDATE":
-          try {
-            const pc = pcRef.current;
-            // Check if PC exists AND is not closed AND has a remote description
-            if (pc && pc.signalingState !== "closed" && pc.remoteDescription) {
-              await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-            } else if (pc && !pc.remoteDescription) {
-              // Logic: If candidate arrives before the offer/answer is processed,
-              // some developers queue it, but usually, ignoring it is safe
-              // as the browser will retry or use others.
-              console.warn("Candidate arrived before remote description");
-            }
-          } catch (e) {
-            console.error("Error adding ice candidate", e);
+          const pc = pcRef.current;
+
+          if (!pc) return;
+
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } else {
+            iceQueue.current.push(new RTCIceCandidate(data.candidate));
           }
           break;
-        case "ICE_CANDIDATE":
-          try {
-            if (pcRef.current) {
-              await pcRef.current.addIceCandidate(
-                new RTCIceCandidate(data.candidate)
-              );
-            }
-          } catch (e) {
-            console.error("Error adding ice candidate", e);
-          }
+        case "CALL_ENDED":
+          console.log("end call");
+          handleEndCall();
           break;
         default:
           toast(data.type || "New notification received!", { icon: "🔔" });
@@ -125,14 +120,13 @@ export default function SocketHandler() {
   }, []);
 
   const handleEndCall = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
-      localStreamRef.current = null;
-    }
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
+    localStreamRef.current?.getTracks().forEach((t) => t.stop());
+    localStreamRef.current = null;
+
+    pcRef.current?.close();
+    pcRef.current = null;
+
+    setPeerId(null);
     setIsCallActive(false);
     setIsCallModalOpen(false);
   };
@@ -154,19 +148,27 @@ export default function SocketHandler() {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
-
-      // Send local tracks
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      // Handle remote video
-      pc.ontrack = (event) => {
-        if (remoteVideoRef.current)
-          remoteVideoRef.current.srcObject = event.streams[0];
+      pc.onconnectionstatechange = () => {
+        console.log("Connection state:", pc.connectionState);
       };
 
-      // Handle ICE Candidates (Crucial!)
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE state:", pc.iceConnectionState);
+      };
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      pc.ontrack = (event) => {
+        console.log("REMOTE STREAM RECEIVED (caller)", event.streams);
+
+        if (remoteVideoRef.current && event.streams[0]) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
+
       pc.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("Sending ICE candidate");
+
           socketRef.current.emit("iceCandidate", {
             toUserId: targetUserId,
             candidate: event.candidate,
@@ -187,6 +189,7 @@ export default function SocketHandler() {
 
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
     } catch (err) {
+      console.error("START CALL ERROR:", err);
       toast.error("Could not start call");
     }
   };
@@ -208,6 +211,14 @@ export default function SocketHandler() {
       });
       pcRef.current = pc;
 
+      pc.onconnectionstatechange = () => {
+        console.log("Connection state:", pc.connectionState);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE state:", pc.iceConnectionState);
+      };
+
       pc.ontrack = (event) => {
         if (remoteVideoRef.current && event.streams[0]) {
           remoteVideoRef.current.srcObject = event.streams[0];
@@ -216,8 +227,10 @@ export default function SocketHandler() {
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("Sending ICE candidate");
+
           socketRef.current.emit("iceCandidate", {
-            toUserId: incomingData.from, // Send it back to the caller
+            toUserId: incomingData.from, // ✅ correct user
             candidate: event.candidate,
           });
         }
@@ -229,6 +242,8 @@ export default function SocketHandler() {
       await pc.setRemoteDescription(
         new RTCSessionDescription(incomingData.offer)
       );
+      iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c));
+      iceQueue.current = [];
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -288,9 +303,12 @@ export default function SocketHandler() {
           <div className="absolute bottom-8 flex gap-6">
             <button
               onClick={() => {
-                localStreamRef.current?.getTracks().forEach((t) => t.stop());
-                pcRef.current?.close();
-                setIsCallActive(false);
+                console.log(peerId);
+                socketRef.current.emit("endCall", {
+                  toUserId: peerId,
+                });
+
+                handleEndCall();
               }}
               className="bg-red-500 p-4 rounded-full text-white hover:bg-red-600 transition-all"
             >

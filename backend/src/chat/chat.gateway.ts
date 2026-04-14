@@ -249,4 +249,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       candidate: data.candidate,
     });
   }
+
+  @SubscribeMessage('endCall')
+  handleEndCall(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { toUserId: number },
+  ) {
+    const fromUserId = socket.data.userId;
+
+    [fromUserId, data.toUserId].forEach((id) => {
+      this.sendToUser(id, {
+        type: 'CALL_ENDED',
+        from: fromUserId,
+      });
+    });
+  }
 }
