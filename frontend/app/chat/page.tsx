@@ -146,9 +146,8 @@ export default function ChatPage() {
                 last_message: msg.content,
                 last_message_time: formatTime(msg.created_at, "list"),
 
-                // ✅ FIXED LOGIC
                 unread_count: isMine
-                  ? match.unread_count // don't change
+                  ? match.unread_count
                   : isCurrentChat
                   ? 0
                   : (match.unread_count ?? 0) + 1,
