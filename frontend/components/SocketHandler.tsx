@@ -16,19 +16,16 @@ export default function SocketHandler() {
   const [callData, setCallData] = useState<any>(null);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
-  
+
   const [peerId, setPeerId] = useState<number | null>(null);
-  
-  // 🟢 Refs พื้นฐาน
+
   const socketRef = useRef<any>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const iceQueue = useRef<RTCIceCandidate[]>([]);
 
-  // 🟢 Stream Refs (เพิ่ม remoteStreamRef เพื่อป้องกันวิดีโอหาย)
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
 
-  // 🟢 Callback Refs (การันตีว่า DOM Render เสร็จแล้วถึงจะยัด Video ลงไป)
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -108,14 +105,13 @@ export default function SocketHandler() {
           toast("Someone visited your profile", { icon: "👀" });
           break;
         case "ICE_CANDIDATE":
-          const pc = pcRef.current;
-
-          if (!pc) return;
-
-          if (pc.remoteDescription) {
-            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          if (pcRef.current && pcRef.current.remoteDescription) {
+            await pcRef.current
+              .addIceCandidate(new RTCIceCandidate(data.candidate))
+              .catch((e) => console.error("ICE Error", e));
           } else {
             iceQueue.current.push(new RTCIceCandidate(data.candidate));
+            console.log("Queued ICE Candidate", iceQueue.current.length);
           }
           break;
         case "CALL_ENDED":
@@ -141,7 +137,7 @@ export default function SocketHandler() {
     // ปิดกล้องฝั่งเรา
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
-    
+
     // เคลียร์ remote
     remoteStreamRef.current = null;
 
@@ -174,7 +170,7 @@ export default function SocketHandler() {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
-      
+
       // ✅ เก็บ Remote Stream ไว้เสมอ กันแท็กวิดีโอยังไม่โผล่
       pc.ontrack = (event) => {
         console.log("REMOTE STREAM RECEIVED (Caller)", event.streams);
@@ -230,7 +226,7 @@ export default function SocketHandler() {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
-      
+
       // ✅ เก็บ Remote Stream ไว้เสมอ กันแท็กวิดีโอยังไม่โผล่
       pc.ontrack = (event) => {
         console.log("REMOTE STREAM RECEIVED (Receiver)", event.streams);
@@ -254,10 +250,10 @@ export default function SocketHandler() {
       await pc.setRemoteDescription(
         new RTCSessionDescription(incomingData.offer)
       );
-      
+
       iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c));
       iceQueue.current = [];
-      
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -291,10 +287,9 @@ export default function SocketHandler() {
           handleStartWebRTC(callData);
         }}
       />
-      
+
       {isCallActive && (
         <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
-          
           {/* 🔴 รีเฟอเรนซ์กล้องเพื่อน (ใช้ setRemoteVideoNode แทนการใส่ Ref ตรงๆ) */}
           <video
             ref={setRemoteVideoNode}
@@ -313,8 +308,8 @@ export default function SocketHandler() {
               ref={setLocalVideoNode}
               autoPlay
               playsInline
-              muted 
-              className="w-full h-full object-cover -scale-x-100" 
+              muted
+              className="w-full h-full object-cover -scale-x-100"
             />
           </div>
 
