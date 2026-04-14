@@ -207,7 +207,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('callUser')
   async handleCall(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { toUserId: number; offer: any; matchId: number },
+    @MessageBody() data: { toUserId: number; offer: any; matchId: number, callType: string},
   ) {
     const fromUserId = socket.data.userId;
 
@@ -220,6 +220,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       offer: data.offer,
       matchId: data.matchId,
       senderName: socket.data.userName,
+      callType: data.callType,
     });
 
     console.log(`☎️ Signaling: ${fromUserId} is calling ${data.toUserId}`);
