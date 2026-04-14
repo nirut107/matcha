@@ -25,6 +25,21 @@ export default function SocketHandler() {
   const iceQueue = useRef<RTCIceCandidate[]>([]);
 
   useEffect(() => {
+    if (remoteVideoRef.current && pcRef.current) {
+      const receivers = pcRef.current.getReceivers();
+      const stream = new MediaStream(
+        receivers
+          .map((r) => r.track)
+          .filter((track): track is MediaStreamTrack => !!track)
+      );
+
+      if (stream.getTracks().length > 0) {
+        console.log("Re-attach remote stream");
+        remoteVideoRef.current.srcObject = stream;
+      }
+    }
+  }, [isCallActive]);
+  useEffect(() => {
     socketRef.current = getSocket();
     const socket = socketRef.current;
 
@@ -288,7 +303,10 @@ export default function SocketHandler() {
             ref={remoteVideoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
+            onLoadedMetadata={(e) => {
+              const video = e.currentTarget;
+              video.play().catch(() => {});
+            }}
           />
 
           <div className="absolute bottom-24 right-6 w-32 h-48 bg-gray-800 rounded-xl overflow-hidden border-2 border-white shadow-lg">
