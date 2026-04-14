@@ -75,5 +75,5 @@ export class ProfileController {
     return { message: 'Visit recorded' };
   }
 
-  
+
 }
