@@ -16,29 +16,36 @@ export default function SocketHandler() {
   const [callData, setCallData] = useState<any>(null);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  
   const [peerId, setPeerId] = useState<number | null>(null);
+  
+  // 🟢 Refs พื้นฐาน
   const socketRef = useRef<any>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
   const iceQueue = useRef<RTCIceCandidate[]>([]);
 
-  useEffect(() => {
-    if (remoteVideoRef.current && pcRef.current) {
-      const receivers = pcRef.current.getReceivers();
-      const stream = new MediaStream(
-        receivers
-          .map((r) => r.track)
-          .filter((track): track is MediaStreamTrack => !!track)
-      );
+  // 🟢 Stream Refs (เพิ่ม remoteStreamRef เพื่อป้องกันวิดีโอหาย)
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
 
-      if (stream.getTracks().length > 0) {
-        console.log("Re-attach remote stream");
-        remoteVideoRef.current.srcObject = stream;
-      }
+  // 🟢 Callback Refs (การันตีว่า DOM Render เสร็จแล้วถึงจะยัด Video ลงไป)
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const setLocalVideoNode = (node: HTMLVideoElement | null) => {
+    localVideoRef.current = node;
+    if (node && localStreamRef.current) {
+      node.srcObject = localStreamRef.current;
     }
-  }, [isCallActive]);
+  };
+
+  const setRemoteVideoNode = (node: HTMLVideoElement | null) => {
+    remoteVideoRef.current = node;
+    if (node && remoteStreamRef.current) {
+      node.srcObject = remoteStreamRef.current;
+    }
+  };
+
   useEffect(() => {
     socketRef.current = getSocket();
     const socket = socketRef.current;
@@ -120,10 +127,6 @@ export default function SocketHandler() {
       }
     });
 
-    socket.on("me", (data: any) => {
-      console.log("Got userId from socket me", data);
-    });
-
     socket.emit("whoami");
 
     return () => {
@@ -135,8 +138,12 @@ export default function SocketHandler() {
   }, []);
 
   const handleEndCall = () => {
+    // ปิดกล้องฝั่งเรา
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
+    
+    // เคลียร์ remote
+    remoteStreamRef.current = null;
 
     pcRef.current?.close();
     pcRef.current = null;
@@ -146,6 +153,7 @@ export default function SocketHandler() {
     setIsCallModalOpen(false);
   };
 
+  // 🔥 ฟังก์ชันของคนโทร
   const handleStartCall = async (
     targetUserId: number,
     matchId: number,
@@ -157,34 +165,29 @@ export default function SocketHandler() {
         audio: true,
       });
       localStreamRef.current = stream;
-      setIsCallActive(true);
+      setIsCallActive(true); // <--- สั่งเปิด Modal วิดีโอ
+
+      // ถ้าวิดีโอโหลดมาพร้อมแล้ว ให้ยัดใส่เลย (เผื่อไว้)
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
+      
+      // ✅ เก็บ Remote Stream ไว้เสมอ กันแท็กวิดีโอยังไม่โผล่
       pc.ontrack = (event) => {
-        console.log("REMOTE STREAM RECEIVED", event.streams);
-
-        if (remoteVideoRef.current && event.streams[0]) {
-          console.log(event.streams[0].getTracks());
+        console.log("REMOTE STREAM RECEIVED (Caller)", event.streams);
+        remoteStreamRef.current = event.streams[0];
+        if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
       };
 
-      pc.onconnectionstatechange = () => {
-        console.log("Connection state:", pc.connectionState);
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        console.log("ICE state:", pc.iceConnectionState);
-      };
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("Sending ICE candidate");
-
           socketRef.current.emit("iceCandidate", {
             toUserId: targetUserId,
             candidate: event.candidate,
@@ -192,7 +195,6 @@ export default function SocketHandler() {
         }
       };
 
-      // Create the Offer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
@@ -202,51 +204,44 @@ export default function SocketHandler() {
         matchId,
         callType,
       });
-
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
     } catch (err) {
       console.error("START CALL ERROR:", err);
       toast.error("Could not start call");
     }
   };
 
+  // 🔥 ฟังก์ชันของคนรับสาย
   const handleStartWebRTC = async (incomingData: any) => {
     try {
-      console.log("incoming", incomingData);
       const isVideo = incomingData.callType === "video";
       const stream = await navigator.mediaDevices.getUserMedia({
         video: isVideo,
         audio: true,
       });
       localStreamRef.current = stream;
+      setIsCallActive(true); // <--- สั่งเปิด Modal วิดีโอ
 
-      setIsCallActive(true);
+      // ถ้าวิดีโอโหลดมาพร้อมแล้ว ให้ยัดใส่เลย (เผื่อไว้)
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
 
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
+      
+      // ✅ เก็บ Remote Stream ไว้เสมอ กันแท็กวิดีโอยังไม่โผล่
       pc.ontrack = (event) => {
-        console.log("REMOTE STREAM RECEIVED", event.streams);
-
-        if (remoteVideoRef.current && event.streams[0]) {
-          console.log(event.streams[0].getTracks());
+        console.log("REMOTE STREAM RECEIVED (Receiver)", event.streams);
+        remoteStreamRef.current = event.streams[0];
+        if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
       };
 
-      pc.onconnectionstatechange = () => {
-        console.log("Connection state:", pc.connectionState);
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        console.log("ICE state:", pc.iceConnectionState);
-      };
-
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("Sending ICE candidate");
-
           socketRef.current.emit("iceCandidate", {
             toUserId: incomingData.from,
             candidate: event.candidate,
@@ -256,12 +251,13 @@ export default function SocketHandler() {
 
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      // After setting descriptions (your existing logic)...
       await pc.setRemoteDescription(
         new RTCSessionDescription(incomingData.offer)
       );
+      
       iceQueue.current.forEach((c) => pcRef.current?.addIceCandidate(c));
       iceQueue.current = [];
+      
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -269,15 +265,11 @@ export default function SocketHandler() {
         toUserId: incomingData.from,
         answer: answer,
       });
-
-      // CRITICAL: Assign local stream to your small preview window
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
     } catch (err) {
       console.error("WebRTC Error:", err);
     }
   };
+
   return (
     <>
       <Toaster />
@@ -299,12 +291,16 @@ export default function SocketHandler() {
           handleStartWebRTC(callData);
         }}
       />
+      
       {isCallActive && (
         <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
+          
+          {/* 🔴 รีเฟอเรนซ์กล้องเพื่อน (ใช้ setRemoteVideoNode แทนการใส่ Ref ตรงๆ) */}
           <video
-            ref={remoteVideoRef}
+            ref={setRemoteVideoNode}
             autoPlay
             playsInline
+            className="w-full h-full object-cover" // เติม Class ให้กล้องเพื่อนเต็มจอ
             onLoadedMetadata={(e) => {
               const video = e.currentTarget;
               video.play().catch(() => {});
@@ -312,26 +308,25 @@ export default function SocketHandler() {
           />
 
           <div className="absolute bottom-24 right-6 w-32 h-48 bg-gray-800 rounded-xl overflow-hidden border-2 border-white shadow-lg">
+            {/* 🔴 รีเฟอเรนซ์กล้องตัวเอง (ใช้ setLocalVideoNode) */}
             <video
-              ref={localVideoRef}
+              ref={setLocalVideoNode}
               autoPlay
               playsInline
-              muted // Always mute local video to avoid feedback loops!
-              className="w-full h-full object-cover -scale-x-100" // Mirror effect
+              muted 
+              className="w-full h-full object-cover -scale-x-100" 
             />
           </div>
 
           <div className="absolute bottom-8 flex gap-6">
             <button
               onClick={() => {
-                console.log(peerId);
                 socketRef.current.emit("endCall", {
                   toUserId: peerId,
                 });
-
                 handleEndCall();
               }}
-              className="bg-red-500 p-4 rounded-full text-white hover:bg-red-600 transition-all"
+              className="bg-red-500 px-6 py-3 rounded-full text-white font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-500/30"
             >
               End Call
             </button>
