@@ -148,6 +148,14 @@ export default function SocketHandler() {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
+      pc.ontrack = (event) => {
+        console.log("REMOTE STREAM RECEIVED", event.streams);
+
+        if (remoteVideoRef.current && event.streams[0]) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
+
       pc.onconnectionstatechange = () => {
         console.log("Connection state:", pc.connectionState);
       };
@@ -156,14 +164,6 @@ export default function SocketHandler() {
         console.log("ICE state:", pc.iceConnectionState);
       };
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      pc.ontrack = (event) => {
-        console.log("REMOTE STREAM RECEIVED (caller)", event.streams);
-
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
@@ -196,7 +196,7 @@ export default function SocketHandler() {
 
   const handleStartWebRTC = async (incomingData: any) => {
     try {
-      console.log(incomingData);
+      console.log("incoming", incomingData);
       const isVideo = incomingData.callType === "video";
       const stream = await navigator.mediaDevices.getUserMedia({
         video: isVideo,
@@ -210,6 +210,13 @@ export default function SocketHandler() {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       pcRef.current = pc;
+      pc.ontrack = (event) => {
+        console.log("REMOTE STREAM RECEIVED", event.streams);
+
+        if (remoteVideoRef.current && event.streams[0]) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
 
       pc.onconnectionstatechange = () => {
         console.log("Connection state:", pc.connectionState);
@@ -219,18 +226,12 @@ export default function SocketHandler() {
         console.log("ICE state:", pc.iceConnectionState);
       };
 
-      pc.ontrack = (event) => {
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           console.log("Sending ICE candidate");
 
           socketRef.current.emit("iceCandidate", {
-            toUserId: incomingData.from, // ✅ correct user
+            toUserId: incomingData.from,
             candidate: event.candidate,
           });
         }

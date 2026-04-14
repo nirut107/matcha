@@ -75,7 +75,6 @@ export class AuthService {
     await this.storeRefreshToken(newUser.id, refreshToken);
 
     this.setCookies(res, accessToken, refreshToken);
-    console.log('====================');
     return { success: true };
   }
 

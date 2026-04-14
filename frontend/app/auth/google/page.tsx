@@ -13,7 +13,6 @@ export default function OAuthSuccess() {
     if (token) {
       localStorage.setItem("token", token);
 
-      // redirect ไปหน้า setup profile
       router.push("/profile/setup");
     } else {
       router.push("/auth/login");
