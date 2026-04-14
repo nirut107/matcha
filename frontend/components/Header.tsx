@@ -31,7 +31,9 @@ export default function Header() {
   // Helper to highlight active icons
   const getIconClass = (path: string) =>
     `transition-colors cursor-pointer p-1 rounded-md ${
-      pathname === path ? "text-rose-500 bg-rose-50" : "text-gray-400 hover:text-rose-500"
+      pathname === path
+        ? "text-rose-500 bg-rose-50"
+        : "text-gray-400 hover:text-rose-500"
     }`;
 
   return (
@@ -42,7 +44,12 @@ export default function Header() {
         onClick={() => pathname !== "/dashboard" && router.push("/dashboard")}
       >
         <div className="bg-gradient-to-tr from-rose-500 to-orange-400 p-1.5 rounded-lg shadow-sm group-hover:scale-105 transition-transform">
-          <Flame size={20} className="sm:w-6 sm:h-6" color="white" fill="white" />
+          <Flame
+            size={20}
+            className="sm:w-6 sm:h-6"
+            color="white"
+            fill="white"
+          />
         </div>
         <span className="text-lg sm:text-xl font-black text-gray-900 uppercase tracking-tight">
           Matcha
@@ -79,7 +86,9 @@ export default function Header() {
         {/* SETTINGS */}
         <button
           className={getIconClass("/profile/setup")}
-          onClick={() => pathname !== "/profile/setup" && router.push("/profile/setup")}
+          onClick={() =>
+            pathname !== "/profile/setup" && router.push("/profile/setup")
+          }
         >
           <Settings size={22} className="sm:w-6 sm:h-6" />
         </button>

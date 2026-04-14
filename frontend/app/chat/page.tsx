@@ -164,15 +164,13 @@ export default function ChatPage() {
       });
     });
     const run = async () => {
-      await new Promise((r) => setTimeout(r, 1000));
       setIsFadingOut(true);
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 500));
       setLoading(false);
     };
 
     run();
     return () => {
-      // leave current match room when leaving page
       if (activeMatchRef.current) {
         s.emit("leaveMatch", { matchId: activeMatchRef.current });
       }

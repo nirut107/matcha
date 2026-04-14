@@ -9,6 +9,38 @@ export class SwipeService {
     private notificationService: NotificationService,
   ) {}
 
+  async updateFameRating(targetId: number) {
+    const res = await this.db.query(
+      `
+      SELECT
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE action = 'like') AS likes
+      FROM (
+        SELECT action
+        FROM swipes
+        WHERE target_id = $1
+        ORDER BY created_at DESC
+        LIMIT 100) AS recent_swipes`,
+      [targetId],
+    );
+
+    const total = Number(res.rows[0].total);
+    const likes = Number(res.rows[0].likes);
+
+    if (total < 10) return;
+
+    const fame = Math.round((likes / total) * 100);
+
+    await this.db.query(
+      `
+      UPDATE profiles
+      SET fame_rating = $2
+      WHERE user_id = $1
+      `,
+      [targetId, fame],
+    );
+  }
+
   async swipeUser(userId: number, targetId: number, action: 'like' | 'pass') {
     if (userId === targetId) {
       throw new Error('Invalid action');
@@ -73,7 +105,7 @@ export class SwipeService {
       }
 
       await this.db.query('COMMIT');
-
+      await this.updateFameRating(targetId);
       return { success: true, match: isMatch };
     } catch (e) {
       await this.db.query('ROLLBACK');

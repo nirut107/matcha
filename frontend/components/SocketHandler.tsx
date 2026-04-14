@@ -24,7 +24,6 @@ export default function SocketHandler() {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  // 📺 [VIDEO DOM] Logs: Check when React actually puts the video on screen
   useEffect(() => {
     console.log("📺 [VIDEO DOM] Local Stream State Changed:", !!localStream, "DOM Node:", !!localVideoRef.current);
     if (localVideoRef.current && localStream) {

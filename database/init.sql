@@ -77,6 +77,9 @@ CREATE TABLE swipes (
     UNIQUE (swiper_id, target_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_swipes_target_created
+ON swipes(target_id, created_at DESC);
+
 -- =========================
 -- MATCHES
 -- =========================

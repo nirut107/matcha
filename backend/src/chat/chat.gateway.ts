@@ -207,12 +207,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('callUser')
   async handleCall(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { toUserId: number; offer: any; matchId: number, callType: string},
+    @MessageBody()
+    data: { toUserId: number; offer: any; matchId: number; callType: string },
   ) {
     const fromUserId = socket.data.userId;
 
     const isMatch = await this.isUserInMatch(fromUserId, data.matchId);
     if (!isMatch) return;
+
+    await this.db.query(
+      `INSERT INTO messages (match_id, sender_id, content, type)
+     VALUES ($1, $2, $3, $4)
+     RETURNING *`,
+      [data.matchId, fromUserId, 'Calling...', "call"],
+    );
 
     this.sendToUser(data.toUserId, {
       type: 'INCOMING_CALL',
@@ -257,7 +265,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { toUserId: number },
   ) {
     const fromUserId = socket.data.userId;
-
+    
     [fromUserId, data.toUserId].forEach((id) => {
       this.sendToUser(id, {
         type: 'CALL_ENDED',
