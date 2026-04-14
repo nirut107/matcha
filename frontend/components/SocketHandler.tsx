@@ -167,6 +167,7 @@ export default function SocketHandler() {
         console.log("REMOTE STREAM RECEIVED", event.streams);
 
         if (remoteVideoRef.current && event.streams[0]) {
+          console.log(event.streams[0].getTracks());
           remoteVideoRef.current.srcObject = event.streams[0];
         }
       };
@@ -229,6 +230,7 @@ export default function SocketHandler() {
         console.log("REMOTE STREAM RECEIVED", event.streams);
 
         if (remoteVideoRef.current && event.streams[0]) {
+          console.log(event.streams[0].getTracks());
           remoteVideoRef.current.srcObject = event.streams[0];
         }
       };
