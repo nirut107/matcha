@@ -15,6 +15,10 @@ import {
   Calendar,
   User,
   Globe,
+  Flag,
+  AlertCircle,
+  Send,
+  Loader2,
 } from "lucide-react";
 import ProfileCard from "@/components/ProfileCard";
 import Header from "@/components/Header";
@@ -61,6 +65,12 @@ export default function Dashboard() {
   const [activeFilters, setActiveFilters] = useState<any | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
+  const [reportStep, setReportStep] = useState<
+    "idle" | "form" | "submitting" | "success"
+  >("idle");
+  const [reason, setReason] = useState("");
+  const [reportError, setReportError] = useState("");
+
   const handleShowInfo = async (visitedId: number) => {
     setShowModal(true);
     setIsModalLoading(true);
@@ -82,6 +92,44 @@ export default function Dashboard() {
       setIsModalLoading(false);
     }
   };
+
+  const handleReport = async () => {
+    if (!reason.trim()) {
+      setReportError("Please provide a reason for the report.");
+      return;
+    }
+
+    setReportStep("submitting");
+    setReportError("");
+
+    try {
+      const res = await fetchWithAuth("/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reported_id: currentProfile.userId,
+          reason: reason.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to report user");
+      }
+
+      setReportStep("success");
+      setTimeout(() => {
+        setReportStep("idle");
+        setReason("");
+        setShowModal(false); // Close modal after success
+        handleAction("pass"); // Optionally skip this profile after reporting
+      }, 2000);
+    } catch (err: any) {
+      setReportError(err.message);
+      setReportStep("form");
+    }
+  };
+
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
@@ -129,7 +177,7 @@ export default function Dashboard() {
         {loading && (
           <div
             className={`
-          fixed inset-0 z-50 
+          fixed inset-0 z-50
             transition-opacity duration-2000 ease-in-out
             ${isFadingOut ? "opacity-0" : "opacity-100"}
           `}
@@ -212,7 +260,7 @@ export default function Dashboard() {
       {loading && (
         <div
           className={`
-                    fixed inset-0 z-50 
+                    fixed inset-0 z-50
                       transition-opacity duration-1000 ease-in-out
                       ${isFadingOut ? "opacity-0" : "opacity-100"}
                     `}
@@ -316,6 +364,79 @@ export default function Dashboard() {
                       </span>
                     ))}
                   </div>
+                </div>
+                <div className="mt-12 pt-8 border-t border-gray-100">
+                  {reportStep === "idle" && (
+                    <button
+                      onClick={() => setReportStep("form")}
+                      className="flex items-center gap-2 text-gray-400 hover:text-rose-500 font-bold text-sm transition-colors group"
+                    >
+                      <Flag size={16} className="group-hover:fill-rose-500" />
+                      Report {currentProfile?.first_name}
+                    </button>
+                  )}
+
+                  {reportStep === "form" && (
+                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 animate-in fade-in zoom-in duration-200">
+                      <div className="flex items-center gap-2 mb-4 text-rose-600">
+                        <AlertCircle size={20} />
+                        <h4 className="font-black uppercase tracking-tight text-sm">
+                          Report User
+                        </h4>
+                      </div>
+
+                      <textarea
+                        autoFocus
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="Tell us why you're reporting this profile..."
+                        className="w-full p-4 bg-white border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 resize-none text-sm mb-4 min-h-[100px]"
+                      />
+
+                      {reportError && (
+                        <p className="text-red-500 text-xs font-bold mb-4 ml-1 italic">
+                          {reportError}
+                        </p>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleReport}
+                          className="flex-1 bg-rose-500 text-white py-3 rounded-xl font-bold hover:bg-rose-600 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Send size={16} /> Submit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setReportStep("idle");
+                            setReportError("");
+                          }}
+                          className="px-6 py-3 font-bold text-gray-500 hover:bg-gray-200 rounded-xl transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {reportStep === "submitting" && (
+                    <div className="flex items-center justify-center gap-3 text-rose-500 font-bold p-8">
+                      <Loader2 className="animate-spin" size={20} />
+                      Processing...
+                    </div>
+                  )}
+
+                  {reportStep === "success" && (
+                    <div className="bg-green-50 text-green-700 p-6 rounded-[2rem] border border-green-100 flex flex-col items-center gap-2 text-center animate-in fade-in">
+                      <div className="bg-green-500 p-2 rounded-full text-white">
+                        <X size={20} className="rotate-45" />
+                      </div>
+                      <p className="font-bold">Report submitted.</p>
+                      <p className="text-xs opacity-70">
+                        Thank you for keeping Matcha safe.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
