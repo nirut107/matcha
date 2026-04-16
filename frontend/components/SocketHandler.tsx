@@ -104,9 +104,11 @@ export default function SocketHandler() {
           console.log("🔌 [SOCKET] Received CALL_ENDED");
           handleEndCall();
           break;
-
+        case "NEW_MESSAGE":
+          toast.success(`${data.type}`)
         default:
           if (data.type !== "visit" && data.type !== "NEW_MESSAGE") {
+            toast.success(data.type);
              console.log("🔌 [SOCKET] Unhandled Notification:", data);
           }
       }
