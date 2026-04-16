@@ -18,6 +18,7 @@ import { SwipeModule } from './swipe/swipe.module';
 import { MessagesModule } from './messages/messages.module';
 import { MapModule } from './map/map.module';
 import { DatesModule } from './dates/dates.module';
+import { ReportModule } from './report/report.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { DatesModule } from './dates/dates.module';
     MessagesModule,
     MapModule,
     DatesModule,
+    ReportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

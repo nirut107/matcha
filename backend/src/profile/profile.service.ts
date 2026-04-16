@@ -135,7 +135,6 @@ export class ProfileService {
       [visitorId, visitedId],
     );
 
-    // 2. Only send notification if a new row was actually inserted
     if (result.rowCount > 0) {
       await this.notificationService.create(visitedId, 'visit', {
         fromUserId: visitorId,
