@@ -98,20 +98,42 @@ export class ProfileService {
       SELECT
         p.*,
         u.username,
-        COALESCE(json_agg(t.name) FILTER (WHERE t.name IS NOT NULL), '[]') AS tags
+    
+        COALESCE(
+          json_agg(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL),
+          '[]'
+        ) AS tags,
+    
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'url', pic.url,
+                'is_profile', pic.is_profile,
+                'position', pic.position
+              )
+              ORDER BY pic.position
+            )
+            FROM pictures pic 
+            WHERE pic.user_id = u.id
+          ),
+          '[]'
+        ) AS images
+    
       FROM profiles p
       JOIN users u ON u.id = p.user_id
       LEFT JOIN user_tags ut ON ut.user_id = u.id
       LEFT JOIN tags t ON t.id = ut.tag_id
+    
       WHERE p.user_id = $1
-      GROUP BY p.user_id, u.username
+    
+      GROUP BY p.user_id, u.id, u.username
       `,
       [userId],
     );
 
     if (result.rows.length === 0)
       throw new NotFoundException('Profile not found');
-    // console.log(result.row[0], "============")
     return result.rows[0];
   }
 

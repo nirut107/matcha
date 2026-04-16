@@ -7,14 +7,13 @@ import {
   UseGuards,
   Req,
   Body,
-  Query
+  Query,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { SearchDto } from './dto/search.dto';
-
 
 @ApiTags('Profile')
 @ApiBearerAuth()
@@ -28,6 +27,10 @@ export class ProfileController {
   createOrUpdate(@Req() req: any, @Body() dto: CreateProfileDto) {
     console.log(req.user);
     return this.profileService.upsertProfile(req.user.userId, dto);
+  }
+  @Get('data/:id')
+  getUser(@Param('id') id: string) {
+    return this.profileService.getProfileById(Number(id));
   }
 
   @Get('me')
@@ -53,13 +56,8 @@ export class ProfileController {
   @Get('search')
   @UseGuards(JwtGuard)
   async search(@Req() req, @Query() query: SearchDto) {
-    console.log(req.user.userId, query, "==========================")
+    console.log(req.user.userId, query, '==========================');
     return this.profileService.searchProfiles(req.user.userId, query);
-  }
-
-  @Get(':id')
-  getUser(@Param('id') id: string) {
-    return this.profileService.getProfileById(Number(id));
   }
 
   @Delete()
@@ -74,6 +72,4 @@ export class ProfileController {
     await this.profileService.visitProfile(req.user.userId, Number(visitedId));
     return { message: 'Visit recorded' };
   }
-
-
 }
