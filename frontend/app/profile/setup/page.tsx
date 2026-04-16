@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, ProfilerProps } from "react";
+import React, { useState, useEffect, useRef, ProfilerProps } from "react";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Flame,
@@ -18,6 +19,8 @@ import {
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import Header from "@/components/Header";
 import PhotoEditorModal from "@/components/PhotoEditorModal";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 export interface ImageItem {
   id?: number; // existing image (from DB)
@@ -29,6 +32,104 @@ export interface ImageItem {
 interface Tag {
   id: number;
   name: string;
+}
+
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+
+function MapPickerModal({
+  initialCoords,
+  onConfirm,
+  onClose,
+}: {
+  initialCoords: { lat: number; lng: number } | null;
+  onConfirm: (lat: number, lng: number) => void;
+  onClose: () => void;
+}) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const [tempCoords, setTempCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(initialCoords);
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: initialCoords
+        ? [initialCoords.lng, initialCoords.lat]
+        : [2.3522, 48.8566], // Default Paris
+      zoom: initialCoords ? 12 : 2,
+    });
+
+    map.on("click", (e) => {
+      const { lng, lat } = e.lngLat;
+      setTempCoords({ lat, lng });
+
+      if (markerRef.current) {
+        markerRef.current.setLngLat([lng, lat]);
+      } else {
+        markerRef.current = new mapboxgl.Marker({ color: "#f43f5e" })
+          .setLngLat([lng, lat])
+          .addTo(map);
+      }
+    });
+
+    // If we already have coords, drop a marker immediately
+    if (initialCoords) {
+      markerRef.current = new mapboxgl.Marker({ color: "#f43f5e" })
+        .setLngLat([initialCoords.lng, initialCoords.lat])
+        .addTo(map);
+    }
+
+    mapRef.current = map;
+    return () => map.remove();
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl">
+        <div className="p-6 border-b flex justify-between items-center">
+          <h3 className="font-bold text-xl">Select Your Location</h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div ref={mapContainerRef} className="h-[400px] w-full" />
+
+        <div className="p-6 bg-gray-50 flex flex-col gap-3">
+          <p className="text-sm text-gray-500 italic">
+            Click on the map to drop a pin. This location will be used to show
+            you matches nearby.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 font-bold text-gray-600 bg-white border rounded-xl hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!tempCoords}
+              onClick={() =>
+                tempCoords && onConfirm(tempCoords.lat, tempCoords.lng)
+              }
+              className="flex-1 py-3 font-bold text-white bg-rose-500 rounded-xl hover:bg-rose-600 disabled:opacity-50"
+            >
+              Confirm Location
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ProfileSetupPage() {
@@ -82,6 +183,7 @@ export default function ProfileSetupPage() {
     index: number;
     src: string;
   } | null>(null);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const fetchUser = async () => {
     try {
@@ -150,34 +252,6 @@ export default function ProfileSetupPage() {
     fetchProfile();
     fetchUser();
   }, []);
-
-  // Image Logic
-  // const handleImageChange = (
-  //   index: number,
-  //   e: React.ChangeEvent<HTMLInputElement>
-  // ) => {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-
-  //   // ✅ update files
-  //   const newFiles = [...files];
-  //   newFiles[index] = file;
-  //   setFiles(newFiles);
-
-  //   // ✅ remove existing image at this index (IMPORTANT)
-  //   const newExisting = [...existingImages];
-  //   newExisting[index] = null;
-  //   setExistingImages(newExisting);
-
-  //   // ✅ update preview
-  //   const reader = new FileReader();
-  //   reader.onloadend = () => {
-  //     const newPreviews = [...previews];
-  //     newPreviews[index] = reader.result as string;
-  //     setPreviews(newPreviews);
-  //   };
-  //   reader.readAsDataURL(file);
-  // };
 
   const handleImageChange = (
     index: number,
@@ -369,12 +443,14 @@ export default function ProfileSetupPage() {
   // Geolocation (Mandatory Step [cite: 91, 92])
   const handleLocation = () => {
     navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () =>
-        alert(
-          "Location denied. You'll need to set this manually in your settings later."
-        )
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        alert("GPS Location captured!");
+      },
+      () => {
+        alert("Location denied. Please select it manually on the map.");
+        setShowMapModal(true); // Automatically open map if GPS fails
+      }
     );
   };
 
@@ -726,8 +802,46 @@ export default function ProfileSetupPage() {
                 )}
               </div>
             </div>
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-gray-700 ml-1">
+                LOCATION
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={handleLocation}
+                  className={`flex-1 flex items-center justify-center gap-2 font-bold px-4 py-4 rounded-2xl transition-all border-2 ${
+                    location.lat
+                      ? "text-green-600 bg-green-50 border-green-100"
+                      : "text-rose-500 bg-rose-50 border-rose-100 hover:bg-rose-100"
+                  }`}
+                >
+                  <MapPin size={20} />
+                  {location.lat ? "GPS Verified" : "Use My GPS"}
+                </button>
 
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowMapModal(true)}
+                  className={`flex-1 flex items-center justify-center gap-2 font-bold px-4 py-4 rounded-2xl transition-all border-2 ${
+                    location.lat && !navigator.geolocation
+                      ? "text-green-600 bg-green-50 border-green-100"
+                      : "text-gray-600 bg-gray-50 border-gray-100 hover:bg-gray-100"
+                  }`}
+                >
+                  <Search size={20} />
+                  {location.lat ? "Change on Map" : "Select on Map"}
+                </button>
+              </div>
+              {location.lat && (
+                <p className="text-center text-xs text-green-600 font-medium">
+                  Success! Location set to {location.lat.toFixed(4)},{" "}
+                  {location.lng?.toFixed(4)}
+                </p>
+              )}
+            </div>
+
+            {/* <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <button
                 type="button"
                 onClick={handleLocation}
@@ -744,7 +858,7 @@ export default function ProfileSetupPage() {
                 )}
                 {location.lat ? "Location Verified" : "Verify Location (GPS)"}
               </button>
-            </div>
+            </div> */}
             {error && (
               <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-semibold">
                 {error}
@@ -764,12 +878,27 @@ export default function ProfileSetupPage() {
           </form>
           {/* Render the Editor Modal if an image is queued for editing */}
           {editingImage && (
-              <PhotoEditorModal
-                src={editingImage.src}
-                onClose={() => setEditingImage(null)}
-                onSave={handleSaveEdit}
-              />
-            )}
+            <PhotoEditorModal
+              src={editingImage.src}
+              onClose={() => setEditingImage(null)}
+              onSave={handleSaveEdit}
+            />
+          )}
+          {/* MAP MODAL RENDERING */}
+          {showMapModal && (
+            <MapPickerModal
+              initialCoords={
+                location.lat && location.lng
+                  ? { lat: location.lat, lng: location.lng }
+                  : null
+              }
+              onClose={() => setShowMapModal(false)}
+              onConfirm={(lat, lng) => {
+                setLocation({ lat, lng });
+                setShowMapModal(false);
+              }}
+            />
+          )}
         </div>
       </div>
       {/*  FOOTER */}
