@@ -30,8 +30,6 @@ services:
   backend:
     build: ./backend
     container_name: matcha_backend
-    ports:
-      - "3001:3001"
     depends_on:
       - postgres
     env_file:
@@ -40,8 +38,6 @@ services:
   frontend:
     build: ./frontend
     container_name: matcha_frontend
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
 
