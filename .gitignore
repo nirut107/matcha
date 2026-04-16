@@ -37,5 +37,7 @@ next-env.d.ts
 
 backend/uploads/*
 
+reset_db.sh
+init-dev.sh
 init-env.sh
-backend/.envold
+
