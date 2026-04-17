@@ -26,6 +26,7 @@ type Profile = {
   userId: number;
   profileIndex: number;
   profileImage: string;
+  create_at: string;
 };
 
 export default function Dashboard() {
@@ -103,6 +104,7 @@ export default function Dashboard() {
   };
 
   const handleShowInfo = async (profile: Profile) => {
+    console.log(profile);
     setSelectedProfile(profile);
     setIsModalOpen(true);
     setIsModalLoading(true);
@@ -152,7 +154,6 @@ export default function Dashboard() {
       <main className="grow flex flex-col items-center justify-start p-4">
         {/* --- TOP ACTION BAR (50/50 Split & High Animation) --- */}
         <div className="w-full max-w-md lg:max-w-lg flex items-center gap-3 mb-4">
-
           {/* flex-1 makes Filters take exactly 50% of the available width */}
           <div className="flex-1">
             <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
@@ -232,8 +233,9 @@ export default function Dashboard() {
                   onClick={() => handleShowInfo(visitor)}
                   className="flex items-center gap-4 p-3 bg-white border rounded-2xl hover:border-rose-300 cursor-pointer transition-all"
                 >
+                  <div>{visitor.create_at}</div>
                   <img
-                    src={visitor.images[0]?.url}
+                    src={visitor.profileImage || ""}
                     className="w-14 h-14 rounded-xl object-cover"
                   />
                   <div className="grow">
