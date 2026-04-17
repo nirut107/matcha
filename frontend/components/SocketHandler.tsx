@@ -144,13 +144,6 @@ export default function SocketHandler() {
           break;
         case "NEW_MESSAGE":
           try {
-            const response = await fetchWithAuth(
-              `/profile/data/${data.senderId}`
-            );
-            const sender = await response.json();
-            const profileImage = sender.images.find(
-              (img: any) => img.is_profile === true
-            );
             toast.custom(
               (t) => (
                 <div
@@ -165,7 +158,7 @@ export default function SocketHandler() {
                           <img
                             className="h-12 w-12 rounded-full border-2 border-white object-cover shadow-sm"
                             src={
-                              profileImage.url ||
+                              data.senderImage ||
                               "https://via.placeholder.com/150"
                             }
                             alt="sender"
@@ -175,7 +168,7 @@ export default function SocketHandler() {
                       </div>
                       <div className="ml-4 flex-1">
                         <p className="text-sm font-bold text-gray-900 dark:text-white">
-                          {sender.first_name || "Someone"}
+                          {data.senderName || "Someone"}
                         </p>
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2 italic">
                           "{data.text}"

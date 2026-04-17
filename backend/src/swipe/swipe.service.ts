@@ -49,64 +49,65 @@ export class SwipeService {
     await this.db.query('BEGIN');
 
     try {
-      // 1. save swipe (insert or update)
       await this.db.query(
-        `
-        INSERT INTO swipes (swiper_id, target_id, action)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (swiper_id, target_id)
-        DO UPDATE SET action = EXCLUDED.action
-        `,
+        `INSERT INTO swipes (swiper_id, target_id, action)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (swiper_id, target_id)
+         DO UPDATE SET action = EXCLUDED.action`,
         [userId, targetId, action],
       );
 
+      const myProfileRes = await this.db.query(
+        `SELECT p.first_name, 
+                (SELECT url FROM pictures WHERE user_id = p.user_id AND is_profile = true LIMIT 1) as profile_image
+         FROM profiles p WHERE p.user_id = $1`,
+        [userId],
+      );
+      const myProfile = myProfileRes.rows[0];
+
       let isMatch = false;
 
-      // 2. ONLY if like → check match
       if (action === 'like') {
+        await this.notificationService.create(targetId, 'like', {
+          senderId: userId,
+          senderName: myProfile.first_name,
+          senderImage: myProfile.profile_image,
+          type: 'LIKE',
+          text: `${myProfile.first_name} liked your profile! ✨`,
+        });
+
         const res = await this.db.query(
-          `
-          SELECT 1
-          FROM swipes
-          WHERE swiper_id = $2
-            AND target_id = $1
-            AND action = 'like'
-          `,
-          [userId, targetId],
+          `SELECT 1 FROM swipes WHERE swiper_id = $1 AND target_id = $2 AND action = 'like'`,
+          [targetId, userId],
         );
-        console.log(userId, targetId);
+
         if (res.rows.length) {
           isMatch = true;
 
-          // 3. create match
           await this.db.query(
-            `
-            INSERT INTO matches (user1_id, user2_id)
-            VALUES (LEAST($1::int, $2::int), GREATEST($1::int, $2::int))
-            ON CONFLICT DO NOTHING
-            `,
-            [Number(userId), Number(targetId)],
+            `INSERT INTO matches (user1_id, user2_id)
+             VALUES (LEAST($1::int, $2::int), GREATEST($1::int, $2::int))
+             ON CONFLICT DO NOTHING`,
+            [userId, targetId],
           );
 
-          // 4. notify both
           await this.notificationService.create(userId, 'match', {
             withUserId: targetId,
+            type: 'MATCH',
           });
 
           await this.notificationService.create(targetId, 'match', {
-            withUserId: userId,
+            senderId: userId,
+            senderName: myProfile.first_name,
+            senderImage: myProfile.profile_image,
+            type: 'MATCH',
+            text: `You matched with ${myProfile.first_name}! ❤️`,
           });
         }
-
-        // 5. notify like (optional)
-        await this.notificationService.create(targetId, 'like', {
-          fromUserId: userId,
-        });
       }
 
       await this.db.query('COMMIT');
-      await this.updateFameRating(targetId);
-      return { success: true, match: isMatch };
+      return { isMatch };
     } catch (e) {
       await this.db.query('ROLLBACK');
       throw e;

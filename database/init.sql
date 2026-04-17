@@ -13,6 +13,9 @@ CREATE TABLE users (
     last_name VARCHAR(100),
     google_id TEXT UNIQUE,
     is_verified BOOLEAN DEFAULT FALSE,
+    verification_token VARCHAR(255);
+    reset_token VARCHAR(255);
+    reset_token_expires TIMESTAMP;
     is_online BOOLEAN DEFAULT FALSE,
     allow_map BOOLEAN DEFAULT FALSE,
     last_connection TIMESTAMP DEFAULT NOW(),

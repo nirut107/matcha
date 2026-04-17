@@ -4,7 +4,9 @@ import { DatabaseService } from '../database/database.service';
 import { RegisterDto } from './dto/register.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { MailService } from 'src/mail/mail.service';
+import { v4 as uuidv4 } from 'uuid';
 
 type RefreshTokenRow = {
   id: number;
@@ -19,6 +21,7 @@ export class AuthService {
   constructor(
     private db: DatabaseService,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   async login(username: string, password: string, res: Response) {
@@ -29,7 +32,8 @@ export class AuthService {
 
     const user = result.rows[0];
     if (!user) throw new UnauthorizedException('User not found');
-
+    if (!user.is_verified)
+      throw new ForbiddenException('Please verify your email first');
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) throw new UnauthorizedException('Wrong password');
 
@@ -60,28 +64,25 @@ export class AuthService {
       throw new BadRequestException('Email already registered');
     }
     const password_hash = await bcrypt.hash(password, 10);
+    const verificationToken = uuidv4();
 
     const result = await this.db.query(
-      `INSERT INTO users (username, email, password_hash)
-       VALUES ($1, $2, $3)
+      `INSERT INTO users (username, email, password_hash, verification_token)
+       VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [username, email, password_hash],
+      [username, email, password_hash, verificationToken],
     );
 
     const newUser = result.rows[0];
 
-    const { accessToken, refreshToken } = await this.generateTokens(newUser.id);
+    await this.mailService.sendVerificationEmail(email, verificationToken);
 
-    await this.storeRefreshToken(newUser.id, refreshToken);
-
-    this.setCookies(res, accessToken, refreshToken);
-    return { success: true };
+    return { message: 'Please check your email to verify your account' };
   }
 
   async oauthLogin(profile: any, res: Response) {
     const { email, googleId } = profile;
 
-    // 👉 get user
     const result = await this.db.query(
       `SELECT * FROM users WHERE email = $1 OR google_id = $2`,
       [email, googleId],
@@ -242,5 +243,53 @@ export class AuthService {
     return {
       message: 'Logged out successfully',
     };
+  }
+
+  async forgotPassword(email: string) {
+    const userRes = await this.db.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email],
+    );
+    const user = userRes.rows[0];
+
+    if (!user) {
+      return {
+        message: 'If an account with that email exists, we sent a reset link.',
+      };
+    }
+
+    const token = uuidv4();
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 1);
+
+    await this.db.query(
+      'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
+      [token, expires, user.id],
+    );
+
+    await this.mailService.sendResetPasswordEmail(email, token);
+    return { message: 'Reset link sent to your email.' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const userRes = await this.db.query(
+      `SELECT id FROM users 
+       WHERE reset_token = $1 AND reset_token_expires > NOW()`,
+      [token],
+    );
+
+    const user = userRes.rows[0];
+    if (!user) throw new BadRequestException('Invalid or expired reset token');
+
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    await this.db.query(
+      `UPDATE users 
+       SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL 
+       WHERE id = $2`,
+      [hash, user.id],
+    );
+
+    return { success: true, message: 'Password has been reset successfully.' };
   }
 }

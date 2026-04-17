@@ -149,17 +149,41 @@ export class ProfileService {
   }
 
   async visitProfile(visitorId: number, visitedId: number) {
-    const result = await this.db.query(
-      `INSERT INTO visits (visitor_id, visited_id)
-       VALUES ($1, $2)
-       ON CONFLICT (visitor_id, visited_id) DO NOTHING
-       RETURNING *`,
+    if (visitorId === visitedId) return;
+
+    const recentVisit = await this.db.query(
+      `SELECT created_at FROM visits 
+       WHERE visitor_id = $1 AND visited_id = $2 
+       AND created_at > NOW() - INTERVAL '24 hours'
+       LIMIT 1`,
       [visitorId, visitedId],
     );
 
-    if (result.rowCount > 0) {
+    if (recentVisit.rows.length > 0) return;
+
+    await this.db.query(
+      `INSERT INTO visits (visitor_id, visited_id, created_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (visitor_id, visited_id) 
+       DO UPDATE SET created_at = EXCLUDED.created_at`,
+      [visitorId, visitedId],
+    );
+
+    const visitorProfileRes = await this.db.query(
+      `SELECT p.first_name, 
+              (SELECT url FROM pictures WHERE user_id = p.user_id AND is_profile = true LIMIT 1) as profile_image
+       FROM profiles p WHERE p.user_id = $1`,
+      [visitorId],
+    );
+    const visitor = visitorProfileRes.rows[0];
+
+    if (visitor) {
       await this.notificationService.create(visitedId, 'visit', {
-        fromUserId: visitorId,
+        senderId: visitorId,
+        senderName: visitor.first_name,
+        senderImage: visitor.profile_image,
+        type: 'VISIT',
+        text: `${visitor.first_name} viewed your profile! 👀`,
       });
     }
   }

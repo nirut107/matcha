@@ -119,6 +119,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = socket.data.userId;
 
+    // 1. ตรวจสอบว่าแมตช์นี้มีอยู่จริงและเราเป็นสมาชิกไหม
     const matchResult = await this.db.query(
       `SELECT user1_id, user2_id FROM matches WHERE id = $1`,
       [data.matchId],
@@ -129,6 +130,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const isMember = match.user1_id === userId || match.user2_id === userId;
     if (!isMember) return;
 
+    // 2. บันทึกข้อความลงฐานข้อมูล
     const result = await this.db.query(
       `INSERT INTO messages (match_id, sender_id, content)
      VALUES ($1, $2, $3)
@@ -137,13 +139,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
     const message = result.rows[0];
 
+    // 3. ส่งข้อความเข้า Room (สำหรับคนที่เปิดหน้าแชทค้างไว้)
     const roomName = `match_${data.matchId}`;
     socket.to(roomName).emit('newMessage', message);
 
+    // 4. เตรียมข้อมูลสำหรับคนรับ (Recipient)
     const recipientId =
       match.user1_id === userId ? match.user2_id : match.user1_id;
-
-    const room = this.server.sockets.adapter.rooms.get(`match_${data.matchId}`);
+    const room = this.server.sockets.adapter.rooms.get(roomName);
     const recipientSockets = this.userSockets.get(recipientId);
 
     let isRecipientInRoom = false;
@@ -155,17 +158,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
     }
-    console.log(isRecipientInRoom, 'not on room');
+
+    // 5. 🔥 ถ้าเขาไม่ได้อยู่ในห้องแชท ให้ส่ง Notification (Toast) ไปพร้อมรูปและชื่อ
     if (!isRecipientInRoom) {
+      // ดึงข้อมูลโปรไฟล์ของเรา (ผู้ส่ง)
+      const senderProfileRes = await this.db.query(
+        `SELECT p.first_name, 
+              (SELECT url FROM pictures WHERE user_id = p.user_id AND is_profile = true LIMIT 1) as profile_image
+       FROM profiles p WHERE p.user_id = $1`,
+        [userId],
+      );
+      const sender = senderProfileRes.rows[0];
+
       this.sendToUser(recipientId, {
         type: 'NEW_MESSAGE',
         matchId: data.matchId,
         senderId: userId,
+        senderName: sender?.first_name || 'Someone',
+        senderImage: sender?.profile_image || null,
         text: data.content,
       });
     }
   }
-
   // ========================
   // 🔔 NOTIFICATION HELPER
   // ========================
@@ -219,7 +233,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `INSERT INTO messages (match_id, sender_id, content, type)
      VALUES ($1, $2, $3, $4)
      RETURNING *`,
-      [data.matchId, fromUserId, 'Calling...', "call"],
+      [data.matchId, fromUserId, 'Calling...', 'call'],
     );
 
     this.sendToUser(data.toUserId, {
@@ -265,7 +279,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { toUserId: number },
   ) {
     const fromUserId = socket.data.userId;
-    
+
     [fromUserId, data.toUserId].forEach((id) => {
       this.sendToUser(id, {
         type: 'CALL_ENDED',
