@@ -9,7 +9,7 @@ export class MailService {
 
   constructor(private db: DatabaseService) {
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
+      host: process.env.SMTP_HOST,
       port: 587,
       secure: false,
       auth: {
@@ -21,6 +21,7 @@ export class MailService {
 
   async sendVerificationEmail(email: string, token: string) {
     const url = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    console.log(url, token)
 
     await this.transporter.sendMail({
       from: `${process.env.EMAIL_FROM}`,
@@ -38,6 +39,7 @@ export class MailService {
   }
 
   async verifyEmail(token: string) {
+    console.log(token)
     const result = await this.db.query(
       'SELECT id FROM users WHERE verification_token = $1',
       [token],
@@ -45,7 +47,7 @@ export class MailService {
 
     const user = result.rows[0];
     if (!user) throw new BadRequestException('Invalid or expired token');
-
+    console.log(user)
     await this.db.query(
       'UPDATE users SET is_verified = true, verification_token = NULL WHERE id = $1',
       [user.id],

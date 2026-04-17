@@ -73,7 +73,6 @@ export class AuthService {
       [username, email, password_hash, verificationToken],
     );
 
-    const newUser = result.rows[0];
 
     await this.mailService.sendVerificationEmail(email, verificationToken);
 

@@ -32,7 +32,7 @@ export default function RegisterPage() {
       });
 
       if (response.ok) {
-        router.push("/profile/setup");
+        router.push("/auth/login");
       } else {
         const data = await response.json();
         setError(
