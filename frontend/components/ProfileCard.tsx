@@ -5,17 +5,19 @@ type Image = {
   };
   
   type Profile = {
-	first_name: string;
-	age: number;
-	biography: string;
-	tags: string[];
-	images: Image[];
-	fame_rating: number;
-	distance: string;
-	is_online: boolean;
-	profileIndex:number;
-	profileImage: string;
-	userId: number;
+    first_name: string;
+    age: number;
+    biography: string;
+    tags: string[];
+    images: Image[];
+    fame_rating: number;
+    distance: string;
+    is_online: boolean;
+    userId: number;
+    profileIndex: number;
+    profileImage: string;
+    create_at: string;
+    last_connection: string;
   };
 
 export default function ProfileCard({ profile }: { profile: Profile }) {

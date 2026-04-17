@@ -32,7 +32,24 @@ interface MapUser {
   is_online: boolean;
   i_blocked_them: boolean;
   i_liked_them: boolean;
+  create_at: string;
+  last_connection: string;
 }
+type Profile = {
+  first_name: string;
+  age: number;
+  biography: string;
+  tags: string[];
+  images: Image[];
+  fame_rating: number;
+  distance: string;
+  is_online: boolean;
+  userId: number;
+  profileIndex: number;
+  profileImage: string;
+  create_at: string;
+  last_connection: string;
+};
 
 export default function MapPage() {
   const router = useRouter();
@@ -45,9 +62,9 @@ export default function MapPage() {
   const [error, setError] = useState("");
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<MapUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [isModalLoading, setIsModalLoading] = useState(false);
-  
+
   const [isSearchingArea, setIsSearchingArea] = useState(false);
   // 🔥 NEW STATE: Controls whether the "Search this area" button is visible
   const [showSearchButton, setShowSearchButton] = useState(false);
@@ -57,11 +74,30 @@ export default function MapPage() {
     lng: number;
   } | null>(null);
 
+  function mapUserToProfile(user: MapUser): Profile {
+    return {
+      first_name: user.first_name,
+      age: user.age,
+      biography: user.biography,
+      tags: user.tags,
+      images: user.images,
+      fame_rating: user.fame_rating,
+      distance: user.distance,
+      is_online: user.is_online,
+      userId: user.userId,
+      profileIndex: 0,
+      profileImage: user.profileImage,
+      create_at: user.create_at,
+      last_connection: user.last_connection, // ⚠️ you don’t have this in MapUser
+    };
+  }
+
   // ==========================================
   // 1. HELPER FUNCTIONS
   // ==========================================
   const handleShowInfo = async (user: MapUser) => {
-    setSelectedUser(user);
+    const select = mapUserToProfile(user);
+    setSelectedUser(select);
     setShowModal(true);
     setIsModalLoading(true);
 
@@ -131,7 +167,9 @@ export default function MapPage() {
 
   const handleUnblock = async (userId: number) => {
     try {
-      const res = await fetchWithAuth(`/blocks/${userId}`, { method: "DELETE" });
+      const res = await fetchWithAuth(`/blocks/${userId}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to unblock user");
     } catch (err) {
       console.error("Error unblocking user:", err);
@@ -142,7 +180,7 @@ export default function MapPage() {
   const handleSearchAreaClick = () => {
     if (!mapRef.current) return;
     const newCenter = mapRef.current.getCenter();
-    
+
     // Hide the button and update the mapCenter state (which triggers the fetch)
     setShowSearchButton(false);
     setMapCenter({ lat: newCenter.lat, lng: newCenter.lng });
@@ -183,25 +221,37 @@ export default function MapPage() {
           
           <div style="padding: 16px; text-align: center; margin-top: -50px;">
             <div style="display: flex; justify-content: center;">
-              <img src="${user.profileImage || "/default-avatar.png"}" style="width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; object-fit: cover; background: white; box-shadow: 0 6px 12px rgba(0,0,0,0.2);" />
+              <img src="${
+                user.profileImage || "/default-avatar.png"
+              }" style="width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; object-fit: cover; background: white; box-shadow: 0 6px 12px rgba(0,0,0,0.2);" />
             </div>
             <h3 style="margin: 10px 0 4px 0; font-size: 18px; font-weight: 700; color: #1f2937;">
               ${user.first_name}, ${user.age}
             </h3>
-            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px;">📍 ${user.distance}</p>
+            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px;">📍 ${
+              user.distance
+            }</p>
             <div style="text-align: left; margin-bottom: 12px;">${tagsHtml}</div>
             
             <div style="display: flex; justify-content: center; margin: 12px 0;">
-              <button id="like-${user.userId}" style="width: 46px; height: 46px; border-radius: 50%; border: none; font-size: 26px; cursor: pointer; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.25); background: ${
-                user.i_liked_them ? "linear-gradient(to right, #6b7280, #4b5563)" : "linear-gradient(to right, #f43f5e, #fb923c)"
-              };">
+              <button id="like-${
+                user.userId
+              }" style="width: 46px; height: 46px; border-radius: 50%; border: none; font-size: 26px; cursor: pointer; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.25); background: ${
+      user.i_liked_them
+        ? "linear-gradient(to right, #6b7280, #4b5563)"
+        : "linear-gradient(to right, #f43f5e, #fb923c)"
+    };">
                 ${user.i_liked_them ? "💔" : "❤️"}
               </button>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f3f4f6; padding-top: 10px; margin-top: 10px;">
-              <span style="font-size: 13px; font-weight: 600; color: #4b5563;">⭐ ${user.fame_rating}</span>
-              <button id="view-${user.userId}" style="background: linear-gradient(to right, #f43f5e, #fb923c); color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              <span style="font-size: 13px; font-weight: 600; color: #4b5563;">⭐ ${
+                user.fame_rating
+              }</span>
+              <button id="view-${
+                user.userId
+              }" style="background: linear-gradient(to right, #f43f5e, #fb923c); color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
                 View
               </button>
             </div>
@@ -256,7 +306,7 @@ export default function MapPage() {
         const res = await fetchWithAuth("/profile/me");
         if (res.status === 404) return router.push("profile/setup");
         const { latitude, longitude } = await res.json();
-        setMapCenter({ lat: latitude, lng: longitude }); 
+        setMapCenter({ lat: latitude, lng: longitude });
       } catch (err) {
         console.error("Failed to get initial location", err);
       }
@@ -270,7 +320,9 @@ export default function MapPage() {
     const fetchAreaUsers = async () => {
       setIsSearchingArea(true);
       try {
-        const response = await fetchWithAuth(`/map?lat=${mapCenter.lat}&lng=${mapCenter.lng}`);
+        const response = await fetchWithAuth(
+          `/map?lat=${mapCenter.lat}&lng=${mapCenter.lng}`
+        );
         if (!response.ok) throw new Error("Failed to fetch map data");
 
         const data = await response.json();
@@ -304,7 +356,11 @@ export default function MapPage() {
 
       if (markersRef.current[user.userId]) {
         const marker = markersRef.current[user.userId];
-        const popup = new mapboxgl.Popup({ offset: 25, closeButton: false, maxWidth: "300px" }).setHTML(popupHTML);
+        const popup = new mapboxgl.Popup({
+          offset: 25,
+          closeButton: false,
+          maxWidth: "300px",
+        }).setHTML(popupHTML);
         marker.setPopup(popup);
         attachPopupEvents(user, popup);
         return;
@@ -315,7 +371,9 @@ export default function MapPage() {
       el.style.width = "48px";
       el.style.height = "48px";
       el.style.borderRadius = "50%";
-      el.style.backgroundImage = `url(${user.profileImage || "/default-avatar.png"})`;
+      el.style.backgroundImage = `url(${
+        user.profileImage || "/default-avatar.png"
+      })`;
       el.style.backgroundSize = "cover";
       el.style.backgroundPosition = "center";
       el.style.border = "3px solid white";
@@ -335,7 +393,11 @@ export default function MapPage() {
         el.appendChild(status);
       }
 
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false, maxWidth: "300px" }).setHTML(popupHTML);
+      const popup = new mapboxgl.Popup({
+        offset: 25,
+        closeButton: false,
+        maxWidth: "300px",
+      }).setHTML(popupHTML);
       attachPopupEvents(user, popup);
 
       const marker = new mapboxgl.Marker(el)
@@ -379,8 +441,24 @@ export default function MapPage() {
             minzoom: 15,
             paint: {
               "fill-extrusion-color": "#aaa",
-              "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "height"]],
-              "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "min_height"]],
+              "fill-extrusion-height": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                15,
+                0,
+                15.05,
+                ["get", "height"],
+              ],
+              "fill-extrusion-base": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                15,
+                0,
+                15.05,
+                ["get", "min_height"],
+              ],
               "fill-extrusion-opacity": 0.6,
             },
           },
@@ -405,11 +483,12 @@ export default function MapPage() {
     <div className="flex flex-col h-screen bg-gray-50">
       <Header />
       <main className="flex-1 relative w-full h-full overflow-hidden">
-        
         {loading && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
             <Loader2 className="animate-spin text-rose-500 mb-4" size={40} />
-            <p className="text-gray-600 font-medium">Finding matches nearby...</p>
+            <p className="text-gray-600 font-medium">
+              Finding matches nearby...
+            </p>
           </div>
         )}
 
@@ -423,12 +502,13 @@ export default function MapPage() {
 
         {/* 🔥 Sleek Interactive UI Elements */}
         <div className="absolute top-6 left-0 right-0 z-20 flex flex-col items-center pointer-events-none gap-3">
-          
           {/* Searching Area Spinner Pill */}
           {isSearchingArea && !loading && (
             <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-gray-100 flex items-center gap-2 animate-in fade-in slide-in-from-top-4 pointer-events-auto">
               <Loader2 className="animate-spin text-rose-500" size={16} />
-              <span className="text-sm font-bold text-gray-700">Searching area...</span>
+              <span className="text-sm font-bold text-gray-700">
+                Searching area...
+              </span>
             </div>
           )}
 
@@ -442,7 +522,6 @@ export default function MapPage() {
               Search this area
             </button>
           )}
-
         </div>
 
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Flame, Clock, Users } from "lucide-react";
 import Header from "@/components/Header";
 import ActionButtons from "@/components/ActionButtons";
@@ -11,6 +11,8 @@ import ProfileModal from "@/components/ProfileModal"; // Using your component
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useRouter } from "next/navigation";
 import Loading from "@/app/loading";
+import { formatDistanceToNow } from "date-fns";
+import { Eye, X } from "lucide-react";
 
 type Image = { url: string; is_profile: boolean; position: number };
 
@@ -27,6 +29,16 @@ type Profile = {
   profileIndex: number;
   profileImage: string;
   create_at: string;
+  last_connection: string;
+};
+
+const formatTimeAgo = (dateString: string) => {
+  if (!dateString) return "";
+  const dbDate = new Date(dateString);
+
+  const localDate = new Date(dbDate.getTime() + 7 * 60 * 60 * 1000);
+
+  return formatDistanceToNow(localDate, { addSuffix: true });
 };
 
 export default function Dashboard() {
@@ -209,45 +221,82 @@ export default function Dashboard() {
 
       {/* --- VISIT HISTORY OVERLAY --- */}
       {showVisitHistory && (
-        <div className="fixed inset-0 z-[60] bg-white flex flex-col animate-in slide-in-from-bottom duration-300">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="text-xl font-black flex items-center gap-2 text-gray-700">
-              <Users className="text-rose-500" /> Recent Visitors
+        <div className="fixed inset-0 z-[60] bg-gray-50/95 backdrop-blur-md flex flex-col animate-in slide-in-from-bottom-8 duration-300">
+          {/* Header */}
+          <div className="bg-white px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10 rounded-b-3xl">
+            <h2 className="text-xl font-black flex items-center gap-2 text-gray-800 tracking-tight">
+              <div className="bg-rose-100 p-2 rounded-xl">
+                <Users size={20} className="text-rose-500" />
+              </div>
+              Recent Visitors
             </h2>
             <button
               onClick={() => setShowVisitHistory(false)}
-              className="p-2 bg-rose-500 rounded-full font-bold text-white"
+              className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"
             >
-              Close
+              <X size={20} />
             </button>
           </div>
-          <div className="grow overflow-y-auto p-4 flex flex-col gap-4">
+
+          {/* Scrollable List */}
+          <div className="grow overflow-y-auto p-4 sm:p-6 flex flex-col gap-3">
             {visitHistory.length === 0 ? (
-              <p className="text-center text-gray-400 mt-10">
-                No visits yet. Keep glowing! ✨
-              </p>
+              <div className="flex flex-col items-center justify-center h-full opacity-50">
+                <div className="text-6xl mb-4">👀</div>
+                <p className="text-lg font-bold text-gray-500">
+                  No secret admirers yet
+                </p>
+                <p className="text-sm text-gray-400">
+                  Keep swiping to get noticed!
+                </p>
+              </div>
             ) : (
               visitHistory.map((visitor) => (
                 <div
                   key={visitor.userId}
                   onClick={() => handleShowInfo(visitor)}
-                  className="flex items-center gap-4 p-3 bg-white border rounded-2xl hover:border-rose-300 cursor-pointer transition-all"
+                  className="group relative flex items-center gap-4 p-4 bg-white rounded-3xl shadow-sm border border-gray-100 hover:border-rose-200 hover:shadow-md cursor-pointer transition-all active:scale-[0.98]"
                 >
-                  <div>{visitor.create_at}</div>
-                  <img
-                    src={visitor.profileImage || ""}
-                    className="w-14 h-14 rounded-xl object-cover"
-                  />
-                  <div className="grow">
-                    <p className="font-bold text-gray-900">
-                      {visitor.first_name}, {visitor.age}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {visitor.distance} away
-                    </p>
+                  {/* Avatar with Online Indicator */}
+                  <div className="relative">
+                    <img
+                      src={visitor.profileImage || "/default-avatar.png"}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
+                      alt={visitor.first_name}
+                    />
+                    {visitor.is_online && (
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                    )}
                   </div>
-                  <div className="text-rose-500 font-bold text-xs uppercase tracking-widest">
-                    View
+
+                  {/* Info */}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-black text-gray-900 text-lg leading-none">
+                        {visitor.first_name}, {visitor.age}
+                      </p>
+                      {/* Formatted Time */}
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        {formatTimeAgo(visitor.create_at)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                        📍 {visitor.distance}
+                      </span>
+                      <span className="text-xs font-bold text-yellow-500 bg-yellow-50 px-2 py-1 rounded-md">
+                        ⭐ {visitor.fame_rating}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center group-hover:bg-rose-500 transition-colors">
+                    <Eye
+                      size={18}
+                      className="text-rose-500 group-hover:text-white transition-colors"
+                    />
                   </div>
                 </div>
               ))

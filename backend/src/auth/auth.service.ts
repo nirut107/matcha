@@ -222,6 +222,12 @@ export class AuthService {
   }
 
   async logout(userId: number, res: Response) {
+    await this.db.query(
+      `UPDATE users
+       SET is_online = false, last_connection = CURRENT_TIMESTAMP 
+       WHERE id = $1`,
+      [userId]
+    );
     await this.db.query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [
       userId,
     ]);

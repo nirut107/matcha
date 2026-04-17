@@ -211,6 +211,7 @@ export class ProfileService {
         u.id,
         p.first_name,
         u.is_online,
+        u.last_connection,
         p.age,
         p.biography,
         p.fame_rating,
@@ -303,6 +304,7 @@ export class ProfileService {
         fame_rating: row.fame_rating,
         distance: `${Number(row.distance).toFixed(1)} km`,
         is_online: row.is_online,
+        last_connection: row.last_connection,
       };
     });
   }

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { formatDistanceToNow } from "date-fns";
 
 type Image = {
   url: string;
@@ -18,7 +19,6 @@ type Image = {
 };
 
 type Profile = {
-  userId: number;
   first_name: string;
   age: number;
   biography: string;
@@ -27,6 +27,11 @@ type Profile = {
   fame_rating: number;
   distance: string;
   is_online: boolean;
+  userId: number;
+  profileIndex: number;
+  profileImage: string;
+  create_at: string;
+  last_connection: string;
 };
 
 type Props = {
@@ -48,8 +53,18 @@ export default function ProfileModal({
   >("idle");
   const [reason, setReason] = useState("");
   const [reportError, setReportError] = useState("");
+  console.log(profile);
 
   if (!showModal) return null;
+
+  const formatTimeAgo = (dateString: string) => {
+    if (!dateString) return "";
+    const dbDate = new Date(dateString);
+
+    const localDate = new Date(dbDate.getTime() + 7 * 60 * 60 * 1000);
+
+    return formatDistanceToNow(localDate, { addSuffix: true });
+  };
 
   const handleReport = async () => {
     if (!reason.trim()) {
@@ -128,8 +143,15 @@ export default function ProfileModal({
                 <h2 className="text-3xl sm:text-4xl font-black text-gray-900">
                   {profile.first_name}, {profile.age}
                 </h2>
-                {profile?.is_online && (
-                  <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
+                {profile?.is_online ? (
+                  <span className="bg-green-50 text-green-600 border border-green-100 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    Online
+                  </span>
+                ) : (
+                  <span className="bg-gray-50 text-gray-400 border border-gray-100 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center shadow-sm">
+                    Active {formatTimeAgo(profile?.last_connection)}
+                  </span>
                 )}
               </div>
 
