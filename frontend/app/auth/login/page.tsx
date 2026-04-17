@@ -239,7 +239,7 @@ export default function LoginPage() {
 
             {resetMessage.text && (
               <div
-                className={`p-3 rounded-xl mb-4 text-sm font-medium ${
+                className={`p-3 rounded-xl mb-4 text-sm font-medium${
                   resetMessage.type === "success"
                     ? "bg-green-50 text-green-700"
                     : "bg-red-50 text-red-700"
@@ -254,7 +254,7 @@ export default function LoginPage() {
                 type="email"
                 placeholder="Email address"
                 required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none"
+                className="text-gray-700 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
               />

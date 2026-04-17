@@ -195,8 +195,8 @@ export default function Dashboard() {
           currentFilters={activeFilters}
         /> */}
           <div className="flex flex-col items-center justify-center grow text-center p-6">
-            <div className="bg-gray-100 p-6 rounded-full mb-4">
-              <Flame size={48} className="text-gray-300" />
+            <div className="bg-gradient-to-r from-rose-500 to-orange-400 p-3 rounded-2xl mb-4 shadow-lg">
+              <Flame size={40} color="white" fill="white" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">
               That's everyone for now!

@@ -1,8 +1,9 @@
-'use client'
+"use client";
 
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { Flame } from "lucide-react";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -29,8 +30,12 @@ function ResetPasswordForm() {
 
     setLoading(true);
     try {
+      console.log(token, password);
       await fetchWithAuth("/auth/resetpassword", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ token, newPassword: password }),
       });
 
@@ -47,14 +52,18 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FF416C] to-[#FF4B2B] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="bg-gradient-to-tr from-[#FF416C] to-[#FF4B2B] w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-pink-200">
-            <span className="text-white text-3xl font-black">M</span>
+          <div className="bg-gradient-to-tr  from-rose-500 to-orange-400  w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-pink-200">
+            <Flame size={40} color="white" fill="white" />
           </div>
-          <h1 className="text-2xl font-black text-gray-800 tracking-tight">Set New Password</h1>
-          <p className="text-gray-500 text-sm mt-1 font-medium">Secure your Matcha account</p>
+          <h1 className="text-2xl font-black text-gray-800 tracking-tight">
+            Set New Password
+          </h1>
+          <p className="text-gray-500 text-sm mt-1 font-medium">
+            Secure your Matcha account
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -88,9 +97,13 @@ function ResetPasswordForm() {
           </div>
 
           {message.text && (
-            <div className={`p-4 rounded-2xl text-xs font-bold text-center animate-in fade-in zoom-in duration-200 ${
-              message.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-            }`}>
+            <div
+              className={`p-4 rounded-2xl text-xs font-bold text-center animate-in fade-in zoom-in duration-200 ${
+                message.type === "success"
+                  ? "bg-green-50 text-green-600"
+                  : "bg-red-50 text-red-600"
+              }`}
+            >
               {message.text}
             </div>
           )}
@@ -104,7 +117,9 @@ function ResetPasswordForm() {
               <div className="flex items-center justify-center">
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               </div>
-            ) : "UPDATE PASSWORD"}
+            ) : (
+              "UPDATE PASSWORD"
+            )}
           </button>
         </form>
 
@@ -121,11 +136,13 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
+    <Suspense
+      fallback={
         <div className="min-h-screen bg-gradient-to-br from-[#FF416C] to-[#FF4B2B] flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
         </div>
-    }>
+      }
+    >
       <ResetPasswordForm />
     </Suspense>
   );

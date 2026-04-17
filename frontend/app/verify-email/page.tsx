@@ -53,7 +53,7 @@ export default function VerifyEmailPage() {
   }, [token, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FF416C] to-[#FF4B2B] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 flex items-center justify-center p-6">
       {/* Semi-transparent Glass Container */}
       <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] max-w-sm w-full text-center text-white">
         {status === "loading" && (

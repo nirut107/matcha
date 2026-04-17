@@ -61,8 +61,9 @@ function MapPickerModal({
       style: "mapbox://styles/mapbox/streets-v12",
       center: initialCoords
         ? [initialCoords.lng, initialCoords.lat]
-        : [2.3522, 48.8566], // Default Paris
-      zoom: initialCoords ? 12 : 2,
+        : [100.4953, 13.7518], // Default Paris
+      zoom: initialCoords ? 12 : 8,
+      antialias: true,
     });
 
     map.on("click", (e) => {

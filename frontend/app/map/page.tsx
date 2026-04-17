@@ -358,7 +358,7 @@ export default function MapPage() {
         zoom: 13,
         pitch: 60,
         bearing: -20,
-        antialias: false, // 🔥 Kept false for high performance!
+        antialias: true, // 🔥 Kept false for high performance!
       });
 
       map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
