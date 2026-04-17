@@ -1,42 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Settings,
-  MessageCircle,
-  Heart,
-  Flame,
-  X,
-  Info,
-  MapPin,
-  Star,
-  Filter,
-  SlidersHorizontal,
-  Calendar,
-  User,
-  Globe,
-  Flag,
-  AlertCircle,
-  Send,
-  Loader2,
-} from "lucide-react";
-import ProfileCard from "@/components/ProfileCard";
+import { Flame, Clock, Users } from "lucide-react";
 import Header from "@/components/Header";
 import ActionButtons from "@/components/ActionButtons";
 import FilterBar from "@/components/FilterBar";
 import FilterModal from "@/components/FilterModal";
+import ProfileCard from "@/components/ProfileCard";
+import ProfileModal from "@/components/ProfileModal"; // Using your component
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useRouter } from "next/navigation";
 import Loading from "@/app/loading";
 
-// 🔥 Toggle here (switch to false when backend ready)
-const USE_MOCK = false;
-
-type Image = {
-  url: string;
-  is_profile: boolean;
-  position: number;
-};
+type Image = { url: string; is_profile: boolean; position: number };
 
 type Profile = {
   first_name: string;
@@ -47,9 +23,9 @@ type Profile = {
   fame_rating: number;
   distance: string;
   is_online: boolean;
+  userId: number;
   profileIndex: number;
   profileImage: string;
-  userId: number;
 };
 
 export default function Dashboard() {
@@ -57,83 +33,26 @@ export default function Dashboard() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const [showModal, setShowModal] = useState(false);
-  const [isModalLoading, setIsModalLoading] = useState(false);
-
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<any | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
-  const [reportStep, setReportStep] = useState<
-    "idle" | "form" | "submitting" | "success"
-  >("idle");
-  const [reason, setReason] = useState("");
-  const [reportError, setReportError] = useState("");
+  // Filter States
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<any | null>(null);
 
-  const handleShowInfo = async (visitedId: number) => {
-    setShowModal(true);
-    setIsModalLoading(true);
+  // Visit History States
+  const [visitHistory, setVisitHistory] = useState<Profile[]>([]);
+  const [showVisitHistory, setShowVisitHistory] = useState(false);
 
-    try {
-      const response = await fetchWithAuth(`/profile/visit/${visitedId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+  // Modal States
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalLoading, setIsModalLoading] = useState(false);
 
-      if (!response.ok) {
-        console.warn("Failed to record profile visit");
-      }
-    } catch (err) {
-      console.error("Error sending visit record:", err);
-    } finally {
-      setIsModalLoading(false);
-    }
-  };
-
-  const handleReport = async () => {
-    if (!reason.trim()) {
-      setReportError("Please provide a reason for the report.");
-      return;
-    }
-
-    setReportStep("submitting");
-    setReportError("");
-
-    try {
-      const res = await fetchWithAuth("/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reported_id: currentProfile.userId,
-          reason: reason.trim(),
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to report user");
-      }
-
-      setReportStep("success");
-      setTimeout(() => {
-        setReportStep("idle");
-        setReason("");
-        setShowModal(false); // Close modal after success
-        handleAction("pass"); // Optionally skip this profile after reporting
-      }, 2000);
-    } catch (err: any) {
-      setReportError(err.message);
-      setReportStep("form");
-    }
-  };
-
+  // 1. Fetch Suggestions
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        let endpoint = "/profile/suggestions"; // Default
+        let endpoint = "/profile/suggestions";
         if (activeFilters) {
           const params = new URLSearchParams();
           Object.entries(activeFilters).forEach(([key, value]) => {
@@ -142,312 +61,211 @@ export default function Dashboard() {
           endpoint = `/profile/search?${params.toString()}`;
         }
         const res = await fetchWithAuth(endpoint);
-        if (res.status === 403) {
-          router.push("profile/setup"); // onboarding page
-        }
+        if (res.status === 403) router.push("profile/setup");
         const data = await res.json();
-        console.log(`data from fetch is ${data}`);
         setProfiles(data);
         setCurrentIndex(0);
-        console.log(profiles);
       } catch (err) {
         console.error("Error loading profiles:", err);
       } finally {
         setIsFadingOut(true);
-
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
+        setTimeout(() => setLoading(false), 1000);
       }
     };
-    const run = async () => {
-      await new Promise((r) => setTimeout(r, 1000));
-      setIsFadingOut(true);
-      await new Promise((r) => setTimeout(r, 1000));
-      setLoading(false);
-    };
-
     fetchProfiles();
-    run();
   }, [activeFilters, router]);
 
-  if (!profiles.length || currentIndex >= profiles.length) {
-    return (
-      <div className="relative min-h-screen">
-        {loading && (
-          <div
-            className={`
-          fixed inset-0 z-50
-            transition-opacity duration-2000 ease-in-out
-            ${isFadingOut ? "opacity-0" : "opacity-100"}
-          `}
-          >
-            <Loading />
-          </div>
-        )}
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          {/* <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} /> */}
-          {/* <FilterModal
-          isOpen={isFilterModalOpen}
-          onClose={() => setIsFilterModalOpen(false)}
-          onApply={setActiveFilters}
-          currentFilters={activeFilters}
-        /> */}
-          <div className="flex flex-col items-center justify-center grow text-center p-6">
-            <div className="bg-gradient-to-r from-rose-500 to-orange-400 p-3 rounded-2xl mb-4 shadow-lg">
-              <Flame size={40} color="white" fill="white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              That's everyone for now!
-            </h2>
-            <p className="text-gray-500 mt-2">
-              Try changing filters or come back later.
-            </p>
-            <button
-              onClick={() => {
-                setCurrentIndex(0);
-                setActiveFilters(null);
-              }}
-              className="mt-6 text-rose-500 font-bold hover:underline"
-            >
-              Clear Filters & Reset
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // --- PRELOADER: Preload the next profile's images ---
+  useEffect(() => {
+    if (profiles.length > 0 && currentIndex + 1 < profiles.length) {
+      const nextProfile = profiles[currentIndex + 1];
 
-  const currentProfile = profiles[currentIndex];
-  console.log(currentProfile);
-
-  const handleAction = async (type: "like" | "pass") => {
-    const targetId = currentProfile.userId; // Or currentProfile.userId, ensure this matches your data structure
-    console.log(`${targetId} is the current profile`);
-    // 1. Optimistic Update: Move to the next profile immediately
-    setCurrentIndex((prev) => prev + 1);
-
-    try {
-      const response = await fetchWithAuth("/swipe/swipe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetId: targetId,
-          action: type,
-        }),
+      // Force the browser to download the next user's images into cache
+      nextProfile.images.forEach((img) => {
+        const image = new window.Image();
+        image.src = img.url;
       });
+    }
+  }, [currentIndex, profiles]);
 
-      if (!response.ok) {
-        throw new Error("Failed to record swipe");
+  // 2. Fetch Visit History
+  const handleOpenVisitHistory = async () => {
+    setShowVisitHistory(true);
+    try {
+      const res = await fetchWithAuth("/visit/visits");
+      if (res.ok) {
+        const data = await res.json();
+        setVisitHistory(data);
       }
-
-      const result = await response.json();
-      console.log(`Successfully ${type}d user ${targetId}`, result);
-
-      // Optional: If your backend returns a "match: true" property,
-      // you could trigger a match notification here.
     } catch (err) {
-      console.error("Error sending swipe:", err);
-      // Optional: You could show a toast notification here if it fails
+      console.error("Error fetching visits:", err);
     }
   };
+
+  const handleShowInfo = async (profile: Profile) => {
+    setSelectedProfile(profile);
+    setIsModalOpen(true);
+    setIsModalLoading(true);
+
+    try {
+      await fetchWithAuth(`/profile/visit/${profile.userId}`, {
+        method: "POST",
+      });
+    } catch (err) {
+      console.warn("Visit log failed", err);
+    } finally {
+      setIsModalLoading(false);
+    }
+  };
+
+  const handleAction = async (type: "like" | "pass") => {
+    const targetId = profiles[currentIndex].userId;
+    setCurrentIndex((prev) => prev + 1);
+    try {
+      await fetchWithAuth("/swipe/swipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId, action: type }),
+      });
+    } catch (err) {
+      console.error("Swipe failed", err);
+    }
+  };
+
+  const currentProfile = profiles[currentIndex];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {loading && (
         <div
-          className={`
-                    fixed inset-0 z-50
-                      transition-opacity duration-1000 ease-in-out
-                      ${isFadingOut ? "opacity-0" : "opacity-100"}
-                    `}
+          className={`fixed inset-0 z-50 transition-opacity duration-1000 ease-in-out ${
+            isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
+          }`}
         >
           <Loading />
         </div>
       )}
+
       <Header />
-      <main className="grow flex flex-col items-center justify-center p-4">
-        <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
+
+      {/* Changed justify-center to justify-start so it pushes from the top */}
+      <main className="grow flex flex-col items-center justify-start p-4">
+        {/* --- TOP ACTION BAR (50/50 Split & High Animation) --- */}
+        <div className="w-full max-w-md lg:max-w-lg flex items-center gap-3 mb-4">
+
+          {/* flex-1 makes Filters take exactly 50% of the available width */}
+          <div className="flex-1">
+            <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
+          </div>
+
+          {/* flex-1 makes Visits take the other 50%. Classes matched perfectly to FilterBar */}
+          <button
+            onClick={handleOpenVisitHistory}
+            className="group flex-1 flex items-center justify-center gap-2 bg-white w-full h-12 px-4 rounded-xl shadow-sm border border-gray-200 text-gray-700 font-bold transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 active:scale-95"
+            aria-label="Visit History"
+          >
+            <Clock
+              size={20}
+              className="text-rose-500 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-12"
+            />
+            <span>Visits</span>
+          </button>
+        </div>
         <FilterModal
           isOpen={isFilterModalOpen}
           onClose={() => setIsFilterModalOpen(false)}
           onApply={setActiveFilters}
           currentFilters={activeFilters}
         />
-        <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl">
-          <ProfileCard profile={currentProfile} />
+        {!currentProfile ? (
+          <div className="flex flex-col items-center justify-center text-center p-6 mt-10">
+            <div className="bg-gradient-to-r from-rose-500 to-orange-400 p-3 rounded-2xl mb-4 shadow-lg">
+              <Flame size={40} color="white" fill="white" />
+            </div>
+            <h2 className="text-2xl font-bold">That's everyone!</h2>
+            <button
+              onClick={() => {
+                setCurrentIndex(0);
+                setActiveFilters(null);
+              }}
+              className="mt-6 text-rose-500 font-bold"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div className="w-full max-w-md lg:max-w-lg flex flex-col grow">
+            <ProfileCard key={currentProfile.userId} profile={currentProfile} />
 
-          {/* ACTION BUTTONS */}
-          <ActionButtons
-            onLike={() => handleAction("like")}
-            onPass={() => handleAction("pass")}
-            onInfo={() => handleShowInfo(currentProfile.userId)}
-          />
-        </div>
+            <ActionButtons
+              onLike={() => handleAction("like")}
+              onPass={() => handleAction("pass")}
+              onInfo={() => handleShowInfo(currentProfile)}
+            />
+          </div>
+        )}
       </main>
 
-      {/* --- DETAILED PROFILE MODAL --- */}
-      {showModal && (
-        <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center">
-          <div className="bg-white w-full max-w-2xl h-[92vh] sm:h-[85vh] overflow-y-auto rounded-t-[3rem] sm:rounded-[3rem] relative shadow-2xl">
+      {/* --- VISIT HISTORY OVERLAY --- */}
+      {showVisitHistory && (
+        <div className="fixed inset-0 z-[60] bg-white flex flex-col animate-in slide-in-from-bottom duration-300">
+          <div className="p-4 border-b flex items-center justify-between">
+            <h2 className="text-xl font-black flex items-center gap-2 text-gray-700">
+              <Users className="text-rose-500" /> Recent Visitors
+            </h2>
             <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-6 right-6 z-20 bg-white/20 hover:bg-white/40 backdrop-blur-md p-2 rounded-full text-white sm:text-gray-900 sm:bg-gray-100"
+              onClick={() => setShowVisitHistory(false)}
+              className="p-2 bg-rose-500 rounded-full font-bold text-white"
             >
-              <X size={24} />
+              Close
             </button>
-
-            {isModalLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-rose-500"></div>
-              </div>
+          </div>
+          <div className="grow overflow-y-auto p-4 flex flex-col gap-4">
+            {visitHistory.length === 0 ? (
+              <p className="text-center text-gray-400 mt-10">
+                No visits yet. Keep glowing! ✨
+              </p>
             ) : (
-              <div className="pb-12">
-                {/* Horizontal Photo Gallery */}
-                <div className="flex overflow-x-auto snap-x snap-mandatory h-450px bg-gray-100 no-scrollbar">
-                  {currentProfile.images.map((img, i) => (
-                    <img
-                      key={i}
-                      src={img.url}
-                      className="w-full h-full object-cover shrink-0 snap-center"
-                      alt="User gallery"
-                    />
-                  ))}
-                </div>
-
-                <div className="p-8">
-                  {/* Name & Age Matching your ProfileCard style */}
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-4xl font-black text-gray-900">
-                      {currentProfile.first_name}, {currentProfile.age}
-                    </h2>
-                    {currentProfile?.is_online && (
-                      <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm" />
-                    )}
+              visitHistory.map((visitor) => (
+                <div
+                  key={visitor.userId}
+                  onClick={() => handleShowInfo(visitor)}
+                  className="flex items-center gap-4 p-3 bg-white border rounded-2xl hover:border-rose-300 cursor-pointer transition-all"
+                >
+                  <img
+                    src={visitor.images[0]?.url}
+                    className="w-14 h-14 rounded-xl object-cover"
+                  />
+                  <div className="grow">
+                    <p className="font-bold text-gray-900">
+                      {visitor.first_name}, {visitor.age}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {visitor.distance} away
+                    </p>
                   </div>
-
-                  {/* Badges */}
-                  <div className="flex gap-3 mb-8">
-                    <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
-                      <Star
-                        size={16}
-                        className="text-orange-400 fill-orange-400"
-                      />{" "}
-                      {currentProfile?.fame_rating}
-                    </span>
-                    <span className="bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
-                      <MapPin size={16} className="text-rose-500" />{" "}
-                      {currentProfile?.distance}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
-                    About
-                  </h3>
-                  <p className="text-gray-700 text-lg leading-relaxed mb-8">
-                    {currentProfile?.biography}
-                  </p>
-
-                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
-                    Interests
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {currentProfile?.tags?.map((tag: string) => (
-                      <span
-                        key={tag}
-                        className="bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-sm font-bold border border-rose-100"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
+                  <div className="text-rose-500 font-bold text-xs uppercase tracking-widest">
+                    View
                   </div>
                 </div>
-                <div className="mt-12 pt-8 border-t border-gray-100">
-                  {reportStep === "idle" && (
-                    <button
-                      onClick={() => setReportStep("form")}
-                      className="flex items-center gap-2 text-gray-400 hover:text-rose-500 font-bold text-sm transition-colors group"
-                    >
-                      <Flag size={16} className="group-hover:fill-rose-500" />
-                      Report {currentProfile?.first_name}
-                    </button>
-                  )}
-
-                  {reportStep === "form" && (
-                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 animate-in fade-in zoom-in duration-200">
-                      <div className="flex items-center gap-2 mb-4 text-rose-600">
-                        <AlertCircle size={20} />
-                        <h4 className="font-black uppercase tracking-tight text-sm">
-                          Report User
-                        </h4>
-                      </div>
-
-                      <textarea
-                        autoFocus
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder="Tell us why you're reporting this profile..."
-                        className="w-full p-4 bg-white border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 resize-none text-sm mb-4 min-h-[100px]"
-                      />
-
-                      {reportError && (
-                        <p className="text-red-500 text-xs font-bold mb-4 ml-1 italic">
-                          {reportError}
-                        </p>
-                      )}
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleReport}
-                          className="flex-1 bg-rose-500 text-white py-3 rounded-xl font-bold hover:bg-rose-600 transition-all flex items-center justify-center gap-2"
-                        >
-                          <Send size={16} /> Submit
-                        </button>
-                        <button
-                          onClick={() => {
-                            setReportStep("idle");
-                            setReportError("");
-                          }}
-                          className="px-6 py-3 font-bold text-gray-500 hover:bg-gray-200 rounded-xl transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {reportStep === "submitting" && (
-                    <div className="flex items-center justify-center gap-3 text-rose-500 font-bold p-8">
-                      <Loader2 className="animate-spin" size={20} />
-                      Processing...
-                    </div>
-                  )}
-
-                  {reportStep === "success" && (
-                    <div className="bg-green-50 text-green-700 p-6 rounded-[2rem] border border-green-100 flex flex-col items-center gap-2 text-center animate-in fade-in">
-                      <div className="bg-green-500 p-2 rounded-full text-white">
-                        <X size={20} className="rotate-45" />
-                      </div>
-                      <p className="font-bold">Report submitted.</p>
-                      <p className="text-xs opacity-70">
-                        Thank you for keeping Matcha safe.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              ))
             )}
           </div>
         </div>
       )}
-      {/*  FOOTER */}
+
+      {/* --- REUSABLE PROFILE MODAL --- */}
+      {selectedProfile && (
+        <ProfileModal
+          showModal={isModalOpen}
+          setShowModal={setIsModalOpen}
+          isModalLoading={isModalLoading}
+          profile={selectedProfile}
+        />
+      )}
+
       <footer className="bg-white border-t p-4 text-center">
-        <p className="text-xs text-gray-300">
-          Matcha © 2026 • Because love can be industrialized
-        </p>
+        <p className="text-xs text-gray-300">Matcha © 2026</p>
       </footer>
     </div>
   );
