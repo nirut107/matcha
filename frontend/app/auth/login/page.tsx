@@ -227,6 +227,64 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      {showResetForm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Reset Password
+            </h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Enter your email and we'll send you a recovery link.
+            </p>
+
+            {resetMessage.text && (
+              <div
+                className={`p-3 rounded-xl mb-4 text-sm font-medium ${
+                  resetMessage.type === "success"
+                    ? "bg-green-50 text-green-700"
+                    : "bg-red-50 text-red-700"
+                }`}
+              >
+                {resetMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <input
+                type="email"
+                placeholder="Email address"
+                required
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+              />
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={loadingSubmit}
+                  className="flex-1 bg-gradient-to-r from-rose-500 to-orange-400 text-white font-bold py-3 rounded-xl hover:opacity-90 disabled:opacity-50"
+                >
+                  {loadingSubmit ? (
+                    <Loader2 className="animate-spin mx-auto" />
+                  ) : (
+                    "SEND LINK"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResetForm(false);
+                    setResetMessage({ type: "", text: "" });
+                  }}
+                  className="px-4 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl"
+                >
+                  CANCEL
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
