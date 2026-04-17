@@ -57,13 +57,17 @@ export class SwipeService {
         [userId, targetId, action],
       );
 
-      const myProfileRes = await this.db.query(
-        `SELECT p.first_name, 
+      const profilesRes = await this.db.query(
+        `SELECT p.user_id, p.first_name, 
                 (SELECT url FROM pictures WHERE user_id = p.user_id AND is_profile = true LIMIT 1) as profile_image
-         FROM profiles p WHERE p.user_id = $1`,
-        [userId],
+         FROM profiles p WHERE p.user_id IN ($1, $2)`,
+        [userId, targetId],
       );
-      const myProfile = myProfileRes.rows[0];
+
+      const myProfile = profilesRes.rows.find((r) => r.user_id === userId);
+      const targetProfile = profilesRes.rows.find(
+        (r) => r.user_id === targetId,
+      );
 
       let isMatch = false;
 
@@ -91,17 +95,20 @@ export class SwipeService {
             [userId, targetId],
           );
 
-          await this.notificationService.create(userId, 'match', {
-            withUserId: targetId,
-            type: 'MATCH',
-          });
-
           await this.notificationService.create(targetId, 'match', {
             senderId: userId,
             senderName: myProfile.first_name,
             senderImage: myProfile.profile_image,
             type: 'MATCH',
             text: `You matched with ${myProfile.first_name}! ❤️`,
+          });
+
+          await this.notificationService.create(userId, 'match', {
+            senderId: targetId,
+            senderName: targetProfile.first_name,
+            senderImage: targetProfile.profile_image,
+            type: 'MATCH',
+            text: `You matched with ${targetProfile.first_name}! ❤️`,
           });
         }
       }

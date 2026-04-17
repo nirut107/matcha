@@ -180,7 +180,7 @@ export default function SocketHandler() {
                     <button
                       onClick={() => {
                         toast.dismiss(t.id);
-                        router.push("/chat")
+                        router.push("/chat");
                       }}
                       className="w-full px-6 flex items-center justify-center text-sm font-bold text-pink-600 hover:text-pink-700 transition-colors uppercase tracking-wider"
                     >
@@ -195,6 +195,7 @@ export default function SocketHandler() {
             console.error("Failed to fetch sender profile", error);
             toast(`💬 New message: ${data.text}`);
           }
+          break;
         default:
           if (data.type !== "visit" && data.type !== "NEW_MESSAGE") {
             toast.success(data.type);
@@ -202,8 +203,6 @@ export default function SocketHandler() {
           }
       }
     });
-
-    socket.emit("whoami");
 
     return () => {
       console.log("🔴 [LIFECYCLE] SocketHandler Unmounting");

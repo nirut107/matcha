@@ -2,6 +2,7 @@ import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { JwtGuard } from '../auth/jwt.guard';
 import { DatabaseService } from '../database/database.service';
 import { ApiProperty, ApiOkResponse } from '@nestjs/swagger';
+import { NotificationService } from './notification.service';
 
 export class NotificationDataDto {
   @ApiProperty({ example: 42 })
@@ -33,7 +34,10 @@ export class NotificationDto {
 
 @Controller('notifications')
 export class NotificationController {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private NotificationService: NotificationService,
+  ) {}
 
   @UseGuards(JwtGuard)
   @Get()
@@ -59,8 +63,11 @@ export class NotificationController {
 
       const result = await this.db.query(
         `
-          SELECT *
-          FROM notifications
+          SELECT id, 
+            data, 
+            user_id, 
+            created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok' AS created_at
+                  FROM notifications
           WHERE user_id = $1
           ORDER BY created_at DESC
           `,
@@ -75,23 +82,11 @@ export class NotificationController {
       throw e;
     }
   }
-
+  @Get('unreadcount')
   @UseGuards(JwtGuard)
-  @Get('unread-count')
   async getUnreadCount(@Req() req: any) {
+    console.log('================');
     const userId = req.user.userId;
-
-    const result = await this.db.query(
-      `
-    SELECT COUNT(*) AS count
-    FROM notifications
-    WHERE user_id = $1 AND is_read = FALSE
-    `,
-      [userId],
-    );
-
-    return {
-      count: Number(result.rows[0].count),
-    };
+    return this.NotificationService.getUnreadCounts(userId);
   }
 }

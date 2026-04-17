@@ -120,6 +120,9 @@ CREATE TABLE notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE UNIQUE INDEX idx_unique_notification_upsert 
+ON notifications (user_id, type, (data->>'senderId'));
+
 -- =========================
 -- PROFILE VISITS
 -- =========================
