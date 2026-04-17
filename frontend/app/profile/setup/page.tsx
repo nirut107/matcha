@@ -522,11 +522,12 @@ export default function ProfileSetupPage() {
     let score = 0;
     if (firstName && lastName) score += 15;
     if (email) score += 15;
-    if (gender) score += 15;
+    if (gender) score += 10;
     if (biography && biography.length > 10) score += 15;
     if (selectedTags && selectedTags.length >= 3) score += 15;
     if (previews.filter((p) => p !== null).length >= 1) score += 15;
     if (location.lat) score += 10;
+    if (preference) score+=5;
     return score;
   };
 
@@ -723,6 +724,7 @@ export default function ProfileSetupPage() {
                   onChange={(e) => setPreference(e.target.value)}
                   className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 appearance-none"
                 >
+                  <option value="">Select...</option>
                   <option value="male">Men</option>
                   <option value="female">Women</option>
                   <option value="both">Everyone (Default)</option>
