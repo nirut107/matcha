@@ -20,6 +20,7 @@ import { MapModule } from './map/map.module';
 import { DatesModule } from './dates/dates.module';
 import { ReportModule } from './report/report.module';
 import { MailModule } from './mail/mail.module';
+import { VisitModule } from './visit/visit.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MailModule } from './mail/mail.module';
     DatesModule,
     ReportModule,
     MailModule,
+    VisitModule,
   ],
   controllers: [AppController],
   providers: [AppService],

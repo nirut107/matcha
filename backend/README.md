@@ -98,6 +98,6 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
 
-nest g module mail
-nest g service mail
-nest g controller mail
+nest g module visit
+nest g service visit
+nest g controller visit

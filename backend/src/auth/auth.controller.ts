@@ -102,6 +102,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Password reset successful.' })
   @ApiResponse({ status: 400, description: 'Token is invalid or has expired.' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
+    console.log(dto)
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 }
