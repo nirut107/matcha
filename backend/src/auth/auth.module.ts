@@ -6,15 +6,17 @@ import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './google.strategy';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
+import { MailModule } from 'src/mail/mail.module';
+import { MailService } from 'src/mail/mail.service';
 
 
 @Module({
-  imports: [DatabaseModule, PassportModule,JwtModule.register({
+  imports: [DatabaseModule, MailModule, PassportModule,JwtModule.register({
     secret: process.env.JWT_ACCESS_SECRET,
     signOptions: { expiresIn: '3d' },
   })],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy, JwtStrategy],
+  providers: [AuthService, GoogleStrategy, JwtStrategy, MailService],
   exports: [PassportModule]
 })
 export class AuthModule {}
