@@ -144,6 +144,20 @@ export default function Header() {
           <MessageCircle size={22} className="sm:w-6 sm:h-6" />
           <Badge count={unreadMessages} />
         </button>
+        {/* MAP & OTHER NAVS */}
+        <button
+          className={getIconClass("/map")}
+          onClick={() => router.push("/map")}
+        >
+          <Map size={22} className="sm:w-6 sm:h-6" />
+        </button>
+
+        <button
+          className={getIconClass("/calendar")}
+          onClick={() => router.push("/calendar")}
+        >
+          <Calendar size={22} className="sm:w-6 sm:h-6" />
+        </button>
 
         {/* NOTIFICATIONS WITH UNREAD COUNT */}
         <div className="relative" ref={notiRef}>
@@ -218,21 +232,6 @@ export default function Header() {
             </div>
           )}
         </div>
-
-        {/* MAP & OTHER NAVS */}
-        <button
-          className={getIconClass("/map")}
-          onClick={() => router.push("/map")}
-        >
-          <Map size={22} className="sm:w-6 sm:h-6" />
-        </button>
-
-        <button
-          className={getIconClass("/calendar")}
-          onClick={() => router.push("/calendar")}
-        >
-          <Calendar size={22} className="sm:w-6 sm:h-6" />
-        </button>
 
         <button
           className={getIconClass("/profile/setup")}
