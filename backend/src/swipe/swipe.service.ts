@@ -141,6 +141,21 @@ export class SwipeService {
         `,
         [Number(userId), Number(targetId)],
       );
+      const myProfileRes = await this.db.query(
+        `SELECT p.first_name, 
+                (SELECT url FROM pictures WHERE user_id = p.user_id AND is_profile = true LIMIT 1) as profile_image
+         FROM profiles p WHERE p.user_id = $1`,
+        [userId],
+      );
+      const myProfile = myProfileRes.rows[0];
+
+      await this.notificationService.create(targetId, 'unlike', {
+        senderId: userId,
+        senderName: myProfile.first_name,
+        senderImage: myProfile.profile_image,
+        type: 'UNLIKE',
+        text: `${myProfile.first_name} unliked your profile! ✨`,
+      });
 
       const matchBroken = (deleteMatchRes.rowCount ?? 0) > 0;
 
