@@ -22,6 +22,7 @@ import Loading from "../loading";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/ConfirmModal";
 import { UserRespone, MatchResponse } from "@/lib/interface";
+import { formatDistanceToNow } from "date-fns";
 
 const USE_MOCK = false; // switch this ON/OFF
 
@@ -47,6 +48,7 @@ function formatTime(dateString: string, type: "chat" | "list" = "chat") {
     hour: "2-digit",
     minute: "2-digit",
   });
+
 }
 
 export default function ChatPage() {
@@ -144,7 +146,8 @@ export default function ChatPage() {
               return {
                 ...match,
                 last_message: msg.content,
-                last_message_time: formatTime(msg.created_at, "list"),
+                // last_message_time: formatTime(msg.created_at, "list"),
+                last_message_time: msg.created_at || new Date().toISOString(),
 
                 unread_count: isMine
                   ? match.unread_count
@@ -249,6 +252,26 @@ export default function ChatPage() {
     // optimistic UI
     setChatHistory((prev) => [...prev, newMsg]);
 
+    const nowISO = new Date((new Date()).getTime() - 7 * 60 * 60 * 1000).toISOString();
+    setMatches((prev) => {
+      return prev
+        .map((m) => {
+          if (activeChat && m.id === activeChat.id) {
+            return {
+              ...m,
+              last_message: message,
+              last_message_time: nowISO,
+            };
+          }
+          return m;
+        })
+        .sort((a, b) => { // This bumps the newly messaged person to the top
+          if (activeChat && a.id === activeChat.id) return -1;
+          if (activeChat && b.id === activeChat.id) return 1;
+          return 0;
+        });
+    });
+
     console.log("before sent");
     if (activeChat) {
       console.log("sent socket");
@@ -312,7 +335,7 @@ export default function ChatPage() {
       {loading && (
         <div
           className={`
-                    fixed inset-0 z-50 
+                    fixed inset-0 z-50
                       transition-opacity duration-1000 ease-in-out
                       ${isFadingOut ? "opacity-0" : "opacity-100"}
                     `}
@@ -385,7 +408,11 @@ export default function ChatPage() {
                         {match.first_name} {match.i_blocked_them && "(Blocked)"}
                       </h3>
                       <span className="text-[10px] font-bold text-gray-400 uppercase">
-                        {match.last_message_time}
+                        {match.last_message_time?
+                        formatDistanceToNow(
+                          new Date((new Date(match.last_message_time)).getTime() + 7 * 60 * 60 * 1000)
+                        ) + " ago"
+                        : "New Match"}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 truncate mt-0.5">
