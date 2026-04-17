@@ -54,40 +54,49 @@ function MapPickerModal({
   } | null>(initialCoords);
 
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: initialCoords
-        ? [initialCoords.lng, initialCoords.lat]
-        : [100.4953, 13.7518], // Default Paris
-      zoom: initialCoords ? 12 : 8,
-      antialias: true,
-    });
+    const frame = requestAnimationFrame(() => {
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current!,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: initialCoords
+          ? [initialCoords.lng, initialCoords.lat]
+          : [100.4953, 13.7518],
+        zoom: initialCoords ? 12 : 8,
+        antialias: true,
+      });
 
-    map.on("click", (e) => {
-      const { lng, lat } = e.lngLat;
-      setTempCoords({ lat, lng });
+      map.on("click", (e) => {
+        const { lng, lat } = e.lngLat;
+        setTempCoords({ lat, lng });
 
-      if (markerRef.current) {
-        markerRef.current.setLngLat([lng, lat]);
-      } else {
+        if (markerRef.current) {
+          markerRef.current.setLngLat([lng, lat]);
+        } else {
+          markerRef.current = new mapboxgl.Marker({ color: "#f43f5e" })
+            .setLngLat([lng, lat])
+            .addTo(map);
+        }
+      });
+
+      if (initialCoords) {
         markerRef.current = new mapboxgl.Marker({ color: "#f43f5e" })
-          .setLngLat([lng, lat])
+          .setLngLat([initialCoords.lng, initialCoords.lat])
           .addTo(map);
       }
+
+      mapRef.current = map;
     });
 
-    // If we already have coords, drop a marker immediately
-    if (initialCoords) {
-      markerRef.current = new mapboxgl.Marker({ color: "#f43f5e" })
-        .setLngLat([initialCoords.lng, initialCoords.lat])
-        .addTo(map);
-    }
-
-    mapRef.current = map;
-    return () => map.remove();
+    return () => {
+      cancelAnimationFrame(frame);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      markerRef.current = null;
+    };
   }, []);
 
   return (
@@ -888,6 +897,7 @@ export default function ProfileSetupPage() {
           {/* MAP MODAL RENDERING */}
           {showMapModal && (
             <MapPickerModal
+              key="map-picker"
               initialCoords={
                 location.lat && location.lng
                   ? { lat: location.lat, lng: location.lng }
