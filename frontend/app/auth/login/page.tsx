@@ -18,6 +18,45 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetMessage, setResetMessage] = useState({ type: "", text: "" });
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingSubmit(true);
+    setResetMessage({ type: "", text: "" });
+
+    try {
+      const response = await fetch(`${baseUrl}/auth/forgetpassword`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }), // Matches ForgotPasswordDto
+      });
+
+      if (response.ok) {
+        setResetMessage({
+          type: "success",
+          text: "If that email exists, a reset link has been sent!",
+        });
+        setTimeout(() => setShowResetForm(false), 3000);
+      } else {
+        const data = await response.json();
+        setResetMessage({
+          type: "error",
+          text: data.message || "Something went wrong.",
+        });
+      }
+    } catch (error) {
+      setResetMessage({
+        type: "error",
+        text: "Connection error. Try again later.",
+      });
+    } finally {
+      setLoadingSubmit(false);
+    }
+  };
+
   useEffect(() => {
     const run = async () => {
       await new Promise((r) => setTimeout(r, 500));
@@ -62,7 +101,7 @@ export default function LoginPage() {
       {loading && (
         <div
           className={`
-              fixed inset-0 z-50 
+              fixed inset-0 z-50
                 transition-opacity duration-1000 ease-in-out
                 ${isFadingOut ? "opacity-0" : "opacity-100"}
               `}
@@ -118,6 +157,16 @@ export default function LoginPage() {
                   setFormData({ ...formData, password: e.target.value })
                 }
               />
+            </div>
+
+            <div className="flex justify-end px-1">
+              <button
+                type="button"
+                onClick={() => setShowResetForm(true)}
+                className="text-xs font-bold text-gray-400 hover:text-rose-500 transition-colors"
+              >
+                Forgot Password?
+              </button>
             </div>
 
             <button
