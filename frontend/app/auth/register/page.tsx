@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Flame, Mail, Lock, User, Loader2 } from "lucide-react";
+import Loading from "@/app/loading";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [loadingpage, setLoadingpage] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -16,6 +19,16 @@ export default function RegisterPage() {
     password: "",
   });
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    const run = async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      setIsFadingOut(true);
+      await new Promise((r) => setTimeout(r, 500));
+      setLoadingpage(false);
+    };
+    run();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +61,17 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 p-4">
+      {loadingpage && (
+        <div
+          className={`
+                    fixed inset-0 z-50
+                      transition-opacity duration-1000 ease-in-out
+                      ${isFadingOut ? "opacity-0" : "opacity-100"}
+                    `}
+        >
+          <Loading />
+        </div>
+      )}
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
         <div className="flex flex-col items-center mb-8">
           <div className="bg-gradient-to-r from-rose-500 to-orange-400 p-3 rounded-2xl mb-4">

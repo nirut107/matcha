@@ -63,8 +63,8 @@ export default function LoginPage() {
       setIsFadingOut(true);
       await new Promise((r) => setTimeout(r, 500));
       setLoading(false);
+      sessionStorage.setItem("hasSeenLoginSplash", "true")
     };
-
     run();
   }, []);
 

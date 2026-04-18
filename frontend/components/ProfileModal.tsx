@@ -8,12 +8,13 @@ import {
   Loader2,
   AlertCircle,
   Send,
+  Heart, // 🔥 Added
+  Sparkles,
   AwardIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { formatDistanceToNow } from "date-fns";
-
 
 export interface ProfileImage {
   url: string;
@@ -174,6 +175,25 @@ export default function ProfileModal({
                   {profile?.distance}
                 </span>
               </div>
+
+              {/* 🔥 RELATIONSHIP STATUS BANNER 🔥 */}
+              {
+                profile?.is_match ? (
+                  <div className="mb-8 bg-gradient-to-r from-pink-500 to-rose-500 p-4 rounded-2xl text-white flex items-center justify-center gap-2 shadow-lg shadow-rose-200 animate-in zoom-in duration-300">
+                    <Heart className="fill-white" size={20} />
+                    <span className="font-black tracking-widest uppercase text-sm">
+                      It's a Match!
+                    </span>
+                  </div>
+                ) : profile?.they_liked_me ? (
+                  <div className="mb-8 bg-rose-50 border border-rose-200 p-4 rounded-2xl text-rose-600 flex items-center justify-center gap-2 animate-in zoom-in duration-300 shadow-sm">
+                    <Sparkles size={20} className="text-rose-500" />
+                    <span className="font-bold text-sm">
+                      They like you! Swipe right to match. ✨
+                    </span>
+                  </div>
+                ) : null /* If "nothing at all", we show no banner to keep the UI clean */
+              }
 
               <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-gray-400 mb-2 sm:mb-3">
                 About
