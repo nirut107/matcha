@@ -199,6 +199,10 @@ export default function ProfileSetupPage() {
   const [cityInput, setCityInput] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
 
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const fetchUser = async () => {
     try {
       const res = await fetchWithAuth("/user/me");
@@ -306,6 +310,53 @@ export default function ProfileSetupPage() {
     } finally {
       setIsGeocoding(false);
     }
+  };
+
+  const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCityInput(val);
+
+    // Clear the previous timer
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // If input is empty, clear suggestions
+    if (!val.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    // Set a new timer to fetch suggestions after 300ms
+    typingTimeoutRef.current = setTimeout(async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        // Notice we added autocomplete=true and limit=5
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+            val
+          )}.json?access_token=${token}&autocomplete=true&limit=5`
+        );
+        const data = await res.json();
+
+        if (data.features) {
+          setSuggestions(data.features);
+          setShowSuggestions(true);
+        }
+      } catch (err) {
+        console.error("Geocoding autocomplete error:", err);
+      }
+    }, 300);
+  };
+
+  // Function when a user clicks a suggestion from the dropdown
+  const handleSelectSuggestion = (feature: any) => {
+    const [lng, lat] = feature.center;
+    setLocation({ lat, lng });
+    setCityInput(feature.place_name); // Fill input with full location name
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const handleImageChange = (
@@ -905,32 +956,55 @@ export default function ProfileSetupPage() {
                 </p>
               )}
 
-              {/* New Text Search UI */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Or type your city / neighborhood..."
-                  value={cityInput}
-                  onChange={(e) => setCityInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleCitySearch();
-                    }
-                  }}
-                  className="flex-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
-                />
+              {/* Autocomplete Text Search UI */}
+              <div className="flex gap-2 relative">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    placeholder="Or type your city / neighborhood..."
+                    value={cityInput}
+                    onChange={handleCityInputChange}
+                    onFocus={() => {
+                      if (suggestions.length > 0) setShowSuggestions(true);
+                    }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCitySearch(); // Fallback to first result if they just hit enter
+                      }
+                    }}
+                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
+                  />
+
+                  {/* The Dropdown Menu */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto">
+                      {suggestions.map((feature) => (
+                        <div
+                          key={feature.id}
+                          onClick={() => handleSelectSuggestion(feature)}
+                          className="p-4 hover:bg-rose-50 cursor-pointer border-b border-gray-50 last:border-0 text-gray-800 text-sm font-medium transition-colors"
+                        >
+                          <div className="text-gray-900 font-bold">
+                            {feature.text}
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            {feature.place_name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={handleCitySearch}
                   disabled={isGeocoding || !cityInput.trim()}
-                  className="px-6 py-4 bg-gray-800 text-white font-bold rounded-2xl hover:bg-gray-900 transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                  className="px-6 py-4 bg-gray-800 text-white font-bold rounded-2xl hover:bg-gray-900 transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px] z-0"
                 >
-                  {isGeocoding ? (
-                    <Loader2 size={20} className="animate-spin" />
-                  ) : (
-                    "Search"
-                  )}
+                  {isGeocoding ? <Loader2 size={20} className="animate-spin" /> : "Search"}
                 </button>
               </div>
 
