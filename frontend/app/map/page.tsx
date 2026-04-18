@@ -74,6 +74,14 @@ export default function MapPage() {
     lng: number;
   } | null>(null);
 
+  useEffect(() => {
+    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+    if (isFirefox) {
+      alert("The Map feature is not supported on Firefox. Redirecting to the dashboard.");
+      router.push("/dashboard");
+    }
+  }, [router]);
+
 
   // ==========================================
   // 1. HELPER FUNCTIONS
@@ -203,7 +211,7 @@ export default function MapPage() {
       <div style="position: relative; padding: 0; min-width: 220px; font-family: system-ui, -apple-system, sans-serif; border-radius: 12px; overflow: hidden; background: white;">
         <div style="${blockedStyles} transition: all 0.3s ease;">
           <div style="background: linear-gradient(to right, #f43f5e, #fb923c); height: 80px;"></div>
-          
+
           <div style="padding: 16px; text-align: center; margin-top: -50px;">
             <div style="display: flex; justify-content: center;">
               <img src="${
@@ -217,7 +225,7 @@ export default function MapPage() {
               user.distance
             }</p>
             <div style="text-align: left; margin-bottom: 12px;">${tagsHtml}</div>
-            
+
             <div style="display: flex; justify-content: center; margin: 12px 0;">
               <button id="like-${
                 user.userId
@@ -243,7 +251,7 @@ export default function MapPage() {
           </div>
         </div>
 
-        <button id="block-${user.userId}" 
+        <button id="block-${user.userId}"
           title="${isBlocked ? "Unblock user" : "Block user"}"
           style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; background: white; color: ${iconColor}; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: color 0.2s ease-in-out; z-index: 10;"
           onmouseover="this.style.color='${rose500}'"

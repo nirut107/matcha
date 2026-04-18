@@ -21,6 +21,8 @@ export default function Header() {
   const pathname = usePathname();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
 
+  const [isFirefox, setIsFirefox] = useState<boolean>(false);
+
   const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
   const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const notiRef = useRef<HTMLDivElement>(null);
@@ -29,6 +31,11 @@ export default function Header() {
   const [showAllNotis, setShowAllNotis] = useState(false);
 
   const socketRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Detect if the browser is Firefox
+    setIsFirefox(navigator.userAgent.toLowerCase().includes('firefox'));
+  }, []);
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -149,14 +156,15 @@ export default function Header() {
           <MessageCircle size={22} className="sm:w-6 sm:h-6" />
           <Badge count={unreadMessages} />
         </button>
-        {/* MAP & OTHER NAVS */}
-        <button
-          className={getIconClass("/map")}
-          onClick={() => router.push("/map")}
-        >
-          <Map size={22} className="sm:w-6 sm:h-6" />
-        </button>
-
+        
+        {!isFirefox && (
+          <button
+            className={getIconClass("/map")}
+            onClick={() => router.push("/map")}
+          >
+            <Map size={22} className="sm:w-6 sm:h-6" />
+          </button>
+        )}
         <button
           className={getIconClass("/calendar")}
           onClick={() => router.push("/calendar")}
