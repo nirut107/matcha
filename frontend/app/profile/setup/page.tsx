@@ -195,6 +195,10 @@ export default function ProfileSetupPage() {
   } | null>(null);
   const [showMapModal, setShowMapModal] = useState(false);
 
+  const [isFirefox, setIsFirefox] = useState(false);
+  const [cityInput, setCityInput] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
   const fetchUser = async () => {
     try {
       const res = await fetchWithAuth("/user/me");
@@ -251,6 +255,18 @@ export default function ProfileSetupPage() {
     setExistingImages(newExisting);
   };
 
+  useEffect(() => {
+    // Detect Firefox
+    setIsFirefox(navigator.userAgent.toLowerCase().includes("firefox"));
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    fetch(`${baseUrl}/tags`)
+      .then((res) => res.json())
+      .then((data) => setAvailableTags(data.tags))
+      .catch((err) => console.error("Error fetching tags:", err));
+    fetchProfile();
+    fetchUser();
+  }, []);
   // Load existing tags from NestJS
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -261,6 +277,36 @@ export default function ProfileSetupPage() {
     fetchProfile();
     fetchUser();
   }, []);
+
+  // Geocoding (Text to Coordinates)
+  const handleCitySearch = async () => {
+    if (!cityInput.trim()) return;
+
+    setIsGeocoding(true);
+    try {
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+          cityInput
+        )}.json?access_token=${token}&limit=1`
+      );
+      const data = await res.json();
+
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        setLocation({ lat, lng });
+        // Optional: clear the input or set it to the formatted place name
+        setCityInput(data.features[0].place_name);
+      } else {
+        alert("Location not found. Try a different city or neighborhood.");
+      }
+    } catch (err) {
+      console.error("Geocoding error:", err);
+      alert("Failed to search location.");
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   const handleImageChange = (
     index: number,
@@ -525,7 +571,7 @@ export default function ProfileSetupPage() {
     if (selectedTags && selectedTags.length >= 3) score += 15;
     if (previews.filter((p) => p !== null).length >= 1) score += 15;
     if (location.lat) score += 10;
-    if (preference) score+=5;
+    if (preference) score += 5;
     return score;
   };
 
@@ -816,6 +862,8 @@ export default function ProfileSetupPage() {
               <label className="text-sm font-bold text-gray-700 ml-1">
                 LOCATION
               </label>
+
+              {/* GPS and Map Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
@@ -830,19 +878,62 @@ export default function ProfileSetupPage() {
                   {location.lat ? "GPS Verified" : "Use My GPS"}
                 </button>
 
+                <div className="flex-1 flex flex-col relative group">
+                  <button
+                    type="button"
+                    disabled={isFirefox}
+                    onClick={() => setShowMapModal(true)}
+                    className={`w-full h-full flex items-center justify-center gap-2 font-bold px-4 py-4 rounded-2xl transition-all border-2 ${
+                      isFirefox
+                        ? "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                        : location.lat && !navigator.geolocation
+                        ? "text-green-600 bg-green-50 border-green-100"
+                        : "text-gray-600 bg-gray-50 border-gray-100 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Search size={20} />
+                    {location.lat ? "Change on Map" : "Select on Map"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Firefox Warning */}
+              {isFirefox && (
+                <p className="text-xs text-rose-500 font-medium px-1">
+                  * Map selection is currently unavailable in Firefox. Please
+                  use Chrome to pick from the map, or type your city below.
+                </p>
+              )}
+
+              {/* New Text Search UI */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Or type your city / neighborhood..."
+                  value={cityInput}
+                  onChange={(e) => setCityInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCitySearch();
+                    }
+                  }}
+                  className="flex-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
+                />
                 <button
                   type="button"
-                  onClick={() => setShowMapModal(true)}
-                  className={`flex-1 flex items-center justify-center gap-2 font-bold px-4 py-4 rounded-2xl transition-all border-2 ${
-                    location.lat && !navigator.geolocation
-                      ? "text-green-600 bg-green-50 border-green-100"
-                      : "text-gray-600 bg-gray-50 border-gray-100 hover:bg-gray-100"
-                  }`}
+                  onClick={handleCitySearch}
+                  disabled={isGeocoding || !cityInput.trim()}
+                  className="px-6 py-4 bg-gray-800 text-white font-bold rounded-2xl hover:bg-gray-900 transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
                 >
-                  <Search size={20} />
-                  {location.lat ? "Change on Map" : "Select on Map"}
+                  {isGeocoding ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    "Search"
+                  )}
                 </button>
               </div>
+
               {location.lat && (
                 <p className="text-center text-xs text-green-600 font-medium">
                   Success! Location set to {location.lat.toFixed(4)},{" "}
@@ -850,25 +941,6 @@ export default function ProfileSetupPage() {
                 </p>
               )}
             </div>
-
-            {/* <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <button
-                type="button"
-                onClick={handleLocation}
-                className={`flex items-center gap-2 font-bold px-4 py-2 rounded-xl transition-all ${
-                  location.lat
-                    ? "text-green-500 bg-green-50"
-                    : "text-rose-500 bg-rose-50 hover:bg-rose-100"
-                }`}
-              >
-                {location.lat ? (
-                  <CheckCircle2 size={20} />
-                ) : (
-                  <MapPin size={20} />
-                )}
-                {location.lat ? "Location Verified" : "Verify Location (GPS)"}
-              </button>
-            </div> */}
             {error && (
               <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-semibold">
                 {error}
