@@ -8,37 +8,48 @@ import {
   Loader2,
   AlertCircle,
   Send,
+  AwardIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { formatDistanceToNow } from "date-fns";
 
-type Image = {
+
+export interface ProfileImage {
   url: string;
   position: number;
-};
+  is_profile: boolean;
+}
 
-type Profile = {
+export interface UserProfile {
+  userId: number;
   first_name: string;
   age: number;
   biography: string;
-  tags: string[];
-  images: Image[];
   fame_rating: number;
+
+  images: ProfileImage[];
+  tags: string[];
+  profileIndex: number;
+  profileImage: string | null;
+
+  latitude: number;
+  longitude: number;
   distance: string;
   is_online: boolean;
-  userId: number;
-  profileIndex: number;
-  profileImage: string;
-  create_at: string;
   last_connection: string;
-};
+  i_blocked_them: boolean;
+  they_blocked_me: boolean;
+  i_liked_them: boolean;
+  they_liked_me: boolean;
+  is_match: boolean;
+}
 
 type Props = {
   showModal: boolean;
   setShowModal: (v: boolean) => void;
   isModalLoading: boolean;
-  profile: Profile;
+  profile: UserProfile;
 };
 
 export default function ProfileModal({
@@ -47,13 +58,11 @@ export default function ProfileModal({
   isModalLoading,
   profile,
 }: Props) {
-  // New States
   const [reportStep, setReportStep] = useState<
     "idle" | "form" | "submitting" | "success"
   >("idle");
   const [reason, setReason] = useState("");
   const [reportError, setReportError] = useState("");
-  console.log(profile);
 
   if (!showModal) return null;
 
@@ -80,8 +89,8 @@ export default function ProfileModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          reported_id: profile.userId, // From your MapUser/Profile data
-          reason: reason.trim(), // Custom reason from textarea
+          reported_id: profile.userId,
+          reason: reason.trim(),
         }),
       });
 
@@ -98,7 +107,7 @@ export default function ProfileModal({
       }, 2000);
     } catch (err: any) {
       setReportError(err.message);
-      setReportStep("form"); // Go back to form to let user try again
+      setReportStep("form");
     }
   };
   return (

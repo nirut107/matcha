@@ -26,6 +26,7 @@ export default function Header() {
   const notiRef = useRef<HTMLDivElement>(null);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [showAllNotis, setShowAllNotis] = useState(false);
 
   const socketRef = useRef<any>(null);
 
@@ -43,6 +44,10 @@ export default function Header() {
     };
     fetchCounts();
   }, []);
+
+  useEffect(() => {
+    if (!isNotiOpen) setShowAllNotis(false);
+  }, [isNotiOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,10 +85,10 @@ export default function Header() {
   const handleNotiClick = async () => {
     if (!isNotiOpen) {
       try {
-        const res = await fetchWithAuth("/notifications"); // Your Plural/Singular endpoint
+        const res = await fetchWithAuth("/notifications");
         const data = await res.json();
         setNotifications(data);
-        setUnreadNotifications(0); // Reset UI count immediately
+        setUnreadNotifications(0);
       } catch (err) {
         console.error("Failed to load notifications", err);
       }
@@ -180,21 +185,35 @@ export default function Header() {
                 <span className="font-black text-gray-800 uppercase tracking-widest text-xs">
                   Notifications
                 </span>
-                <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-full">
-                  LATEST
-                </span>
+                {notifications.length > 0 && (
+                  <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-full">
+                    {showAllNotis ? "ALL" : "LATEST"}
+                  </span>
+                )}
               </div>
 
-              <div className="max-h-[400px] overflow-y-auto">
+              {/* Dynamic height: fixed if collapsed, scrollable if expanded */}
+              <div
+                className={`${
+                  showAllNotis ? "max-h-[400px]" : "max-h-none"
+                } overflow-y-auto no-scrollbar`}
+              >
                 {notifications.length > 0 ? (
-                  notifications.map((noti) => (
+                  (showAllNotis
+                    ? notifications
+                    : notifications.slice(0, 5)
+                  ).map((noti) => (
                     <div
                       key={noti.id}
-                      className="p-4 flex gap-4 hover:bg-rose-50/30 transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
+                      onClick={() => {
+                        // Optional: Navigate to user profile or specific action
+                        setIsNotiOpen(false);
+                      }}
+                      className="p-4 flex gap-4 hover:bg-rose-50/30 transition-colors border-b border-gray-50 last:border-0 cursor-pointer group"
                     >
                       <img
                         src={noti.data.senderImage || "/default-avatar.png"}
-                        className="w-12 h-12 rounded-2xl object-cover border-2 border-white shadow-sm"
+                        className="w-12 h-12 rounded-2xl object-cover border-2 border-white shadow-sm group-hover:scale-105 transition-transform"
                         alt=""
                       />
                       <div className="flex-1">
@@ -206,7 +225,7 @@ export default function Header() {
                             noti.data.text}
                         </p>
                         <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">
-                          {formatDistanceToNow(new Date(noti.created_at))} ago
+                          {formatDistanceToNow(noti.created_at)}{" "}
                         </p>
                       </div>
                       {noti.type === "MATCH" && (
@@ -224,11 +243,28 @@ export default function Header() {
                 )}
               </div>
 
-              <div className="p-4 bg-gray-50/50 text-center">
-                <button className="text-[10px] font-black text-gray-400 hover:text-rose-500 transition-colors tracking-widest uppercase">
-                  View All History
-                </button>
-              </div>
+              {/* Footer: Show only if there are more than 5 notifications */}
+              {notifications.length > 5 && !showAllNotis && (
+                <div className="p-4 bg-gray-50/50 text-center border-t border-gray-50">
+                  <button
+                    onClick={() => setShowAllNotis(true)}
+                    className="text-[10px] font-black text-rose-500 hover:text-rose-600 transition-colors tracking-widest uppercase flex items-center justify-center w-full gap-2"
+                  >
+                    View All History ({notifications.length})
+                  </button>
+                </div>
+              )}
+
+              {showAllNotis && (
+                <div className="p-4 bg-gray-50/50 text-center border-t border-gray-50">
+                  <button
+                    onClick={() => setShowAllNotis(false)}
+                    className="text-[10px] font-black text-gray-400 hover:text-gray-600 transition-colors tracking-widest uppercase"
+                  >
+                    Show Less
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

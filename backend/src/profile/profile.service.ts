@@ -137,8 +137,135 @@ export class ProfileService {
     return result.rows[0];
   }
 
-  async getProfileById(userId: number) {
-    return this.getMyProfile(userId);
+  async getProfileById(targetId: number, viewerId: number) {
+    // 1. Get viewer's coordinates
+    const meRes = await this.db.query(
+      `SELECT latitude, longitude FROM profiles WHERE user_id = $1`,
+      [viewerId],
+    );
+    const me = meRes.rows[0];
+
+    // 2. Fetch the profile with properly mapped parameters
+    const result = await this.db.query(
+      `
+      SELECT
+        u.id,
+        p.first_name,
+        u.is_online,
+        u.last_connection,
+        p.age,
+        p.biography,
+        p.fame_rating,
+        p.latitude,
+        p.longitude,
+  
+        -- 📍 Distance (Using $3 for Lat and $4 for Lng)
+        (
+          6371 * acos(
+            LEAST(1.0, GREATEST(-1.0,
+              cos(radians($3::float)) *
+              cos(radians(p.latitude)) *
+              cos(radians(p.longitude) - radians($4::float)) +
+              sin(radians($3::float)) *
+              sin(radians(p.latitude))
+            ))
+          )
+        ) AS distance,
+  
+        -- 🚫 You blocked them (Using $2 for viewerId)
+        EXISTS (
+          SELECT 1 FROM blocks WHERE blocker_id = $2 AND blocked_id = u.id
+        ) AS i_blocked_them,
+  
+        -- 🛑 They blocked you 
+        EXISTS (
+          SELECT 1 FROM blocks WHERE blocker_id = u.id AND blocked_id = $2
+        ) AS they_blocked_me,
+  
+        -- ❤️ You liked them
+        EXISTS (
+          SELECT 1 FROM swipes 
+          WHERE swiper_id = $2 AND target_id = u.id AND action = 'like'
+        ) AS i_liked_them,
+  
+        -- 💘 They liked you 
+        EXISTS (
+          SELECT 1 FROM swipes 
+          WHERE swiper_id = u.id AND target_id = $2 AND action = 'like'
+        ) AS they_liked_me,
+  
+        -- 🔥 Match status
+        EXISTS (
+          SELECT 1 FROM matches 
+          WHERE (user1_id = $1 AND user2_id = $2) 
+             OR (user1_id = $2 AND user2_id = $1)
+        ) AS is_match,
+  
+        -- 🖼️ Images
+        COALESCE(
+          JSON_AGG(
+            JSONB_BUILD_OBJECT(
+              'url', pic.url,
+              'is_profile', pic.is_profile,
+              'position', pic.position
+            )
+            ORDER BY pic.position
+          ) FILTER (WHERE pic.url IS NOT NULL),
+          '[]'
+        ) AS images,
+  
+        -- 🏷️ Tags
+        (
+          SELECT COALESCE(ARRAY_AGG(t2.name), '{}')
+          FROM user_tags ut2
+          JOIN tags t2 ON t2.id = ut2.tag_id
+          WHERE ut2.user_id = u.id
+        ) AS tags
+  
+      FROM users u
+      JOIN profiles p ON p.user_id = u.id
+      LEFT JOIN pictures pic ON pic.user_id = u.id
+      WHERE u.id = $1
+      GROUP BY u.id, p.user_id
+      `,
+      [
+        targetId, // $1
+        viewerId, // $2 (Used for likes/blocks/matches)
+        me?.latitude || 0, // $3 (Used for distance math)
+        me?.longitude || 0, // $4 (Used for distance math)
+      ],
+    );
+
+    const row = result.rows[0];
+    if (!row) return null;
+
+    const images = row.images || [];
+    const profileIndex = images.findIndex((img: any) => img.is_profile);
+    const profileImage = profileIndex !== -1 ? images[profileIndex].url : null;
+
+    return {
+      userId: row.id,
+      first_name: row.first_name,
+      age: row.age,
+      biography: row.biography,
+      tags: row.tags || [],
+      images,
+      profileIndex,
+      profileImage,
+      fame_rating: row.fame_rating,
+      latitude: parseFloat(row.latitude),
+      longitude: parseFloat(row.longitude),
+      distance: row.distance
+        ? `${Number(row.distance).toFixed(1)} km`
+        : '0.0 km',
+      is_online: row.is_online,
+      last_connection: row.last_connection,
+      i_blocked_them: row.i_blocked_them,
+      they_blocked_me: row.they_blocked_me,
+      i_liked_them: row.i_liked_them,
+      they_liked_me: row.they_liked_me,
+      is_match: row.is_match,
+    };
   }
 
   async deleteProfile(userId: number) {

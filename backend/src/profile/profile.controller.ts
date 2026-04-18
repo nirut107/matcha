@@ -29,8 +29,9 @@ export class ProfileController {
     return this.profileService.upsertProfile(req.user.userId, dto);
   }
   @Get('data/:id')
-  getUser(@Param('id') id: string) {
-    return this.profileService.getProfileById(Number(id));
+  @UseGuards(JwtGuard)
+  getUser(@Param('id') id: string, @Req() req) {
+    return this.profileService.getProfileById(Number(id), req.user.userId);
   }
 
   @Get('me')
@@ -56,7 +57,7 @@ export class ProfileController {
   @Get('search')
   @UseGuards(JwtGuard)
   async search(@Req() req, @Query() query: SearchDto) {
-    console.log(req.user.userId, query, '==========================');
+    console.log(req.user.userId, query);
     return this.profileService.searchProfiles(req.user.userId, query);
   }
 

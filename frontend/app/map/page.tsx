@@ -8,6 +8,7 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { Loader2, Search } from "lucide-react"; // 🔥 Added Search icon
 import { useRouter } from "next/navigation";
 import ProfileModal from "@/components/ProfileModal";
+import { UserProfile } from "@/components/ProfileModal";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
@@ -62,11 +63,10 @@ export default function MapPage() {
   const [error, setError] = useState("");
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserProfile| null>(null);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
   const [isSearchingArea, setIsSearchingArea] = useState(false);
-  // 🔥 NEW STATE: Controls whether the "Search this area" button is visible
   const [showSearchButton, setShowSearchButton] = useState(false);
 
   const [mapCenter, setMapCenter] = useState<{
@@ -74,30 +74,15 @@ export default function MapPage() {
     lng: number;
   } | null>(null);
 
-  function mapUserToProfile(user: MapUser): Profile {
-    return {
-      first_name: user.first_name,
-      age: user.age,
-      biography: user.biography,
-      tags: user.tags,
-      images: user.images,
-      fame_rating: user.fame_rating,
-      distance: user.distance,
-      is_online: user.is_online,
-      userId: user.userId,
-      profileIndex: 0,
-      profileImage: user.profileImage,
-      create_at: user.create_at,
-      last_connection: user.last_connection, // ⚠️ you don’t have this in MapUser
-    };
-  }
 
   // ==========================================
   // 1. HELPER FUNCTIONS
   // ==========================================
   const handleShowInfo = async (user: MapUser) => {
-    const select = mapUserToProfile(user);
-    setSelectedUser(select);
+    const res = await fetchWithAuth(`/profile/data/${user.userId}`);
+    const data: UserProfile = await res.json();
+
+    setSelectedUser(data);
     setShowModal(true);
     setIsModalLoading(true);
 

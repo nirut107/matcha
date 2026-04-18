@@ -215,7 +215,6 @@ export default function ProfileSetupPage() {
 
     if (res.status == 200) {
       const data = await res.json();
-      console.log(data, "==============");
       setFirstName(data.first_name || "");
       setLastName(data.last_name);
       setGender(data.gender || "");
@@ -440,7 +439,7 @@ export default function ProfileSetupPage() {
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "");
-    console.log(clean);
+
     if (!selectedTags) {
       toggleTag(clean);
       setSearchTerm("");
@@ -503,7 +502,6 @@ export default function ProfileSetupPage() {
           longitude: location.lng,
         }),
       });
-      console.log(profileRes);
 
       if (!profileRes.ok) throw new Error("Profile creation failed");
 

@@ -85,7 +85,6 @@ export class NotificationController {
   @Get('unreadcount')
   @UseGuards(JwtGuard)
   async getUnreadCount(@Req() req: any) {
-    console.log('================');
     const userId = req.user.userId;
     return this.NotificationService.getUnreadCounts(userId);
   }

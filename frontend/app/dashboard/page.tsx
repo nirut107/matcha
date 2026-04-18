@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import Loading from "@/app/loading";
 import { formatDistanceToNow } from "date-fns";
 import { Eye, X } from "lucide-react";
+import { UserProfile } from "@/components/ProfileModal";
 
 type Image = { url: string; is_profile: boolean; position: number };
 
@@ -57,7 +58,7 @@ export default function Dashboard() {
   const [showVisitHistory, setShowVisitHistory] = useState(false);
 
   // Modal States
-  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
@@ -117,7 +118,10 @@ export default function Dashboard() {
 
   const handleShowInfo = async (profile: Profile) => {
     console.log(profile);
-    setSelectedProfile(profile);
+    const res = await fetchWithAuth(`/profile/data/${profile.userId}`);
+    const data: UserProfile = await res.json();
+
+    setSelectedProfile(data);
     setIsModalOpen(true);
     setIsModalLoading(true);
 
