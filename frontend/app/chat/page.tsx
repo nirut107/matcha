@@ -24,7 +24,6 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { UserRespone, MatchResponse } from "@/lib/interface";
 import { formatDistanceToNow } from "date-fns";
 
-const USE_MOCK = false; // switch this ON/OFF
 
 function formatTime(dateString: string, type: "chat" | "list" = "chat") {
   let date = new Date(dateString);
@@ -325,6 +324,7 @@ export default function ChatPage() {
       setMatches((prev) => prev.filter((m) => m.id !== activeChat.id));
       const remainingMatches = matches.filter((m) => m.id !== activeChat.id);
       if (remainingMatches.length > 0) handleSelectChat(remainingMatches[0]);
+      setIsConfirmOpen(false)
     } catch (err) {
       console.error("Error unliking user:", err);
       // Optional: Show a toast error
@@ -418,6 +418,7 @@ export default function ChatPage() {
         setMatches((prev) =>
           prev.map((m) => (m.id === activeChat.id ? updatedChat : m))
         );
+        setIsBlockModalOpen(false);
         console.log("Successfully block");
       } else {
         console.error("Failed to toggle block status");
@@ -715,13 +716,18 @@ export default function ChatPage() {
       />
       <ConfirmModal
         isOpen={isBlockModalOpen}
-        title="Block User"
-        message="Are you sure you want to block this user? They will not be able to view your profile or send you messages."
-        confirmText="Block"
+        // Wrap logic in curly braces {}
+        title={activeChat?.i_blocked_them ? "Unblock User" : "Block User"}
+        message={
+          activeChat?.i_blocked_them
+            ? "Are you sure you want to unblock this user? you will be able to message them again."
+            : "Are you sure you want to block this user? They will not be able to view your profile or send you messages."
+        }
+        confirmText={activeChat?.i_blocked_them ? "Unblock" : "Block"}
         cancelText="Cancel"
         onConfirm={handleToggleBlock}
         onCancel={() => setIsBlockModalOpen(false)}
-        isDestructive={true}
+        isDestructive={!activeChat?.i_blocked_them} // Red only when blocking, not unblocking
       />
     </div>
   );
