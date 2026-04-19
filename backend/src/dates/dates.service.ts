@@ -7,10 +7,14 @@ import {
 // สมมติว่าคุณมี Database Module/Service ที่ฉีดเข้ามาใช้งาน (อ้างอิงจากโค้ดเดิมของคุณ)
 import { DatabaseService } from '../database/database.service';
 import { RespondDateDto, CancelDateDto, RequestDateDto } from './dto/dates.dto';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class DatesService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   // 🔥 1. ส่งคำขอเดต
   async requestDate(senderId: number, dto: RequestDateDto) {
@@ -53,6 +57,21 @@ export class DatesService {
         dto.details || null,
       ],
     );
+    const profilesRes = await this.db.query(
+      `SELECT p.user_id, p.first_name, 
+              (SELECT url FROM pictures WHERE user_id = p.user_id AND is_profile = true LIMIT 1) as profile_image
+       FROM profiles p WHERE p.user_id IN ($1, $2)`,
+      [senderId, dto.receiverId],
+    );
+
+    const myProfile = profilesRes.rows.find((r) => r.user_id === senderId);
+
+    this.notificationService.create(dto.receiverId, 'DATE_REQ', {
+      type: 'DATE_REQ',
+      senderId,
+      senderName: myProfile.first_name,
+      senderImage: myProfile.profile_image,
+    });
 
     return result.rows[0];
   }
@@ -73,9 +92,14 @@ export class DatesService {
     }
 
     const dateRecord = dateQuery.rows[0];
-
+    const profilesRes = await this.db.query(
+      `SELECT p.user_id, p.first_name, 
+              (SELECT url FROM pictures WHERE user_id = p.user_id AND is_profile = true LIMIT 1) as profile_image
+       FROM profiles p WHERE p.user_id = $1`,
+      [receiverId],
+    );
+    const myProfile = profilesRes.rows[0];
     if (dto.action === 'accept') {
-      // Check if the receiver has an overlapping accepted date
       const overlapCheck = await this.db.query(
         `SELECT 1 FROM dates 
          WHERE (sender_id = $1 OR receiver_id = $1)
@@ -95,6 +119,13 @@ export class DatesService {
         `UPDATE dates SET status = 'accepted' WHERE id = $1`,
         [dto.dateId],
       );
+
+      this.notificationService.create(dateRecord.sender_id, 'DATE_ACCEPT', {
+        type: 'DATE_ACCEPT',
+        receiverId,
+        senderName: myProfile.first_name,
+        senderImage: myProfile.profile_image,
+      });
       return { message: 'Date request accepted successfully.' };
     }
 
@@ -103,6 +134,12 @@ export class DatesService {
         `UPDATE dates SET status = 'rejected' WHERE id = $1`,
         [dto.dateId],
       );
+      this.notificationService.create(dateRecord.sender_id, 'DATE_REJECT', {
+        type: 'DATE_REJECT',
+        receiverId,
+        senderName: myProfile.first_name,
+        senderImage: myProfile.profile_image,
+      });
       return { message: 'Date request rejected successfully.' };
     }
   }

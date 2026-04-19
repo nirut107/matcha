@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { MessageCircle, Heart, Sparkles, X, Flame } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 type MatchModalProps = {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export default function MatchModal({
   match,
 }: MatchModalProps) {
   const router = useRouter();
+  const pathname = usePathname();
+
   if (!isOpen || !match) return null;
 
   return (
@@ -78,7 +81,11 @@ export default function MatchModal({
           <button
             onClick={() => {
               onClose();
-              router.push(`/chat`);
+              if (pathname !== "/chat") {
+                router.push("/chat");
+              } else {
+                router.push(`/chat?reload=${Date.now()}`);
+              }
             }}
             className="w-full bg-gradient-to-r from-rose-500 to-orange-400 text-white py-4 rounded-2xl font-black tracking-widest uppercase text-sm shadow-lg shadow-rose-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >

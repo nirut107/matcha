@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-// import { NotificationGateway } from './notification.gateway';
-import { SocketRegistry } from '../socket/socket.registry';
 import { AppGateway } from '../chat/app.gateway';
 
 @Injectable()

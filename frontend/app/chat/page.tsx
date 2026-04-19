@@ -23,7 +23,7 @@ import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/ConfirmModal";
 import { UserRespone, MatchResponse } from "@/lib/interface";
 import { formatDistanceToNow } from "date-fns";
-
+import { useSearchParams } from "next/navigation";
 
 function formatTime(dateString: string, type: "chat" | "list" = "chat") {
   let date = new Date(dateString);
@@ -67,6 +67,8 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesCacheRef = useRef<Record<number, any[]>>({});
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const searchParams = useSearchParams();
+  const reloadKey = searchParams.get("reload");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -271,7 +273,7 @@ export default function ChatPage() {
       s.off("notification");
       s.off("newMessage");
     };
-  }, []);
+  }, [reloadKey]);
 
   const handleSelectChat = async (match: MatchResponse) => {
     if (socket && activeChat?.id) {
@@ -324,7 +326,7 @@ export default function ChatPage() {
       setMatches((prev) => prev.filter((m) => m.id !== activeChat.id));
       const remainingMatches = matches.filter((m) => m.id !== activeChat.id);
       if (remainingMatches.length > 0) handleSelectChat(remainingMatches[0]);
-      setIsConfirmOpen(false)
+      setIsConfirmOpen(false);
     } catch (err) {
       console.error("Error unliking user:", err);
       // Optional: Show a toast error

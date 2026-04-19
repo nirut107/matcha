@@ -331,12 +331,37 @@ export default function Header() {
                               {" ❤️"}
                             </>
                           )}
+                          
                           {noti.data.type == "UNLIKE" && (
                             <>
                               <span className="font-bold">
                                 {noti.data.senderName}
                               </span>{" "}
                               <span>unliked your 💔</span>
+                            </>
+                          )}
+                          {noti.data.type == "DATE_REQ" && (
+                            <>
+                              <span className="font-bold">
+                                {noti.data.senderName}
+                              </span>{" "}
+                              <span> DATE_REQ💔</span>
+                            </>
+                          )}
+                          {noti.data.type == "DATE_ACCEPT" && (
+                            <>
+                              <span className="font-bold">
+                                {noti.data.senderName}
+                              </span>{" "}
+                              <span> DATE_ACCEPT💔</span>
+                            </>
+                          )}
+                          {noti.data.type == "DATE_REJECT" && (
+                            <>
+                              <span className="font-bold">
+                                {noti.data.senderName}
+                              </span>{" "}
+                              <span> DATE_REJECT💔</span>
                             </>
                           )}
                         </p>
