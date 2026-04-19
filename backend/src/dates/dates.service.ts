@@ -130,12 +130,14 @@ export class DatesService {
 
   async getCalendar(userId: number) {
     const result = await this.db.query(
-      `SELECT d.id, d.start_time, d.end_time, d.details, d.status,
+      `SELECT d.id,  
+      d.start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok' AS start_time,
+      d.end_time   AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok' AS end_time,
+      d.details, d.status,
               CASE 
                 WHEN d.sender_id = $1 THEN 'sent' 
                 ELSE 'received' 
               END as direction,
-              -- ดึงข้อมูลอีกฝ่ายมาแสดง
               u.id as other_user_id, p.first_name as other_first_name
        FROM dates d
        JOIN users u ON u.id = CASE WHEN d.sender_id = $1 THEN d.receiver_id ELSE d.sender_id END

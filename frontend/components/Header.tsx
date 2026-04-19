@@ -16,6 +16,7 @@ import ConfirmModal from "./ConfirmModal";
 import { getSocket } from "@/lib/socket";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
+import MatchModal from "./MatchModal";
 
 export default function Header() {
   const router = useRouter();
@@ -30,6 +31,11 @@ export default function Header() {
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showAllNotis, setShowAllNotis] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [match, setMatch] = useState<{
+    userName: string;
+    userImage?: string;
+  } | null>(null);
 
   const socketRef = useRef<any>(null);
 
@@ -39,8 +45,10 @@ export default function Header() {
 
   const fetchCounts = async () => {
     try {
+      
       const res = await fetchWithAuth("/notifications/unreadcount");
       const data = await res.json();
+      console.log("Fetching unread counts...", data.notificationsCount, data.messagesCount);
       setUnreadNotifications(Number(data.notificationsCount) || 0);
       if (pathname == "/chat") {
         setUnreadMessages(0);
@@ -79,7 +87,7 @@ export default function Header() {
     });
 
     socket.on("notification", (data: any) => {
-      console.log(`🔌 [SOCKET] Received: ${data.type}`, data);
+      console.log(`🔌 [SOCKET] Received Head: ${data.type}`, data);
 
       if (data.type === "NEW_MESSAGE") {
         if (pathname !== "/chat") {
@@ -138,7 +146,18 @@ export default function Header() {
           }
         }
       } else {
-        setUnreadNotifications((prev) => (Number(prev) || 0) + 1);
+        fetchCounts();
+      }
+      if (data.type === "match") {
+        console.log(
+          "🔌 [SOCKET] MATCH Notification from:",
+          data.data.senderName
+        );
+        setMatch({
+          userName: data.data.senderName,
+          userImage: data.data.senderImage,
+        });
+        setIsOpen(true);
       }
     });
 
@@ -379,6 +398,11 @@ export default function Header() {
           <LogOut size={22} className="sm:w-6 sm:h-6" />
         </button>
       </div>
+      <MatchModal
+        isOpen={isOpen}
+        match={match}
+        onClose={() => setIsOpen(false)}
+      />
 
       <ConfirmModal
         isOpen={isLogoutModalOpen}

@@ -20,6 +20,9 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import Loading from "@/app/loading";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "@/components/ConfirmModal";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { se } from "date-fns/locale";
 
 // --- TYPES ---
 type DateEvent = {
@@ -59,16 +62,19 @@ export default function CalendarPage() {
   // Modal State
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   // Form State
   const [receiverId, setReceiverId] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
   const [details, setDetails] = useState("");
+  const [startTimeDate, setStartTimeDate] = useState<Date | null>(new Date());
+
+  const [endTimeDate, setEndTimeDate] = useState<Date | null>(
+    new Date(Date.now() + 60 * 60 * 1000) // +1 hour
+  );
 
   const [selectedDate, setSelectedDate] = useState<DateEvent | null>(null);
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
+
 
   const fetchData = async () => {
     try {
@@ -105,7 +111,7 @@ export default function CalendarPage() {
   // --- HANDLERS ---
   const handleRespond = async (
     dateId: number,
-    action: "accept" | "decline"
+    action: "accept" | "reject"
   ) => {
     setError("");
     try {
@@ -116,6 +122,7 @@ export default function CalendarPage() {
       });
 
       if (res.ok) {
+        console.log(`Date ${action}ed successfully`);
         if (action === "accept") {
           setDates((prev) =>
             prev.map((d) =>
@@ -141,38 +148,45 @@ export default function CalendarPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dateId }),
       });
-
-      if (res.ok) {
-        setDates((prev) => prev.filter((d) => d.id !== dateId));
-      }
+      setDates((prev) => prev.filter((d) => d.id !== dateId));
     } catch (err) {
+      setDates((prev) => prev.filter((d) => d.id !== dateId));
       console.error("Failed to cancel date:", err);
     }
   };
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!startTimeDate || !endTimeDate) {
+      setError("Please select both start and end time");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
+
     try {
       const res = await fetchWithAuth("/dates/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           receiverId: Number(receiverId),
-          startTime: new Date(startTime).toISOString(),
-          endTime: new Date(endTime).toISOString(),
+          startTime: startTimeDate.toISOString(),
+          endTime: endTimeDate.toISOString(),
           details,
         }),
       });
 
       if (res.ok) {
         setShowRequestModal(false);
+
         setReceiverId("");
-        setStartTime("");
-        setEndTime("");
+        setStartTimeDate(new Date());
+        setEndTimeDate(new Date(Date.now() + 60 * 60 * 1000));
         setDetails("");
-        fetchData(); // Refresh list to show the new outgoing request
+
+        fetchData();
       } else {
         const result = await res.json();
         setError(result.message);
@@ -246,17 +260,17 @@ export default function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-            {loading && (
-              <div
-                className={`
+      {loading && (
+        <div
+          className={`
                     fixed inset-0 z-50 
                       transition-opacity duration-1000 ease-in-out
                       ${isFadingOut ? "opacity-0" : "opacity-100"}
                     `}
-              >
-                <Loading />
-              </div>
-            )}
+        >
+          <Loading />
+        </div>
+      )}
       <Header />
 
       <main className="grow w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -472,7 +486,7 @@ export default function CalendarPage() {
                               </button>
                               <button
                                 onClick={() =>
-                                  handleRespond(date.id, "decline")
+                                  handleRespond(date.id, "reject")
                                 }
                                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-bold flex items-center gap-1 transition-colors"
                               >
@@ -481,10 +495,9 @@ export default function CalendarPage() {
                             </>
                           ) : (
                             <button
-                              // onClick={() => handleCancel(date.id)}
                               onClick={() => {
-                                setSelectedDate(date); // Set the date in state first
-                                setIsCancelModalOpen(true); // Then open the confirm modal
+                                setSelectedDate(date);
+                                // setIsCancelModalOpen(true);
                               }}
                               className="bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 px-4 py-2 rounded-xl font-bold transition-colors"
                             >
@@ -542,7 +555,10 @@ export default function CalendarPage() {
 
                         <div className="shrink-0 flex sm:flex-col justify-end gap-2">
                           <button
-                            onClick={() => handleCancel(date.id)}
+                            onClick={() => {
+                              setSelectedDate(date);
+                              // setIsCancelModalOpen(true);
+                            }}
                             className="bg-gray-50 hover:bg-red-50 text-gray-500 hover:text-red-500 px-4 py-2.5 rounded-xl font-bold transition-colors w-full sm:w-auto"
                           >
                             Cancel Date
@@ -614,24 +630,26 @@ export default function CalendarPage() {
                   <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
                     Start Time
                   </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
+                  <DatePicker
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium text-gray-700"
+                    selected={startTimeDate}
+                    onChange={(date: any) => setStartTimeDate(date)}
+                    showTimeSelect
+                    dateFormat="Pp"
+                    portalId="root-portal"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
                     End Time
                   </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
+                  <DatePicker
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium text-gray-700"
+                    selected={endTimeDate}
+                    onChange={(date: any) => setEndTimeDate(date)}
+                    showTimeSelect
+                    dateFormat="Pp"
+                    portalId="root-portal"
                   />
                 </div>
               </div>
@@ -663,6 +681,7 @@ export default function CalendarPage() {
               </button>
             </form>
           </div>
+          <div id="root-portal"></div>
         </div>
       )}
       {/* --- DATE DETAILS MODAL --- */}
@@ -729,10 +748,6 @@ export default function CalendarPage() {
               <div className="mt-8 pt-4 border-t border-gray-100 flex justify-end gap-2">
                 {selectedDate.status === "accepted" ? (
                   <button
-                    // onClick={() => {
-                    //   handleCancel(selectedDate.id);
-                    //   setSelectedDate(null);
-                    // }}
                     onClick={() => setIsCancelModalOpen(true)}
                     className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl font-bold transition-colors w-full sm:w-auto"
                   >
@@ -751,7 +766,7 @@ export default function CalendarPage() {
                     </button>
                     <button
                       onClick={() => {
-                        handleRespond(selectedDate.id, "decline");
+                        handleRespond(selectedDate.id, "reject");
                         setSelectedDate(null);
                       }}
                       className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-bold flex-1"
@@ -761,11 +776,10 @@ export default function CalendarPage() {
                   </div>
                 ) : (
                   <button
-                    // onClick={() => {
-                    //   handleCancel(selectedDate.id);
-                    //   setSelectedDate(null);
-                    // }}
-                    onClick={() => setIsCancelModalOpen(true)}
+                    onClick={() => {
+                      // setSelectedDate(selectedDate);
+                      setIsCancelModalOpen(true);
+                    }}
                     className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2.5 rounded-xl font-bold w-full"
                   >
                     Revoke Request

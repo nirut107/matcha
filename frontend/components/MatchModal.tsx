@@ -43,10 +43,10 @@ export default function MatchModal({
                 alt={match.userName}
               />
             ) : (
-              <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-rose-500 to-orange-400 flex items-center justify-center border-[6px] border-white shadow-[0_0_30px_rgba(244,63,94,0.3)]">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-rose-500 to-orange-400 flex items-center justify-center border-[6px] border-white shadow-[0_0_30px_rgba(244,63,94,0.3)]">
                 <Flame
-                  size={72}
-                  className="sm:w-6 sm:h-6"
+                  size={48}
+                  // className="sm:w-6 sm:h-6"
                   color="white"
                   fill="white"
                 />
@@ -55,7 +55,7 @@ export default function MatchModal({
 
             {/* Tiny badge on the image */}
             <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-rose-500 to-orange-400 p-2.5 rounded-full border-4 border-white shadow-lg animate-bounce">
-              <Heart className="fill-white text-white" size={18} />
+              <Heart className="fill-white text-white" size={12} />
             </div>
           </div>
         </div>

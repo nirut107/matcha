@@ -2,17 +2,11 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
-import MatchModal from "@/components/MatchModal";
 import toast, { Toaster } from "react-hot-toast";
 import IncomingCallModal from "./IncomingCallModal";
 import { useRouter } from "next/navigation";
 
 export default function SocketHandler() {
-  const [match, setMatch] = useState<{
-    userName: string;
-    userImage?: string;
-  } | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
   const [callData, setCallData] = useState<any>(null);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
@@ -85,7 +79,7 @@ export default function SocketHandler() {
     });
 
     socket.on("notification", async (data: any) => {
-      console.log(`🔌 [SOCKET] Notification Received: ${data.type}`, data);
+      console.log(`🔌 [SOCKET] Notification Received Socket: ${data.type}`, data);
 
       switch (data.type) {
         case "CALL_ANSWERED":
@@ -110,13 +104,6 @@ export default function SocketHandler() {
             iceQueue.current = [];
           }
           break;
-
-        case "match":
-          console.log("🔌 [SOCKET] MATCH Notification from:", data.userName);
-          setMatch({ userName: data.userName, userImage: data.userImage });
-          setIsOpen(true);
-          break;
-
         case "INCOMING_CALL":
           console.log("🔌 [SOCKET] INCOMING_CALL from:", data.from);
           setCallData(data);
@@ -348,11 +335,6 @@ export default function SocketHandler() {
   return (
     <>
       <Toaster />
-      <MatchModal
-        isOpen={isOpen}
-        match={match}
-        onClose={() => setIsOpen(false)}
-      />
 
       <IncomingCallModal
         isOpen={isCallModalOpen}

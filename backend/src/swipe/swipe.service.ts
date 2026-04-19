@@ -73,14 +73,6 @@ export class SwipeService {
       let isMatch = false;
 
       if (action === 'like') {
-        await this.notificationService.create(targetId, 'like', {
-          senderId: userId,
-          senderName: myProfile.first_name,
-          senderImage: myProfile.profile_image,
-          type: 'LIKE',
-          text: `${myProfile.first_name} liked your profile! ✨`,
-        });
-
         const res = await this.db.query(
           `SELECT 1 FROM swipes WHERE swiper_id = $1 AND target_id = $2 AND action = 'like'`,
           [targetId, userId],
@@ -95,6 +87,14 @@ export class SwipeService {
              ON CONFLICT DO NOTHING`,
             [userId, targetId],
           );
+          await this.db.query('COMMIT');
+          await this.notificationService.create(targetId, 'like', {
+            senderId: userId,
+            senderName: myProfile.first_name,
+            senderImage: myProfile.profile_image,
+            type: 'LIKE',
+            text: `${myProfile.first_name} liked your profile! ✨`,
+          });
 
           await this.notificationService.create(targetId, 'match', {
             senderId: userId,
@@ -111,10 +111,20 @@ export class SwipeService {
             type: 'MATCH',
             text: `You matched with ${targetProfile.first_name}! ❤️`,
           });
+        } else {
+          await this.db.query('COMMIT');
+          await this.notificationService.create(targetId, 'like', {
+            senderId: userId,
+            senderName: myProfile.first_name,
+            senderImage: myProfile.profile_image,
+            type: 'LIKE',
+            text: `${myProfile.first_name} liked your profile! ✨`,
+          });
         }
+      } else {
+        await this.db.query('COMMIT');
       }
 
-      await this.db.query('COMMIT');
       this.updateFameRating(targetId);
       return { isMatch };
     } catch (e) {
@@ -158,6 +168,9 @@ export class SwipeService {
       );
       const myProfile = myProfileRes.rows[0];
 
+      const matchBroken = (deleteMatchRes.rowCount ?? 0) > 0;
+
+      await this.db.query('COMMIT');
       await this.notificationService.create(targetId, 'unlike', {
         senderId: userId,
         senderName: myProfile.first_name,
@@ -165,10 +178,6 @@ export class SwipeService {
         type: 'UNLIKE',
         text: `${myProfile.first_name} unliked your profile! ✨`,
       });
-
-      const matchBroken = (deleteMatchRes.rowCount ?? 0) > 0;
-
-      await this.db.query('COMMIT');
       this.updateFameRating(targetId);
       return { success: true, matchBroken };
     } catch (e) {
