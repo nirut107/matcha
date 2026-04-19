@@ -21,6 +21,7 @@ import { DatesModule } from './dates/dates.module';
 import { ReportModule } from './report/report.module';
 import { MailModule } from './mail/mail.module';
 import { VisitModule } from './visit/visit.module';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { VisitModule } from './visit/visit.module';
     ReportModule,
     MailModule,
     VisitModule,
+    SocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

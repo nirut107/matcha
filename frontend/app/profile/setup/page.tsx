@@ -9,7 +9,7 @@ import Header from "@/components/Header";
 import PhotoEditorModal from "@/components/PhotoEditorModal";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { set } from "date-fns";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export interface ImageItem {
   id?: number; // existing image (from DB)
@@ -201,6 +201,7 @@ export default function ProfileSetupPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [progress, setProgress] = useState(0);
+  const [openConfirmModal, setOpenConfirmModal] = useState<boolean>(false);
 
   const [isLocating, setIsLocating] = useState(false);
 
@@ -586,7 +587,7 @@ export default function ProfileSetupPage() {
       () => {
         setIsLocating(false); // Stop loading on error
         alert("Location denied. Please select it manually on the map.");
-        setShowMapModal(true);
+        // setShowMapModal(true);
       },
       { timeout: 10000 } // Optional: add a timeout for safety
     );
@@ -608,13 +609,6 @@ export default function ProfileSetupPage() {
     setLoading(true);
 
     try {
-      // ✅ 2. Create profile
-      if (!hasGoogle) {
-        const emailRes = await fetchWithAuth("/user/email", {
-          method: "POST",
-          body: JSON.stringify(email),
-        });
-      }
       const cleanTags = selectedTags.map((tag) => tag.replace(/^#/, "").trim());
       const profileRes = await fetchWithAuth("/profile", {
         method: "POST",
@@ -635,13 +629,33 @@ export default function ProfileSetupPage() {
       if (!profileRes.ok) throw new Error("Profile creation failed");
 
       await syncImages();
-
-      router.push("/dashboard");
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+    if (!hasGoogle) {
+      console.log("Updating email to:", email);
+      setLoading(true);
+      const emailRes = await fetchWithAuth("/user/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!emailRes.ok) {
+        const data = await emailRes.json();
+        throw new Error(data.message || "Email update failed");
+      }
+      if (emailRes.ok) {
+        const data = await emailRes.json();
+        if (data.message.includes("verify")) {
+          setOpenConfirmModal(true);
+          return;
+        }
+      }
+    }
+    setLoading(false);
+    router.push("/dashboard");
   };
 
   // Calculate completion percentage for the Progress Bar
@@ -1146,6 +1160,14 @@ export default function ProfileSetupPage() {
             />
           )}
         </div>
+        {openConfirmModal && (
+          <ConfirmModal
+            title="Email Updated!"
+            message="Please check your inbox and verify your email before logging in again."
+            isOpen={openConfirmModal}
+            onConfirm={() => router.push("/auth/login")}
+          />
+        )}
       </div>
       {/*  FOOTER */}
       <footer className="bg-white border-t p-4 text-center">

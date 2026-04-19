@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import e from 'express';
 
 export class MeResponseDto {
   @ApiProperty({ example: 1 })
@@ -17,4 +18,9 @@ export class MeResponseDto {
   hasGoogle: boolean;
   hasProfile: boolean;
   isSetup: boolean;
+}
+
+export class UpdateEmailDto {
+  @ApiProperty({ example: 'abc@getMaxListeners.com' })
+  email: string;
 }

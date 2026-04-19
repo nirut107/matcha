@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { BadRequestException } from '@nestjs/common';
+import { MailService } from 'src/mail/mail.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UserService {
-  constructor(private db: DatabaseService) {}
+  constructor(
+    private db: DatabaseService,
+    private mailService: MailService,
+  ) {}
 
   async setUserOnline(userId: number, online: boolean) {
     await this.db.query(
@@ -20,15 +25,22 @@ export class UserService {
       [email],
     );
 
+    if (existing.rows.length > 0 && existing.rows[0].id == userId) {
+      return { message: 'Email did not change' };
+    }
+
     if (existing.rows.length > 0) {
       throw new BadRequestException('Email already in use');
     }
+    const verificationToken = uuidv4();
 
-    await this.db.query(`UPDATE users SET email = $1 WHERE id = $2`, [
-      email,
-      userId,
-    ]);
+    await this.db.query(
+      `UPDATE users SET email = $1, is_verified = $3, verification_token = $4  WHERE id = $2`,
+      [email, userId, false, verificationToken],
+    );
 
-    return { message: 'Email updated successfully' };
+    await this.mailService.sendVerificationEmail(email, verificationToken);
+
+    return { message: 'Email updated successfully, please verify your email' };
   }
 }

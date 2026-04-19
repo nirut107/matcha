@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Flame, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Flame, Mail, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import Loading from "@/app/loading";
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -117,8 +118,8 @@ export default function RegisterPage() {
               value={formData.email}
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
               onChange={(e) => {
-                if (e.target.value.length > 20) {
-                  setError("email must be 20 characters or fewer.");
+                if (e.target.value.length > 100) {
+                  setError("email must be 100 characters or fewer.");
                 } else {
                   setFormData({ ...formData, email: e.target.value });
                 }
@@ -129,11 +130,11 @@ export default function RegisterPage() {
           <div className="relative text-gray-900">
             <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Password"
               required
               value={formData.password}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
+              className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
               onChange={(e) => {
                 if (e.target.value.length > 20) {
                   setError("Password must be between 8 and 20 characters.");
@@ -143,6 +144,14 @@ export default function RegisterPage() {
                 }
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
 
           <button

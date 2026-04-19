@@ -1,16 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { NotificationGateway } from './notification.gateway';
+// import { NotificationGateway } from './notification.gateway';
+import { SocketRegistry } from '../socket/socket.registry';
+import { AppGateway } from '../chat/app.gateway';
 
 @Injectable()
 export class NotificationService {
   constructor(
     private readonly db: DatabaseService,
-    private gateway: NotificationGateway,
+    private readonly gateway: AppGateway,
+    // private gateway: NotificationGateway,
   ) {}
 
   async create(userId: number, type: string, data: any) {
-    console.log('Creating notification for user', userId, 'type', type, 'data', data);
+    console.log(
+      'Creating notification for user',
+      userId,
+      'type',
+      type,
+      'data',
+      data,
+    );
     const result = await this.db.query(
       `
       INSERT INTO notifications (user_id, type, data, created_at)
@@ -27,6 +37,7 @@ export class NotificationService {
 
     const notification = result.rows[0];
     console.log('create noti', type, 'data', data);
+
     this.gateway.sendToUser(userId, { type, data });
 
     return notification;

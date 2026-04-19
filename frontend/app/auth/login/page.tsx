@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Flame, Lock, User, Loader2 } from "lucide-react";
+import { Flame, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import Loading from "@/app/loading";
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetMessage, setResetMessage] = useState({ type: "", text: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,10 +154,10 @@ export default function LoginPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 transition-all text-gray-900 placeholder:text-gray-400"
+                className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 transition-all text-gray-900 placeholder:text-gray-400"
                 value={formData.password}
                 onChange={(e) => {
                   if (e.target.value.length > 20) {
@@ -167,6 +168,14 @@ export default function LoginPage() {
                   }
                 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
             </div>
 
             <div className="flex justify-end px-1">

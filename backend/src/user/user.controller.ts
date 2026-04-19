@@ -4,7 +4,7 @@ import { DatabaseService } from '../database/database.service';
 import { ApiBearerAuth, ApiTags, ApiOkResponse } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { UnauthorizedException } from '@nestjs/common';
-import { MeResponseDto } from './dto/me-response.dto';
+import { MeResponseDto, UpdateEmailDto } from './dto/me-response.dto';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -63,9 +63,10 @@ export class UserController {
 
   @Post('email')
   @UseGuards(JwtGuard)
-  async updateEmail(@Req() req, @Body() email: string) {
-    console.log('Email :', email, req);
-    return this.updateEmail(req.user.userId, email);
+  async updateEmail(@Req() req, @Body() body: UpdateEmailDto) {
+    console.log('User ID :', req.user.userId);
+    console.log('Email :', body);
+    return this.UserService.updateEmail(req.user.userId, body.email);
   }
 
   @Post('online')
