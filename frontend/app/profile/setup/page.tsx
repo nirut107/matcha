@@ -202,6 +202,8 @@ export default function ProfileSetupPage() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [progress, setProgress] = useState(0);
 
+  const [isLocating, setIsLocating] = useState(false);
+
   useEffect(() => {
     setProgress(calculateProgress());
     setError("");
@@ -572,17 +574,21 @@ export default function ProfileSetupPage() {
     }
   };
 
-  // Geolocation (Mandatory Step [cite: 91, 92])
   const handleLocation = () => {
+    setIsLocating(true); // Start loading
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setIsLocating(false); // Stop loading on success
         alert("GPS Location captured!");
       },
       () => {
+        setIsLocating(false); // Stop loading on error
         alert("Location denied. Please select it manually on the map.");
-        setShowMapModal(true); // Automatically open map if GPS fails
-      }
+        setShowMapModal(true);
+      },
+      { timeout: 10000 } // Optional: add a timeout for safety
     );
   };
 
@@ -985,6 +991,7 @@ export default function ProfileSetupPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="button"
+                  disabled={isLocating} // Disable button while fetching
                   onClick={handleLocation}
                   className={`flex-1 flex items-center justify-center gap-2 font-bold px-4 py-4 rounded-2xl transition-all border-2 ${
                     location.lat
@@ -992,8 +999,17 @@ export default function ProfileSetupPage() {
                       : "text-rose-500 bg-rose-50 border-rose-100 hover:bg-rose-100"
                   }`}
                 >
-                  <MapPin size={20} />
-                  {location.lat ? "GPS Verified" : "Use My GPS"}
+                  {isLocating ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Locating...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin size={20} />
+                      {location.lat ? "GPS Verified" : "Use My GPS"}
+                    </>
+                  )}
                 </button>
 
                 <div className="flex-1 flex flex-col relative group">
