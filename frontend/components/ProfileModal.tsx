@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect } from "react";
 
 export interface ProfileImage {
   url: string;
@@ -66,6 +67,14 @@ export default function ProfileModal({
   >("idle");
   const [reason, setReason] = useState("");
   const [reportError, setReportError] = useState("");
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowModal(false);
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [setShowModal]);
+
 
   if (!showModal) return null;
 
@@ -77,7 +86,6 @@ export default function ProfileModal({
 
     return formatDistanceToNow(localDate, { addSuffix: true });
   };
-
   const renderGenderIcon = (gender: string) => {
     const g = gender?.toLowerCase();
     if (g === "male") {
@@ -125,9 +133,9 @@ export default function ProfileModal({
     }
   };
   return (
-    <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center" onClick={() => setShowModal(false)}>
       {/* Adjusted height for mobile browser bars: h-[90svh] uses the visual viewport */}
-      <div className="bg-white w-full max-w-2xl h-[90svh] sm:h-[85vh] overflow-y-auto rounded-t-[2rem] sm:rounded-[3rem] relative shadow-2xl">
+      <div className="bg-white w-full max-w-2xl h-[90svh] sm:h-[85vh] overflow-y-auto rounded-t-[2rem] sm:rounded-[3rem] relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => setShowModal(false)}
           className="absolute top-4 right-4 z-20 bg-black/20 hover:bg-black/40 backdrop-blur-md p-2 rounded-full text-white sm:text-gray-900 sm:bg-gray-100 transition-colors"
