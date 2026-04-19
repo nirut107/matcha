@@ -112,6 +112,7 @@ export default function SocketHandler() {
           break;
 
         case "match":
+          console.log("🔌 [SOCKET] MATCH Notification from:", data.userName);
           setMatch({ userName: data.userName, userImage: data.userImage });
           setIsOpen(true);
           break;
@@ -143,7 +144,6 @@ export default function SocketHandler() {
           break;
         default:
           if (data.type !== "visit" && data.type !== "NEW_MESSAGE") {
-            toast.success(data.type);
             console.log("🔌 [SOCKET] Unhandled Notification:", data);
           }
       }

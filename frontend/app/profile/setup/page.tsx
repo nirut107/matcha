@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import PhotoEditorModal from "@/components/PhotoEditorModal";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { set } from "date-fns";
 
 export interface ImageItem {
   id?: number; // existing image (from DB)
@@ -203,6 +204,9 @@ export default function ProfileSetupPage() {
 
   useEffect(() => {
     setProgress(calculateProgress());
+    setError("");
+    setErrorFirst("");
+    setErrorBio("");
   }, [
     firstName,
     lastName,
@@ -532,10 +536,7 @@ export default function ProfileSetupPage() {
   // Tag Logic (Local only, sent on submit)
   const toggleTag = (tagName: string) => {
     setError("");
-    if (tagName.length > 15) {
-      setError("Tag must be 15 characters or less.");
-      return;
-    }
+
     const formatted = tagName.startsWith("#")
       ? tagName
       : `#${tagName.toLowerCase()}`;
@@ -558,7 +559,10 @@ export default function ProfileSetupPage() {
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "");
-
+    if (clean.length > 15) {
+      setError("Tag must be 15 characters or less.");
+      return;
+    }
     if (!selectedTags) {
       toggleTag(clean);
       setSearchTerm("");

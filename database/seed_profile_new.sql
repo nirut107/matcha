@@ -2055,7 +2055,7 @@ INSERT INTO public.pictures (id, user_id, url, is_profile, "position", created_a
 INSERT INTO public.pictures (id, user_id, url, is_profile, "position", created_at) VALUES (1494, 501, 'https://picsum.photos/seed/501-2/500/500', false, 2, '2026-04-16 12:24:01.222988');
 INSERT INTO public.pictures (id, user_id, url, is_profile, "position", created_at) VALUES (1495, 501, 'https://picsum.photos/seed/501-3/500/500', false, 3, '2026-04-16 12:24:01.257714');
 INSERT INTO public.pictures (id, user_id, url, is_profile, "position", created_at) VALUES (1496, 501, 'https://picsum.photos/seed/501-4/500/500', false, 4, '2026-04-16 12:24:01.29077');
-INSERT INTO public.pictures (id, user_id, url, is_profile, "position", created_at) VALUES (1498, 1, '/uploads/1776342348155-446215702.jpg', true, 1, '2026-04-16 12:25:48.158279');
+INSERT INTO public.pictures (id, user_id, url, is_profile, "position", created_at) VALUES (1498, 1, 'https://picsum.photos/seed/502-3/500/500', true, 1, '2026-04-16 12:25:48.158279');
 
 
 --
