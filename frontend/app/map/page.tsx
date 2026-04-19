@@ -440,6 +440,7 @@ export default function MapPage() {
       map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
 
       map.on("load", () => {
+        map.resize();
         const layers = map.getStyle().layers;
         const labelLayerId = layers?.find(
           (layer) => layer.type === "symbol" && layer.layout?.["text-field"]

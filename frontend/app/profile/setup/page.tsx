@@ -57,6 +57,7 @@ function MapPickerModal({
         zoom: initialCoords ? 12 : 8,
         antialias: true,
       });
+      map.resize();
 
       map.on("click", (e) => {
         const { lng, lat } = e.lngLat;
@@ -94,10 +95,10 @@ function MapPickerModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl">
         <div className="p-6 border-b flex justify-between items-center">
-          <h3 className="font-bold text-xl">Select Your Location</h3>
+          <h3 className="font-bold text-xl text-gray-600">Select Your Location</h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            className="p-2 hover:bg-gray-100 rounded-full text-gray-600"
           >
             <X size={20} />
           </button>
