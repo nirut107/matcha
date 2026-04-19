@@ -67,6 +67,7 @@ export default function ChatPage() {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesCacheRef = useRef<Record<number, any[]>>({});
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -124,7 +125,7 @@ export default function ChatPage() {
       .catch(console.error);
 
     s.on("connect", () => {
-      console.log("userconect")
+      console.log("userconect");
       fetchWithAuth("/user/me")
         .then((res) => res.json())
         .then((data: UserRespone) => {
@@ -565,48 +566,79 @@ export default function ChatPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-gray-400">
+              <div className="flex items-center gap-2 md:gap-4 text-gray-400 relative">
+                {/* ALWAYS VISIBLE: CALLS */}
                 <button
                   onClick={() => handleCallClick("audio")}
-                  className="hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="hover:text-rose-500 transition-colors disabled:opacity-50"
                   disabled={activeChat?.i_blocked_them}
                 >
                   <Phone size={20} />
                 </button>
                 <button
                   onClick={() => handleCallClick("video")}
-                  className="hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="hover:text-rose-500 transition-colors disabled:opacity-50"
                   disabled={activeChat?.i_blocked_them}
                 >
                   <Video size={20} />
                 </button>
-                <button
-                  onClick={() => setIsConfirmOpen(true)}
-                  title="Unmatch / Unlike"
-                  className="hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={activeChat?.i_blocked_them}
-                >
-                  <HeartOff size={20} />
-                </button>
 
-                {/*  Block/Unblock Toggle Button */}
-                <button
-                  onClick={() => setIsBlockModalOpen(true)}
-                  title={
-                    activeChat?.i_blocked_them ? "Unblock user" : "Block user"
-                  }
-                  className={`transition-colors ${
-                    activeChat?.i_blocked_them
-                      ? "text-rose-500"
-                      : "hover:text-rose-500"
-                  }`}
-                >
-                  <Ban size={20} />
-                </button>
+                {/* PC ONLY: Block and HeartOff (Visible only on medium screens and up) */}
+                <div className="hidden md:flex items-center gap-4">
+                  <button
+                    onClick={() => setIsConfirmOpen(true)}
+                    title="Unmatch"
+                    className="hover:text-rose-500 transition-colors"
+                    disabled={activeChat?.i_blocked_them}
+                  >
+                    <HeartOff size={20} />
+                  </button>
 
-                <button className="hover:text-rose-500 transition-colors">
-                  <MoreVertical size={20} />
-                </button>
+                  <button
+                    onClick={() => setIsBlockModalOpen(true)}
+                    className={
+                      activeChat?.i_blocked_them
+                        ? "text-rose-500"
+                        : "hover:text-rose-500"
+                    }
+                  >
+                    <Ban size={20} />
+                  </button>
+                </div>
+
+                {/* MOBILE ONLY: MoreVertical Dropdown */}
+                <div className="md:hidden relative">
+                  <button
+                    onClick={() => setShowMobileMenu(!showMobileMenu)}
+                    className="hover:text-rose-500 p-1"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+
+                  {showMobileMenu && (
+                    <div className="absolute right-0 top-10 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                      <button
+                        onClick={() => {
+                          setIsConfirmOpen(true);
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm flex items-center gap-2 hover:bg-gray-50 text-gray-700"
+                      >
+                        <HeartOff size={16} /> Unmatch
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsBlockModalOpen(true);
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm flex items-center gap-2 hover:bg-gray-50 text-rose-500 font-medium"
+                      >
+                        <Ban size={16} />{" "}
+                        {activeChat?.i_blocked_them ? "Unblock" : "Block User"}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </header>
 
