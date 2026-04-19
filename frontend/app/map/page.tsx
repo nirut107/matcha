@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import Header from "@/components/Header";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { Loader2, Search } from "lucide-react"; // 🔥 Added Search icon
+import { Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ProfileModal from "@/components/ProfileModal";
 import { UserProfile } from "@/components/ProfileModal";
@@ -21,6 +21,7 @@ interface MapUser {
   userId: number;
   first_name: string;
   age: number;
+  gender: string;
   biography: string;
   tags: string[];
   images: Image[];
@@ -36,21 +37,6 @@ interface MapUser {
   create_at: string;
   last_connection: string;
 }
-type Profile = {
-  first_name: string;
-  age: number;
-  biography: string;
-  tags: string[];
-  images: Image[];
-  fame_rating: number;
-  distance: string;
-  is_online: boolean;
-  userId: number;
-  profileIndex: number;
-  profileImage: string;
-  create_at: string;
-  last_connection: string;
-};
 
 export default function MapPage() {
   const router = useRouter();
@@ -63,7 +49,7 @@ export default function MapPage() {
   const [error, setError] = useState("");
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserProfile| null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
   const [isSearchingArea, setIsSearchingArea] = useState(false);
@@ -75,13 +61,26 @@ export default function MapPage() {
   } | null>(null);
 
   useEffect(() => {
-    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+    const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
     if (isFirefox) {
-      alert("The Map feature is not supported on Firefox. Redirecting to the dashboard.");
+      alert(
+        "The Map feature is not supported on Firefox. Redirecting to the dashboard."
+      );
       router.push("/dashboard");
     }
   }, [router]);
 
+  const getGenderSVG = (gender?: string) => {
+    const g = gender?.toLowerCase();
+    if (g === "male") {
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));"><circle cx="10" cy="14" r="6"/><path d="m14.24 9.76 5.38-5.38"/><path d="M15.5 4h4.5v4.5"/></svg>`;
+    }
+    if (g === "female") {
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));"><circle cx="12" cy="9" r="6"/><path d="M12 15v7"/><path d="M9 19h6"/></svg>`;
+    }
+    // Infinity icon for 'other'
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.33-6 4Z"/></svg>`;
+  };
 
   // ==========================================
   // 1. HELPER FUNCTIONS
@@ -218,8 +217,9 @@ export default function MapPage() {
                 user.profileImage || "/default-avatar.png"
               }" style="width: 80px; height: 80px; border-radius: 50%; border: 4px solid white; object-fit: cover; background: white; box-shadow: 0 6px 12px rgba(0,0,0,0.2);" />
             </div>
-            <h3 style="margin: 10px 0 4px 0; font-size: 18px; font-weight: 700; color: #1f2937;">
+           <h3 style="margin: 10px 0 4px 0; font-size: 18px; font-weight: 700; color: #1f2937; display: flex; align-items: center; justify-content: center; gap: 4px;">
               ${user.first_name}, ${user.age}
+              ${getGenderSVG(user.gender)}
             </h3>
             <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 13px;">📍 ${
               user.distance
@@ -229,7 +229,7 @@ export default function MapPage() {
             <div style="display: flex; justify-content: center; margin: 12px 0;">
               <button id="like-${
                 user.userId
-              }" style="width: 46px; height: 46px; border-radius: 50%; border: none; font-size: 26px; cursor: pointer; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.25); background: ${
+              }" style="width: 46px; height: 46px; border-radius: 50%; border: none; font-size: 26px; cursor: pointer; color: white;  background: ${
       user.i_liked_them
         ? "linear-gradient(to right, #6b7280, #4b5563)"
         : "linear-gradient(to right, #f43f5e, #fb923c)"
@@ -294,6 +294,10 @@ export default function MapPage() {
   // 3. FETCH DATA & MAP EFFECTS
   // ==========================================
   useEffect(() => {
+    const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
+    if (isFirefox) {
+      return;
+    }
     const fetchInitialLocation = async () => {
       try {
         const res = await fetchWithAuth("/profile/me");
@@ -308,6 +312,10 @@ export default function MapPage() {
   }, [router]);
 
   useEffect(() => {
+    const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
+    if (isFirefox) {
+      return;
+    }
     if (!mapCenter) return;
 
     const fetchAreaUsers = async () => {
@@ -403,6 +411,10 @@ export default function MapPage() {
   }, [users, loading]);
 
   useEffect(() => {
+    const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
+    if (isFirefox) {
+      return;
+    }
     const initMap = async () => {
       if (!mapContainerRef.current || mapRef.current || !mapCenter) return;
 

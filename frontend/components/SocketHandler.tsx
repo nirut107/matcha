@@ -5,7 +5,6 @@ import { getSocket } from "@/lib/socket";
 import MatchModal from "@/components/MatchModal";
 import toast, { Toaster } from "react-hot-toast";
 import IncomingCallModal from "./IncomingCallModal";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useRouter } from "next/navigation";
 
 export default function SocketHandler() {
@@ -141,60 +140,6 @@ export default function SocketHandler() {
         case "CALL_ENDED":
           console.log("🔌 [SOCKET] Received CALL_ENDED");
           handleEndCall();
-          break;
-        case "NEW_MESSAGE":
-          try {
-            toast.custom(
-              (t) => (
-                <div
-                  className={`${
-                    t.visible ? "animate-enter" : "animate-leave"
-                  } max-w-md w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black/5 overflow-hidden border border-white/20`}
-                >
-                  <div className="flex-1 w-0 p-4">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0 pt-0.5">
-                        <div className="relative">
-                          <img
-                            className="h-12 w-12 rounded-full border-2 border-white object-cover shadow-sm"
-                            src={
-                              data.senderImage ||
-                              "https://via.placeholder.com/150"
-                            }
-                            alt="sender"
-                          />
-                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></div>
-                        </div>
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">
-                          {data.senderName || "Someone"}
-                        </p>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2 italic">
-                          "{data.text}"
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex bg-white/40 dark:bg-black/20 backdrop-blur-md">
-                    <button
-                      onClick={() => {
-                        toast.dismiss(t.id);
-                        router.push("/chat");
-                      }}
-                      className="w-full px-6 flex items-center justify-center text-sm font-bold text-pink-600 hover:text-pink-700 transition-colors uppercase tracking-wider"
-                    >
-                      View
-                    </button>
-                  </div>
-                </div>
-              ),
-              { duration: 4000, position: "bottom-left" }
-            );
-          } catch (error) {
-            console.error("Failed to fetch sender profile", error);
-            toast(`💬 New message: ${data.text}`);
-          }
           break;
         default:
           if (data.type !== "visit" && data.type !== "NEW_MESSAGE") {

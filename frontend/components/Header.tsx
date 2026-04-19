@@ -15,6 +15,7 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import ConfirmModal from "./ConfirmModal";
 import { getSocket } from "@/lib/socket";
 import { formatDistanceToNow } from "date-fns";
+import toast from "react-hot-toast";
 
 export default function Header() {
   const router = useRouter();
@@ -33,24 +34,27 @@ export default function Header() {
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
-    // Detect if the browser is Firefox
-    setIsFirefox(navigator.userAgent.toLowerCase().includes('firefox'));
+    setIsFirefox(navigator.userAgent.toLowerCase().includes("firefox"));
   }, []);
 
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const res = await fetchWithAuth("/notifications/unreadcount");
-        const data = await res.json();
-        console.log(data);
-        setUnreadNotifications(Number(data.notificationsCount) || 0);
+  const fetchCounts = async () => {
+    try {
+      const res = await fetchWithAuth("/notifications/unreadcount");
+      const data = await res.json();
+      setUnreadNotifications(Number(data.notificationsCount) || 0);
+      if (pathname == "/chat") {
+        setUnreadMessages(0);
+      } else {
         setUnreadMessages(Number(data.messagesCount) || 0);
-      } catch (err) {
-        console.error("Failed to fetch unread counts", err);
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch unread counts", err);
+    }
+  };
+
+  useEffect(() => {
     fetchCounts();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!isNotiOpen) setShowAllNotis(false);
@@ -69,14 +73,68 @@ export default function Header() {
   useEffect(() => {
     socketRef.current = getSocket();
     const socket = socketRef.current;
+    socket.on("connect", () => {
+      console.log("user connect");
+      fetchCounts();
+    });
 
     socket.on("notification", (data: any) => {
       console.log(`🔌 [SOCKET] Received: ${data.type}`, data);
 
       if (data.type === "NEW_MESSAGE") {
         if (pathname !== "/chat") {
-          if (pathname !== "/chat") {
-            setUnreadMessages((prev) => (Number(prev) || 0) + 1);
+          setUnreadMessages((prev) => (Number(prev) || 0) + 1);
+          try {
+            toast.custom(
+              (t) => (
+                <div
+                  className={`${
+                    t.visible ? "animate-enter" : "animate-leave"
+                  } max-w-md w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black/5 overflow-hidden border border-white/20`}
+                >
+                  <div className="flex-1 w-0 p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0 pt-0.5">
+                        <div className="relative">
+                          <img
+                            className="h-12 w-12 rounded-full border-2 border-white object-cover shadow-sm"
+                            src={
+                              data.senderImage ||
+                              "https://via.placeholder.com/150"
+                            }
+                            alt="sender"
+                          />
+                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></div>
+                        </div>
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                          {data.senderName || "Someone"}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2 italic">
+                          "{data.text}"
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex bg-white/40 dark:bg-black/20 backdrop-blur-md">
+                    <button
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        router.push("/chat");
+                      }}
+                      className="w-full px-6 flex items-center justify-center text-sm font-bold text-pink-600 hover:text-pink-700 transition-colors uppercase tracking-wider"
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+              ),
+              { duration: 4000, position: "bottom-left" }
+            );
+          } catch (error) {
+            console.error("Failed to fetch sender profile", error);
+            toast(`💬 New message: ${data.text}`);
           }
         }
       } else {
@@ -94,6 +152,7 @@ export default function Header() {
       try {
         const res = await fetchWithAuth("/notifications");
         const data = await res.json();
+        console.log(data);
         setNotifications(data);
         setUnreadNotifications(0);
       } catch (err) {
@@ -151,12 +210,14 @@ export default function Header() {
         {/* CHAT WITH UNREAD COUNT */}
         <button
           className={`${getIconClass("/chat")} relative`}
-          onClick={() => router.push("/chat")}
+          onClick={() => {
+            router.push("/chat");
+          }}
         >
           <MessageCircle size={22} className="sm:w-6 sm:h-6" />
           <Badge count={unreadMessages} />
         </button>
-        
+
         {!isFirefox && (
           <button
             className={getIconClass("/map")}
@@ -226,19 +287,36 @@ export default function Header() {
                       />
                       <div className="flex-1">
                         <p className="text-sm text-gray-800 leading-snug">
-                          <span className="font-bold">
-                            {noti.data.senderName}
-                          </span>{" "}
-                          {noti.data.text.split(noti.data.senderName)[1] ||
-                            noti.data.text}
+                          {noti.data.type == "LIKE" && (
+                            <>
+                              <span className="font-bold">
+                                {noti.data.senderName}
+                              </span>{" "}
+                              <span>liked your profile! ✨</span>
+                            </>
+                          )}
+                          {noti.data.type == "VISIT" && (
+                            <>
+                              <span className="font-bold">
+                                {noti.data.senderName}
+                              </span>{" "}
+                              <span>viewed your profile! 👀</span>
+                            </>
+                          )}
+                          {noti.data.type == "MATCH" && (
+                            <>
+                              <span>You matched with</span>{" "}
+                              <span className="font-bold">
+                                {noti.data.senderName}
+                              </span>
+                              {" ❤️"}
+                            </>
+                          )}
                         </p>
                         <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">
                           {formatDistanceToNow(noti.created_at)}{" "}
                         </p>
                       </div>
-                      {noti.type === "MATCH" && (
-                        <div className="text-xs">❤️</div>
-                      )}
                     </div>
                   ))
                 ) : (

@@ -10,6 +10,7 @@ export class NotificationService {
   ) {}
 
   async create(userId: number, type: string, data: any) {
+    console.log(data,"==================")
     const result = await this.db.query(
       `
       INSERT INTO notifications (user_id, type, data, created_at)

@@ -1,21 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef, ProfilerProps } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  Flame,
-  X,
-  Plus,
-  User,
-  Heart,
-  AlignLeft,
-  MapPin,
-  Loader2,
-  Camera,
-  Star,
-  CheckCircle2,
-} from "lucide-react";
+import { Flame, X, Plus, MapPin, Loader2, Camera, Star } from "lucide-react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import Header from "@/components/Header";
 import PhotoEditorModal from "@/components/PhotoEditorModal";
@@ -28,6 +16,8 @@ export interface ImageItem {
   is_profile?: boolean; // main profile picture
   file?: File; // new uploaded file
 }
+
+const MAX_TAGS = 10;
 
 interface Tag {
   id: number;
@@ -127,7 +117,7 @@ function MapPickerModal({
               Cancel
             </button>
             <button
-              disabled={!tempCoords}
+              disabled={tempCoords ? true : false}
               onClick={() =>
                 tempCoords && onConfirm(tempCoords.lat, tempCoords.lng)
               }
@@ -144,6 +134,11 @@ function MapPickerModal({
 
 export default function ProfileSetupPage() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const [loading, setLoading] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -162,6 +157,8 @@ export default function ProfileSetupPage() {
   const [email, setEmail] = useState("");
   const [hasGoogle, setHasGoogle] = useState(false);
   const [error, setError] = useState("");
+  const [errorFirst, setErrorFirst] = useState("");
+  const [errorBio, setErrorBio] = useState("");
 
   // Image State (Matcha requires up to 5)
   const [previews, setPreviews] = useState<(string | null)[]>([
@@ -202,6 +199,21 @@ export default function ProfileSetupPage() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    setProgress(calculateProgress());
+  }, [
+    firstName,
+    lastName,
+    email,
+    gender,
+    biography,
+    selectedTags,
+    previews,
+    location,
+    preference,
+  ]);
 
   const fetchUser = async () => {
     try {
@@ -271,7 +283,7 @@ export default function ProfileSetupPage() {
     fetchProfile();
     fetchUser();
   }, []);
-  // Load existing tags from NestJS
+
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     fetch(`${baseUrl}/tags`)
@@ -519,14 +531,24 @@ export default function ProfileSetupPage() {
 
   // Tag Logic (Local only, sent on submit)
   const toggleTag = (tagName: string) => {
+    setError("");
+    if (tagName.length > 15) {
+      setError("Tag must be 15 characters or less.");
+      return;
+    }
     const formatted = tagName.startsWith("#")
       ? tagName
       : `#${tagName.toLowerCase()}`;
+
     if (selectedTags && selectedTags.includes(formatted)) {
       setSelectedTags(selectedTags.filter((t) => t !== formatted));
     } else if (!selectedTags) {
       setSelectedTags([formatted]);
     } else {
+      if (selectedTags.length >= MAX_TAGS) {
+        setError(`You can select up to ${MAX_TAGS} tags.`);
+        return;
+      }
       setSelectedTags([...selectedTags, formatted]);
     }
   };
@@ -625,8 +647,6 @@ export default function ProfileSetupPage() {
     if (preference) score += 5;
     return score;
   };
-
-  const progress = calculateProgress();
 
   return (
     <>
@@ -738,7 +758,18 @@ export default function ProfileSetupPage() {
                   type="text"
                   required
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length > 20) {
+                      setErrorFirst(
+                        `First name must be 20 characters or fewer.`
+                      );
+                      setFirstName(firstName);
+                    } else {
+                      setErrorFirst("");
+
+                      setFirstName(e.target.value);
+                    }
+                  }}
                   className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
                 />
               </div>
@@ -751,11 +782,26 @@ export default function ProfileSetupPage() {
                   type="text"
                   required
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length > 20) {
+                      setErrorFirst(
+                        `Last name must be 20 characters or fewer.`
+                      );
+                      setLastName(lastName);
+                    } else {
+                      setErrorFirst("");
+                      setLastName(e.target.value);
+                    }
+                  }}
                   className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900"
                 />
               </div>
             </div>
+            {errorFirst && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-semibold">
+                {errorFirst}
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 ml-1">
                 EMAIL
@@ -837,12 +883,27 @@ export default function ProfileSetupPage() {
                 placeholder="Tell us something interesting..."
                 className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-rose-400 outline-none text-gray-900 resize-none"
                 value={biography}
-                onChange={(e) => setBiography(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length > 150) {
+                    setErrorBio(
+                      "Biography is too long. Please enter less than 150 characters"
+                    );
+                    setBiography(biography);
+                  } else {
+                    setErrorBio("");
+                    setBiography(e.target.value);
+                  }
+                }}
               />
               <p className="text-xs text-gray-400">
-                Type at least 10 characters
+                Type at least 10 characters and up to 150 characters
               </p>
             </div>
+            {errorBio && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-semibold">
+                {errorBio}
+              </div>
+            )}
 
             <div className="space-y-4">
               <label className="text-sm font-bold text-gray-700 ml-1">
@@ -864,7 +925,9 @@ export default function ProfileSetupPage() {
                     </span>
                   ))}
               </div>
-              <p className="text-xs text-gray-400">Choose at least 3 tags</p>
+              <p className="text-xs text-gray-400">
+                Choose at least 3 tags and up to 10 tags
+              </p>
               <div className="relative">
                 <input
                   type="text"
@@ -967,7 +1030,9 @@ export default function ProfileSetupPage() {
                     onFocus={() => {
                       if (suggestions.length > 0) setShowSuggestions(true);
                     }}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    onBlur={() =>
+                      setTimeout(() => setShowSuggestions(false), 200)
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -1004,7 +1069,11 @@ export default function ProfileSetupPage() {
                   disabled={isGeocoding || !cityInput.trim()}
                   className="px-6 py-4 bg-gray-800 text-white font-bold rounded-2xl hover:bg-gray-900 transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px] z-0"
                 >
-                  {isGeocoding ? <Loader2 size={20} className="animate-spin" /> : "Search"}
+                  {isGeocoding ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    "Search"
+                  )}
                 </button>
               </div>
 
@@ -1022,7 +1091,7 @@ export default function ProfileSetupPage() {
             )}
             <button
               type="submit"
-              disabled={loading || progress < 100}
+              disabled={!isMounted || loading || progress < 100}
               className="w-full bg-gradient-to-r from-rose-500 to-orange-400 text-white font-black py-5 rounded-2xl shadow-xl shadow-rose-200 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
             >
               {loading ? (

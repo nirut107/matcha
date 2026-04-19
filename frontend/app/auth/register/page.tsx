@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Flame, Mail, Lock, User, Loader2 } from "lucide-react";
 import Loading from "@/app/loading";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -45,7 +47,7 @@ export default function RegisterPage() {
       });
 
       if (response.ok) {
-        router.push("/auth/login");
+        setShowVerifyModal(true);
       } else {
         const data = await response.json();
         setError(
@@ -93,10 +95,16 @@ export default function RegisterPage() {
               type="text"
               placeholder="Username"
               required
+              value={formData.username}
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
+              onChange={(e) => {
+                if (e.target.value.length > 20) {
+                  setError("Username must be 20 characters or fewer.");
+                } else {
+                  setError("");
+                  setFormData({ ...formData, username: e.target.value });
+                }
+              }}
             />
           </div>
 
@@ -106,10 +114,15 @@ export default function RegisterPage() {
               type="email"
               placeholder="Email address"
               required
+              value={formData.email}
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={(e) => {
+                if (e.target.value.length > 20) {
+                  setError("email must be 20 characters or fewer.");
+                } else {
+                  setFormData({ ...formData, email: e.target.value });
+                }
+              }}
             />
           </div>
 
@@ -119,10 +132,16 @@ export default function RegisterPage() {
               type="password"
               placeholder="Password"
               required
+              value={formData.password}
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none placeholder:text-gray-400"
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              onChange={(e) => {
+                if (e.target.value.length > 20) {
+                  setError("Password must be between 8 and 20 characters.");
+                } else {
+                  setError("");
+                  setFormData({ ...formData, password: e.target.value });
+                }
+              }}
             />
           </div>
 
@@ -142,6 +161,16 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+      <ConfirmModal
+        isOpen={showVerifyModal}
+        title="Verify your email"
+        message="We've sent a verification link to your email. Please verify your email before logging in."
+        confirmText="Go to Login"
+        onConfirm={() => {
+          setShowVerifyModal(false);
+          router.push("/auth/login");
+        }}
+      />
     </div>
   );
 }

@@ -26,6 +26,7 @@ export class SwipeService {
 
     const total = Number(res.rows[0].total);
     const likes = Number(res.rows[0].likes);
+    console.log('total = ', total, 'likes = ', likes);
 
     if (total < 10) return;
 
@@ -114,6 +115,7 @@ export class SwipeService {
       }
 
       await this.db.query('COMMIT');
+      this.updateFameRating(targetId);
       return { isMatch };
     } catch (e) {
       await this.db.query('ROLLBACK');
@@ -167,7 +169,7 @@ export class SwipeService {
       const matchBroken = (deleteMatchRes.rowCount ?? 0) > 0;
 
       await this.db.query('COMMIT');
-
+      this.updateFameRating(targetId);
       return { success: true, matchBroken };
     } catch (e) {
       await this.db.query('ROLLBACK');

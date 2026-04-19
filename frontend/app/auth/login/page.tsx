@@ -63,7 +63,7 @@ export default function LoginPage() {
       setIsFadingOut(true);
       await new Promise((r) => setTimeout(r, 500));
       setLoading(false);
-      sessionStorage.setItem("hasSeenLoginSplash", "true")
+      sessionStorage.setItem("hasSeenLoginSplash", "true");
     };
     run();
   }, []);
@@ -138,9 +138,14 @@ export default function LoginPage() {
                 required
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 transition-all text-gray-900 placeholder:text-gray-400"
                 value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
+                onChange={(e) => {
+                  if (e.target.value.length > 20) {
+                    setError("Username must be 20 characters or fewer.");
+                  } else {
+                    setError("");
+                    setFormData({ ...formData, username: e.target.value });
+                  }
+                }}
               />
             </div>
 
@@ -153,9 +158,14 @@ export default function LoginPage() {
                 required
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 transition-all text-gray-900 placeholder:text-gray-400"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
+                onChange={(e) => {
+                  if (e.target.value.length > 20) {
+                    setError("Password must be between 8 and 20 characters.");
+                  } else {
+                    setError("");
+                    setFormData({ ...formData, password: e.target.value });
+                  }
+                }}
               />
             </div>
 

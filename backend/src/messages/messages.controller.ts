@@ -1,6 +1,6 @@
 import { MessagesService } from './messages.service';
 import { JwtGuard } from 'src/auth/jwt.guard';
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards, Post } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
 
 @Controller('messages')
@@ -15,13 +15,13 @@ export class MessagesController {
     type: Number,
     example: 3,
   })
-  async getMessage(
-    @Req() req,
-    @Param('matchId') matchId: string,
-  ) {
-    return this.messagesService.getMessages(
-      req.user.userId,
-      Number(matchId),
-    );
+  async getMessage(@Req() req, @Param('matchId') matchId: string) {
+    return this.messagesService.getMessages(req.user.userId, Number(matchId));
+  }
+
+  @Post('read/:matchId')
+  @UseGuards(JwtGuard)
+  async markAsRead(@Req() req, @Param('matchId') matchId: string) {
+    return this.messagesService.markAsRead(req.user.userId, Number(matchId));
   }
 }

@@ -10,7 +10,9 @@ import {
   Send,
   Heart, // 🔥 Added
   Sparkles,
-  AwardIcon,
+  Mars, // 🔥 Added
+  Venus, // 🔥 Added
+  Infinity,
 } from "lucide-react";
 import { useState } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
@@ -28,7 +30,7 @@ export interface UserProfile {
   age: number;
   biography: string;
   fame_rating: number;
-
+  gender: string;
   images: ProfileImage[];
   tags: string[];
   profileIndex: number;
@@ -74,6 +76,17 @@ export default function ProfileModal({
     const localDate = new Date(dbDate.getTime() + 7 * 60 * 60 * 1000);
 
     return formatDistanceToNow(localDate, { addSuffix: true });
+  };
+
+  const renderGenderIcon = (gender: string) => {
+    const g = gender?.toLowerCase();
+    if (g === "male") {
+      return <Mars size={28} className="text-blue-400 drop-shadow-md" />;
+    }
+    if (g === "female") {
+      return <Venus size={28} className="text-pink-400 drop-shadow-md" />;
+    }
+    return <Infinity size={28} className="text-purple-400 drop-shadow-md" />;
   };
 
   const handleReport = async () => {
@@ -149,10 +162,12 @@ export default function ProfileModal({
             {/* FIX 2: Reduce padding on mobile (p-5 instead of p-8) */}
             <div className="p-5 sm:p-8">
               <div className="flex items-center gap-3 mb-2">
-                {/* FIX 3: Smaller text on mobile (text-3xl) */}
-                <h2 className="text-3xl sm:text-4xl font-black text-gray-900">
+                {/* 🔥 Added flex, items-center, and gap-2 to align the icon beautifully */}
+                <h2 className="text-3xl sm:text-4xl font-black text-gray-900 flex items-center gap-2">
                   {profile.first_name}, {profile.age}
+                  {renderGenderIcon(profile.gender)}
                 </h2>
+
                 {profile?.is_online ? (
                   <span className="bg-green-50 text-green-600 border border-green-100 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />

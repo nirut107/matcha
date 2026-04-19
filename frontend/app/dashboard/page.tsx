@@ -21,6 +21,7 @@ type Profile = {
   first_name: string;
   age: number;
   biography: string;
+  gender:string;
   tags: string[];
   images: Image[];
   fame_rating: number;

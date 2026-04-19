@@ -48,7 +48,6 @@ function formatTime(dateString: string, type: "chat" | "list" = "chat") {
     hour: "2-digit",
     minute: "2-digit",
   });
-
 }
 
 export default function ChatPage() {
@@ -67,6 +66,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesCacheRef = useRef<Record<number, any[]>>({});
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -123,48 +123,139 @@ export default function ChatPage() {
       })
       .catch(console.error);
 
-    s.on("newMessage", (msg: any) => {
+    s.on("connect", () => {
+      console.log("userconect")
+      fetchWithAuth("/user/me")
+        .then((res) => res.json())
+        .then((data: UserRespone) => {
+          if (data) {
+            if (!data.hasProfile) {
+              router.push("profile/setup");
+            }
+            console.log(data.id, "this should be my Id");
+            setUserId(data.id);
+            userIdRef.current = data.id;
+          } else {
+          }
+        });
+
+      fetchWithAuth("/matches")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.length > 0) {
+            setMatches(data);
+            // setActiveChat(data[0]);
+            // handleSelectChat(data[0]);
+            s.emit("joinMatch", { matchId: Number(data[0]?.id) });
+          }
+        })
+        .catch(console.error);
+    });
+    s.on("notification", (data: any) => {
+      if (data.type !== "NEW_MESSAGE") return;
+
       const myId = userIdRef.current;
-      console.log(myId, "myId");
-      if (Number(msg.sender_id) != Number(myId)) {
-        const formattedMsg = {
-          id: msg.id || Date.now(),
-          sender: "them",
-          text: msg.content,
-          time: formatTime(msg.created_at || new Date().toISOString()),
-        };
+      const matchId = data.matchId;
+
+      const formattedMsg = {
+        id: Date.now(),
+        sender: Number(data.senderId) === Number(myId) ? "me" : "them",
+        text: data.text,
+        time: formatTime(new Date().toISOString()),
+      };
+
+      const isCurrentChat = activeMatchRef.current === matchId;
+      const isMine = Number(data.senderId) === Number(myId);
+
+      // ✅ CACHE MESSAGE (IMPORTANT)
+      if (!messagesCacheRef.current[matchId]) {
+        messagesCacheRef.current[matchId] = [];
+      }
+      messagesCacheRef.current[matchId].push(formattedMsg);
+
+      // ✅ IF currently open → show instantly
+      if (isCurrentChat) {
         setChatHistory((prev) => [...prev, formattedMsg]);
+
+        // mark as read
+        fetchWithAuth(`/messages/read/${matchId}`, {
+          method: "POST",
+        }).catch(() => {});
       }
 
+      // ✅ UPDATE MATCH LIST
       setMatches((prevMatches) => {
         return prevMatches
           .map((match) => {
-            if (match.id === msg.match_id) {
-              const isCurrentChat = activeMatchRef.current === msg.match_id;
-              const isMine = Number(msg.sender_id) === Number(myId);
-
+            if (match.id === matchId) {
               return {
                 ...match,
-                last_message: msg.content,
-                // last_message_time: formatTime(msg.created_at, "list"),
-                last_message_time: msg.created_at || new Date().toISOString(),
-
+                last_message: data.text,
+                last_message_time: new Date().toISOString(),
                 unread_count: isMine
                   ? match.unread_count
                   : isCurrentChat
                   ? 0
-                  : (match.unread_count ?? 0) + 1,
+                  : (Number(match.unread_count) ?? 0) + 1,
               };
             }
             return match;
           })
           .sort((a, b) => {
-            if (a.id === msg.match_id) return -1;
-            if (b.id === msg.match_id) return 1;
+            if (a.id === matchId) return -1;
+            if (b.id === matchId) return 1;
             return 0;
           });
       });
     });
+    s.on("newMessage", (msg: any) => {
+      const myId = userIdRef.current;
+      const matchId = msg.match_id;
+
+      const formattedMsg = {
+        id: msg.id || Date.now(),
+        sender: Number(msg.sender_id) === Number(myId) ? "me" : "them",
+        text: msg.content,
+        time: formatTime(msg.created_at || new Date().toISOString()),
+      };
+
+      const isCurrentChat = activeMatchRef.current === matchId;
+      const isMine = Number(msg.sender_id) === Number(myId);
+
+      if (isCurrentChat) {
+        setChatHistory((prev) => [...prev, formattedMsg]);
+      }
+      if (isCurrentChat && !isMine) {
+        fetchWithAuth(`/messages/read/${matchId}`, {
+          method: "POST",
+        }).catch(() => {});
+      }
+
+      setMatches((prevMatches) => {
+        return prevMatches
+          .map((match) => {
+            if (match.id === matchId) {
+              return {
+                ...match,
+                last_message: msg.content,
+                last_message_time: msg.created_at || new Date().toISOString(),
+                unread_count: isMine
+                  ? match.unread_count
+                  : isCurrentChat
+                  ? 0
+                  : (Number(match.unread_count) ?? 0) + 1,
+              };
+            }
+            return match;
+          })
+          .sort((a, b) => {
+            if (a.id === matchId) return -1;
+            if (b.id === matchId) return 1;
+            return 0;
+          });
+      });
+    });
+
     const run = async () => {
       setIsFadingOut(true);
       await new Promise((r) => setTimeout(r, 500));
@@ -176,7 +267,8 @@ export default function ChatPage() {
       if (activeMatchRef.current) {
         s.emit("leaveMatch", { matchId: activeMatchRef.current });
       }
-
+      s.off("connect");
+      s.off("notification");
       s.off("newMessage");
     };
   }, []);
@@ -200,19 +292,22 @@ export default function ChatPage() {
     setMatches((prev) =>
       prev.map((m) => (m.id === match.id ? { ...m, unread_count: 0 } : m))
     );
+    if (messagesCacheRef.current[match.id]) {
+      setChatHistory(messagesCacheRef.current[match.id]);
+    } else {
+      const res = await fetchWithAuth(`/messages/${match.id}`);
+      const data = await res.json();
+      console.log(data, "message");
+      const formatted = data.result.map((msg: any) => ({
+        id: msg.id,
+        sender: msg.sender_id === data.userId ? "me" : "them",
+        text: msg.content,
+        time: formatTime(msg.created_at),
+      }));
 
-    const res = await fetchWithAuth(`/messages/${match.id}`);
-    const data = await res.json();
-    console.log(data, "message");
-    const formatted = data.result.map((msg: any) => ({
-      id: msg.id,
-      sender: msg.sender_id === data.userId ? "me" : "them",
-      text: msg.content,
-      time: formatTime(msg.created_at),
-    }));
-
-    setChatHistory(formatted);
-    return data.userId;
+      setChatHistory(formatted);
+      messagesCacheRef.current[match.id] = formatted;
+    }
   };
 
   const executeUnlike = async () => {
@@ -249,10 +344,11 @@ export default function ChatPage() {
       }),
     };
 
-    // optimistic UI
     setChatHistory((prev) => [...prev, newMsg]);
 
-    const nowISO = new Date((new Date()).getTime() - 7 * 60 * 60 * 1000).toISOString();
+    const nowISO = new Date(
+      new Date().getTime() - 7 * 60 * 60 * 1000
+    ).toISOString();
     setMatches((prev) => {
       return prev
         .map((m) => {
@@ -265,7 +361,7 @@ export default function ChatPage() {
           }
           return m;
         })
-        .sort((a, b) => { // This bumps the newly messaged person to the top
+        .sort((a, b) => {
           if (activeChat && a.id === activeChat.id) return -1;
           if (activeChat && b.id === activeChat.id) return 1;
           return 0;
@@ -408,11 +504,14 @@ export default function ChatPage() {
                         {match.first_name} {match.i_blocked_them && "(Blocked)"}
                       </h3>
                       <span className="text-[10px] font-bold text-gray-400 uppercase">
-                        {match.last_message_time?
-                        formatDistanceToNow(
-                          new Date((new Date(match.last_message_time)).getTime() + 7 * 60 * 60 * 1000)
-                        ) + " ago"
-                        : "New Match"}
+                        {match.last_message_time
+                          ? formatDistanceToNow(
+                              new Date(
+                                new Date(match.last_message_time).getTime() +
+                                  7 * 60 * 60 * 1000
+                              )
+                            ) + " ago"
+                          : "New Match"}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 truncate mt-0.5">
