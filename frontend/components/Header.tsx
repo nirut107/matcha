@@ -312,6 +312,14 @@ export default function Header() {
                               {" ❤️"}
                             </>
                           )}
+                          {noti.data.type == "UNLIKE" && (
+                            <>
+                              <span className="font-bold">
+                                {noti.data.senderName}
+                              </span>{" "}
+                              <span>unliked your 💔</span>
+                            </>
+                          )}
                         </p>
                         <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">
                           {formatDistanceToNow(noti.created_at)}{" "}

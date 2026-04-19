@@ -10,7 +10,7 @@ export class NotificationService {
   ) {}
 
   async create(userId: number, type: string, data: any) {
-    console.log(data,"==================")
+    console.log('Creating notification for user', userId, 'type', type, 'data', data);
     const result = await this.db.query(
       `
       INSERT INTO notifications (user_id, type, data, created_at)
@@ -18,7 +18,7 @@ export class NotificationService {
       ON CONFLICT (user_id, type, (data->>'senderId')) 
       DO UPDATE SET 
         data = EXCLUDED.data,
-        created_at = NOW(),
+        created_at = clock_timestamp(),
         is_read = false
       RETURNING *
       `,

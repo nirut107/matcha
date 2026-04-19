@@ -417,7 +417,16 @@ export default function MapPage() {
     }
     const initMap = async () => {
       if (!mapContainerRef.current || mapRef.current || !mapCenter) return;
-
+      if (
+        typeof mapCenter.lat !== "number" ||
+        typeof mapCenter.lng !== "number" ||
+        isNaN(mapCenter.lat) ||
+        isNaN(mapCenter.lng)
+      ) {
+        console.warn("Invalid coordinates detected. Redirecting to setup...");
+        router.push("/profile/setup");
+        return;
+      }
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: "mapbox://styles/mapbox/light-v11",
