@@ -15,7 +15,7 @@ interface PhotoEditorModalProps {
 const FILTERS = [
   { name: "Normal", value: "none" },
   { name: "Warm", value: "sepia(0.5) contrast(1.1)" },
-  { name: "Cool", value: "hue-rotate(180deg) saturate(1.5)" },
+  { name: "Invert", value: "hue-rotate(180deg) saturate(1.5)" },
   { name: "B&W", value: "grayscale(1)" },
   { name: "Pop", value: "contrast(1.2) saturate(1.5)" },
 ];
