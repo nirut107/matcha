@@ -748,10 +748,23 @@ export default function ProfileSetupPage() {
                           onClick={() => {
                             const n = [...previews];
                             const f = [...files];
-                            n[i] = null;
-                            f[i] = null;
+                            const e = [...existingImages]; // 1. Grab the existing images state
+
+                            n[i] = null; // Clear preview
+                            f[i] = null; // Clear new file
+                            e[i] = null; // 2. Clear the database ID so it actually deletes
+
+                            if (profilePicIndex === i) {
+                              const firstAvailable = n.findIndex(
+                                (url) => url !== null
+                              );
+                              setProfilePicIndex(
+                                firstAvailable !== -1 ? firstAvailable : 0
+                              );
+                            }
                             setPreviews(n);
                             setFiles(f);
+                            setExistingImages(e); // 3. Update the state
                           }}
                           className="absolute top-2 right-2 bg-black/40 backdrop-blur-md p-1 rounded-full text-white hover:bg-black"
                         >
