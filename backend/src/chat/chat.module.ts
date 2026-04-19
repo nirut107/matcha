@@ -9,7 +9,7 @@ import { DatabaseModule } from 'src/database/database.module';
 
 @Module({
   imports: [JwtModule, SocketModule, DatabaseModule],
-  providers: [AppGateway, SocketRegistry, DatabaseService],
+  providers: [SocketRegistry, DatabaseService],
   controllers: [ChatController],
   // exports: [SocketRegistry],
 })

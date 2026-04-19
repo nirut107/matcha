@@ -332,6 +332,7 @@ export default function ChatPage() {
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
+    console.log("🚀 SEND TRIGGERED");
     e.preventDefault();
     if (!message.trim()) return;
 

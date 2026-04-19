@@ -26,7 +26,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly db: DatabaseService,
     private readonly registry: SocketRegistry,
-  ) {}
+  ) {
+    console.log('🚀 AppGateway instance created');
+  }
 
   // ========================
   // 🔐 AUTH
@@ -123,6 +125,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { matchId: number; content: string },
   ) {
     const userId = socket.data.userId;
+    console.log('🔥 sendMessage from socket:', socket.id, userId);
 
     const matchRes = await this.db.query(
       `SELECT user1_id, user2_id FROM matches WHERE id = $1`,
@@ -134,7 +137,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const match = matchRes.rows[0];
     const recipientId =
       match.user1_id === userId ? match.user2_id : match.user1_id;
-
+    console.log('recipientId', recipientId, data.content);
     const result = await this.db.query(
       `INSERT INTO messages (match_id, sender_id, content)
        VALUES ($1, $2, $3)
@@ -146,10 +149,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const room = `match_${data.matchId}`;
 
-    // send to active chat users
     socket.to(room).emit('newMessage', message);
 
-    // check if recipient is in room
     const roomSockets = this.server.sockets.adapter.rooms.get(room);
     const recipientSockets = this.registry.get(recipientId);
 
@@ -164,18 +165,31 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    // 🔥 if not in room → send notification
     if (!inRoom) {
       const senderProfile = await this.db.query(
-        `SELECT first_name FROM profiles WHERE user_id = $1`,
+        `
+        SELECT 
+          p.first_name,
+          (
+            SELECT url 
+            FROM pictures 
+            WHERE user_id = p.user_id AND is_profile = true 
+            LIMIT 1
+          ) AS profile_image
+        FROM profiles p
+        WHERE p.user_id = $1
+        `,
         [userId],
       );
+
+      const sender = senderProfile.rows[0];
 
       this.sendToUser(recipientId, {
         type: 'NEW_MESSAGE',
         matchId: data.matchId,
         senderId: userId,
-        senderName: senderProfile.rows[0]?.first_name,
+        senderName: sender?.first_name || 'Someone',
+        senderImage: sender?.profile_image || null,
         text: data.content,
       });
     }
