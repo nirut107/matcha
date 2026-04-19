@@ -118,7 +118,7 @@ function MapPickerModal({
               Cancel
             </button>
             <button
-              disabled={tempCoords ? true : false}
+              disabled={!tempCoords}
               onClick={() =>
                 tempCoords && onConfirm(tempCoords.lat, tempCoords.lng)
               }
