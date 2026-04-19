@@ -38,14 +38,24 @@ export default function Header() {
   } | null>(null);
 
   const socketRef = useRef<any>(null);
-
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // New state for mobile menu
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   useEffect(() => {
     setIsFirefox(navigator.userAgent.toLowerCase().includes("firefox"));
   }, []);
 
   const fetchCounts = async () => {
     try {
-      
+
       const res = await fetchWithAuth("/notifications/unreadcount");
       const data = await res.json();
       console.log("Fetching unread counts...", data.notificationsCount, data.messagesCount);
@@ -209,48 +219,34 @@ export default function Header() {
   return (
     <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center sticky top-0 z-50">
       <div
-        className="flex items-center gap-2 cursor-pointer group"
+        className="flex items-center gap-2 cursor-pointer group shrink-0"
         onClick={() => pathname !== "/dashboard" && router.push("/dashboard")}
       >
         <div className="bg-gradient-to-tr from-rose-500 to-orange-400 p-1.5 rounded-lg shadow-sm group-hover:scale-105 transition-transform">
           <Flame
-            size={20}
+            size={18}
             className="sm:w-6 sm:h-6"
             color="white"
             fill="white"
           />
         </div>
-        <span className="text-lg sm:text-xl font-black text-gray-900 uppercase tracking-tight">
+        <span className="text-lg sm:text-xl font-black text-gray-900 uppercase tracking-tighter sm:tracking-tight">
           Matcha
         </span>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-1 sm:gap-4">
         {/* CHAT WITH UNREAD COUNT */}
         <button
-          className={`${getIconClass("/chat")} relative`}
+          className={`${getIconClass("/chat")} relative p-2`}
           onClick={() => {
             router.push("/chat");
           }}
         >
-          <MessageCircle size={22} className="sm:w-6 sm:h-6" />
+          <MessageCircle size={20} className="sm:w-6 sm:h-6" />
           <Badge count={unreadMessages} />
         </button>
 
-        {!isFirefox && (
-          <button
-            className={getIconClass("/map")}
-            onClick={() => router.push("/map")}
-          >
-            <Map size={22} className="sm:w-6 sm:h-6" />
-          </button>
-        )}
-        <button
-          className={getIconClass("/calendar")}
-          onClick={() => router.push("/calendar")}
-        >
-          <Calendar size={22} className="sm:w-6 sm:h-6" />
-        </button>
 
         {/* NOTIFICATIONS WITH UNREAD COUNT */}
         <div className="relative" ref={notiRef}>
@@ -262,7 +258,7 @@ export default function Header() {
             }`}
             onClick={handleNotiClick}
           >
-            <Bell size={22} />
+            <Bell size={20} className="sm:w-6 sm:h-6"/>
             {unreadNotifications > 0 && <Badge count={unreadNotifications} />}
           </button>
 
@@ -407,21 +403,53 @@ export default function Header() {
           )}
         </div>
 
-        <button
-          className={getIconClass("/profile/setup")}
-          onClick={() => router.push("/profile/setup")}
-        >
-          <Settings size={22} className="sm:w-6 sm:h-6" />
-        </button>
+        <div className="hidden md:flex items-center gap-2">
+    {!isFirefox && (
+      <button className={getIconClass("/map")} onClick={() => router.push("/map")}>
+        <Map size={22} />
+      </button>
+    )}
+    <button className={getIconClass("/calendar")} onClick={() => router.push("/calendar")}>
+      <Calendar size={22} />
+    </button>
+    <button className={getIconClass("/profile/setup")} onClick={() => router.push("/profile/setup")}>
+      <Settings size={22} />
+    </button>
+    <div className="h-6 w-[1px] bg-gray-200 mx-1"></div>
+    <button className="text-gray-400 hover:text-rose-600 p-1" onClick={() => setIsLogoutModalOpen(true)}>
+      <LogOut size={22} />
+    </button>
+  </div>
 
-        <div className="hidden sm:block h-6 w-[1px] bg-gray-200 mx-1"></div>
+  {/* MOBILE ONLY MENU: (Visible only on small screens) */}
+  <div className="md:hidden relative" ref={menuRef}>
+    <button
+      onClick={() => setIsMenuOpen(!isMenuOpen)}
+      className={`p-2 rounded-md ${isMenuOpen ? "text-rose-500 bg-rose-50" : "text-gray-400"}`}
+    >
+      <Settings size={20} />
+    </button>
 
-        <button
-          className="text-gray-400 hover:text-rose-600 p-1"
-          onClick={() => setIsLogoutModalOpen(true)}
-        >
-          <LogOut size={22} className="sm:w-6 sm:h-6" />
+    {isMenuOpen && (
+      <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden py-2 z-[60] animate-in fade-in slide-in-from-top-2">
+         {!isFirefox && (
+          <button onClick={() => {router.push("/map"); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50">
+            <Map size={18} /> Explore Map
+          </button>
+        )}
+        <button onClick={() => {router.push("/calendar"); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50">
+          <Calendar size={18} /> Dates
         </button>
+        <button onClick={() => {router.push("/profile/setup"); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50">
+          <Settings size={18} /> My Profile
+        </button>
+        <div className="h-[1px] bg-gray-100 my-1 mx-2" />
+        <button onClick={() => {setIsLogoutModalOpen(true); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-rose-500 font-bold hover:bg-rose-50">
+          <LogOut size={18} /> Log Out
+        </button>
+      </div>
+    )}
+  </div>
       </div>
       <MatchModal
         isOpen={isOpen}
