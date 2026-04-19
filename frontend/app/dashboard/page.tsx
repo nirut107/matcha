@@ -21,7 +21,7 @@ type Profile = {
   first_name: string;
   age: number;
   biography: string;
-  gender:string;
+  gender: string;
   tags: string[];
   images: Image[];
   fame_rating: number;
@@ -59,7 +59,9 @@ export default function Dashboard() {
   const [showVisitHistory, setShowVisitHistory] = useState(false);
 
   // Modal States
-  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalLoading, setIsModalLoading] = useState(false);
 
@@ -154,7 +156,7 @@ export default function Dashboard() {
   const currentProfile = profiles[currentIndex];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col h-screen">
       {loading && (
         <div
           className={`fixed inset-0 z-50 transition-opacity duration-1000 ease-in-out ${
@@ -168,9 +170,9 @@ export default function Dashboard() {
       <Header />
 
       {/* Changed justify-center to justify-start so it pushes from the top */}
-      <main className="grow flex flex-col items-center justify-start p-4">
+      <main className="flex-1 flex flex-col items-center justify-between p-2 sm:p-4 overflow-hidden">
         {/* --- TOP ACTION BAR (50/50 Split & High Animation) --- */}
-        <div className="w-full max-w-md lg:max-w-lg flex items-center gap-3 mb-4">
+        <div className="w-full max-w-md lg:max-w-lg flex items-center gap-2 mb-2 sm:mb-4 shrink-0">
           {/* flex-1 makes Filters take exactly 50% of the available width */}
           <div className="flex-1">
             <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
@@ -196,7 +198,7 @@ export default function Dashboard() {
           currentFilters={activeFilters}
         />
         {!currentProfile ? (
-          <div className="flex flex-col items-center justify-center text-center p-6 mt-10">
+          <div className="flex-1 flex-col items-center justify-center text-center p-6 mt-10">
             <div className="bg-gradient-to-r from-rose-500 to-orange-400 p-3 rounded-2xl mb-4 shadow-lg">
               <Flame size={40} color="white" fill="white" />
             </div>
@@ -212,14 +214,19 @@ export default function Dashboard() {
             </button>
           </div>
         ) : (
-          <div className="w-full max-w-md lg:max-w-lg flex flex-col grow">
-            <ProfileCard key={currentProfile.userId} profile={currentProfile} />
+          <div className="w-full max-w-md lg:max-w-lg flex flex-col flex-1 min-h-0">
 
-            <ActionButtons
-              onLike={() => handleAction("like")}
-              onPass={() => handleAction("pass")}
-              onInfo={() => handleShowInfo(currentProfile)}
-            />
+              <ProfileCard
+                key={currentProfile.userId}
+                profile={currentProfile}
+              />
+
+
+              <ActionButtons
+                onLike={() => handleAction("like")}
+                onPass={() => handleAction("pass")}
+                onInfo={() => handleShowInfo(currentProfile)}
+              />
           </div>
         )}
       </main>
@@ -320,7 +327,7 @@ export default function Dashboard() {
         />
       )}
 
-      <footer className="bg-white border-t p-4 text-center">
+      <footer className="hidden sm:block bg-white border-t p-2 text-center shrink-0">
         <p className="text-xs text-gray-300">Matcha © 2026</p>
       </footer>
     </div>
