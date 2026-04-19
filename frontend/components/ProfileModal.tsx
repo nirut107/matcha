@@ -18,6 +18,7 @@ import { useState } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface ProfileImage {
   url: string;
@@ -62,19 +63,61 @@ export default function ProfileModal({
   isModalLoading,
   profile,
 }: Props) {
+  console.log("ProfileModal rendered with profile:", profile);
   const [reportStep, setReportStep] = useState<
     "idle" | "form" | "submitting" | "success"
   >("idle");
   const [reason, setReason] = useState("");
   const [reportError, setReportError] = useState("");
+  const [current, setCurrent] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+  console.log("Current image index:", current);
+  const next = () => {
+    setCurrent((prev) => (prev === profile.images.length - 1 ? 0 : prev + 1));
+  };
+
+  const prev = () => {
+    setCurrent((prev) => (prev === 0 ? profile.images.length - 1 : prev - 1));
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null); // Reset touch end
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && current < (profile.images?.length || 0) - 1) {
+      next();
+    }
+
+    if (isRightSwipe && current > 0) {
+      prev();
+    }
+  };
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowModal(false);
+      if (e.key === "Escape") {
+        setCurrent(0);
+        setShowModal(false);
+      }
     };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [setShowModal]);
-
 
   if (!showModal) return null;
 
@@ -125,6 +168,7 @@ export default function ProfileModal({
       setTimeout(() => {
         setReportStep("idle");
         setReason("");
+        setCurrent(0);
         setShowModal(false);
       }, 2000);
     } catch (err: any) {
@@ -133,12 +177,24 @@ export default function ProfileModal({
     }
   };
   return (
-    <div className="fixed inset-0 z-70 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center" onClick={() => setShowModal(false)}>
+    <div
+      className="fixed inset-0 z-70 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center"
+      onClick={() => {
+        setCurrent(0);
+        setShowModal(false);
+      }}
+    >
       {/* Adjusted height for mobile browser bars: h-[90svh] uses the visual viewport */}
-      <div className="bg-white w-full max-w-2xl h-[90svh] sm:h-[85vh] overflow-y-auto rounded-t-[2rem] sm:rounded-[3rem] relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="bg-white w-full no-scrollbar max-w-2xl h-[90svh] sm:h-[85svh] overflow-y-auto rounded-t-[2rem] sm:rounded-[3rem] relative shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
-          onClick={() => setShowModal(false)}
-          className="absolute top-4 right-4 z-20 bg-black/20 hover:bg-black/40 backdrop-blur-md p-2 rounded-full text-white sm:text-gray-900 sm:bg-gray-100 transition-colors"
+          onClick={() => {
+            setCurrent(0);
+            setShowModal(false);
+          }}
+          className="absolute top-4 right-4 z-20 bg-black/20 hover:bg-black/40 hover:text-white backdrop-blur-md p-2 rounded-full text-white sm:text-gray-900 sm:bg-gray-100 transition-colors"
         >
           <X size={20} />
         </button>
@@ -149,20 +205,78 @@ export default function ProfileModal({
           </div>
         ) : (
           <div className="pb-8 sm:pb-12">
-            {/* FIX 1: Use relative height (45vh) on mobile, fixed (450px) on larger screens */}
-            <div className="flex overflow-x-auto snap-x snap-mandatory h-[45vh] sm:h-[450px] bg-gray-100 no-scrollbar">
+            <div
+              className="relative h-[45vh] sm:h-[450px] bg-gray-100 overflow-hidden group"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
               {profile.images && profile.images.length > 0 ? (
-                profile.images.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img.url}
-                    className="w-full h-full object-cover shrink-0 snap-center"
-                    alt="User gallery"
-                  />
-                ))
+                <>
+                  {/* Images */}
+                  <div
+                    className="flex h-full transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)"
+                    style={{
+                      transform: `translateX(-${current * 100}%)`,
+                    }}
+                  >
+                    {profile.images.map((img, i) => (
+                      <div
+                        key={i}
+                        className="w-full h-full shrink-0 flex-none relative"
+                      >
+                        <img
+                          key={i}
+                          src={img.url}
+                          className="w-full h-full object-cover"
+                          alt={`Gallery image ${i + 1}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* LEFT ARROW (Only show if not on the first image) */}
+                  {current > 0 && (
+                    <button
+                      type="button"
+                      onClick={prev}
+                      className="absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-full transition-all duration-200 active:scale-90 opacity-0 group-hover:opacity-100 shadow-lg z-10"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 pr-0.5" />
+                    </button>
+                  )}
+
+                  {/* RIGHT ARROW (Only show if not on the last image) */}
+                  {current < profile.images.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={next}
+                      className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-full transition-all duration-200 active:scale-90 opacity-0 group-hover:opacity-100 shadow-lg z-10"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 pr-0.5" />
+                    </button>
+                  )}
+
+                  {/* DOTS */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/20 backdrop-blur-sm px-3 py-2 rounded-full">
+                    {profile.images.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          i === current
+                            ? "w-4 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                            : "w-1.5 bg-white/50"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
-                  No Photos
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-400">
+                  <span className="text-4xl mb-2">📸</span>
+                  <span className="font-medium text-sm">No Photos</span>
                 </div>
               )}
             </div>

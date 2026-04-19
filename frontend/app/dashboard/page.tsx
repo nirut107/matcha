@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Flame, Clock, Users } from "lucide-react";
 import Header from "@/components/Header";
 import ActionButtons from "@/components/ActionButtons";
@@ -64,7 +64,38 @@ export default function Dashboard() {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalLoading, setIsModalLoading] = useState(false);
+  // --- SWIPE LOGIC STATES ---
+  const [dragX, setDragX] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const isDragging = useRef(false);
+  const SWIPE_THRESHOLD = 100; // How far they have to drag to trigger a swipe
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+    isDragging.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const currentX = e.targetTouches[0].clientX;
+    const diff = currentX - touchStartX;
+
+    setDragX(diff);
+
+    if (Math.abs(diff) > 10) {
+      isDragging.current = true;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragX > SWIPE_THRESHOLD) {
+      handleAction("like");
+    } else if (dragX < -SWIPE_THRESHOLD) {
+      handleAction("pass");
+    }
+    setDragX(0);
+    setTouchStartX(null);
+  };
   // 1. Fetch Suggestions
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -170,25 +201,21 @@ export default function Dashboard() {
       <Header />
 
       {/* Changed justify-center to justify-start so it pushes from the top */}
-      <main className="flex-1 flex flex-col items-center justify-between p-2 sm:p-4 overflow-hidden">
-        {/* --- TOP ACTION BAR (50/50 Split & High Animation) --- */}
-        <div className="w-full max-w-md lg:max-w-lg flex items-center gap-2 mb-2 sm:mb-4 shrink-0">
-          {/* flex-1 makes Filters take exactly 50% of the available width */}
+      <main className="grow flex flex-col items-center justify-start p-4">
+        <div className="w-full max-w-md lg:max-w-lg flex items-center gap-2 sm:gap-3 mb-4">
           <div className="flex-1">
             <FilterBar onOpenFilters={() => setIsFilterModalOpen(true)} />
           </div>
-
-          {/* flex-1 makes Visits take the other 50%. Classes matched perfectly to FilterBar */}
           <button
             onClick={handleOpenVisitHistory}
-            className="group flex-1 flex items-center justify-center gap-2 bg-white w-full h-12 px-4 rounded-xl shadow-sm border border-gray-200 text-gray-700 font-bold transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 active:scale-95"
+            className="group flex-none sm:flex-1 w-12 sm:w-full  sm:h-10 h-10 flex items-center justify-center gap-2 bg-white px-0 sm:px-4 rounded-xl shadow-sm border border-gray-200 text-gray-700 font-bold transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 active:scale-95 shrink-0"
             aria-label="Visit History"
           >
             <Clock
               size={20}
               className="text-rose-500 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-12"
             />
-            <span>Visits</span>
+            <span className="hidden sm:inline">Visits</span>
           </button>
         </div>
         <FilterModal
@@ -214,19 +241,61 @@ export default function Dashboard() {
             </button>
           </div>
         ) : (
-          <div className="w-full max-w-md lg:max-w-lg flex flex-col flex-1 min-h-0">
+          <div className="w-full max-w-md lg:max-w-lg flex flex-col grow justify-center relative overflow-hidden pb-4">
+            {" "}
+            {/* 🔥 Swipeable & Clickable Container 🔥 */}
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={() => {
+                // Only open the profile if the user tapped (didn't drag)
+                if (!isDragging.current) {
+                  handleShowInfo(currentProfile);
+                }
+              }}
+              className={`relative w-full z-10 cursor-pointer ${
+                touchStartX !== null
+                  ? "transition-none"
+                  : "transition-transform duration-300 ease-out"
+              }`}
+              style={{
+                transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`,
+              }}
+            >
+              {/* Tinder-style stamps */}
+              {dragX > 20 && (
+                <div
+                  className="absolute top-10 left-6 z-50 border-[6px] border-green-500 text-green-500 font-black text-4xl px-4 py-2 rounded-xl transform -rotate-12 tracking-widest pointer-events-none"
+                  style={{ opacity: Math.min(dragX / SWIPE_THRESHOLD, 1) }}
+                >
+                  LIKE
+                </div>
+              )}
+              {dragX < -20 && (
+                <div
+                  className="absolute top-10 right-6 z-50 border-[6px] border-red-500 text-red-500 font-black text-4xl px-4 py-2 rounded-xl transform rotate-12 tracking-widest pointer-events-none"
+                  style={{
+                    opacity: Math.min(Math.abs(dragX) / SWIPE_THRESHOLD, 1),
+                  }}
+                >
+                  PASS
+                </div>
+              )}
 
               <ProfileCard
                 key={currentProfile.userId}
                 profile={currentProfile}
               />
-
-
+            </div>
+            {/* 🔥 Hidden on mobile, visible on desktop (sm:block) 🔥 */}
+            <div className="hidden sm:block mt-4 z-20">
               <ActionButtons
                 onLike={() => handleAction("like")}
                 onPass={() => handleAction("pass")}
                 onInfo={() => handleShowInfo(currentProfile)}
               />
+            </div>
           </div>
         )}
       </main>

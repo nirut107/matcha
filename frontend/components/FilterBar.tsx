@@ -10,7 +10,7 @@ export default function FilterBar({ onOpenFilters }: Props) {
   return (
     <button
       onClick={onOpenFilters}
-      className="group flex items-center justify-center gap-2 w-full h-12 px-4 bg-white rounded-xl shadow-sm border border-gray-200 text-gray-700 font-bold transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 active:scale-95"
+      className="group flex items-center justify-center gap-2 w-full h-10 px-4 bg-white rounded-xl shadow-sm border border-gray-200 text-gray-700 font-bold transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 active:scale-95"
     >
       <Filter
         size={20}

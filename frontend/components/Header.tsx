@@ -55,10 +55,13 @@ export default function Header() {
 
   const fetchCounts = async () => {
     try {
-
       const res = await fetchWithAuth("/notifications/unreadcount");
       const data = await res.json();
-      console.log("Fetching unread counts...", data.notificationsCount, data.messagesCount);
+      console.log(
+        "Fetching unread counts...",
+        data.notificationsCount,
+        data.messagesCount
+      );
       setUnreadNotifications(Number(data.notificationsCount) || 0);
       if (pathname == "/chat") {
         setUnreadMessages(0);
@@ -247,7 +250,6 @@ export default function Header() {
           <Badge count={unreadMessages} />
         </button>
 
-
         {/* NOTIFICATIONS WITH UNREAD COUNT */}
         <div className="relative" ref={notiRef}>
           <button
@@ -258,7 +260,7 @@ export default function Header() {
             }`}
             onClick={handleNotiClick}
           >
-            <Bell size={20} className="sm:w-6 sm:h-6"/>
+            <Bell size={20} className="sm:w-6 sm:h-6" />
             {unreadNotifications > 0 && <Badge count={unreadNotifications} />}
           </button>
 
@@ -327,7 +329,7 @@ export default function Header() {
                               {" ❤️"}
                             </>
                           )}
-                          
+
                           {noti.data.type == "UNLIKE" && (
                             <>
                               <span className="font-bold">
@@ -341,7 +343,7 @@ export default function Header() {
                               <span className="font-bold">
                                 {noti.data.senderName}
                               </span>{" "}
-                              <span> DATE_REQ💔</span>
+                              <span>invited you to meet up! ☕</span>
                             </>
                           )}
                           {noti.data.type == "DATE_ACCEPT" && (
@@ -349,7 +351,7 @@ export default function Header() {
                               <span className="font-bold">
                                 {noti.data.senderName}
                               </span>{" "}
-                              <span> DATE_ACCEPT💔</span>
+                              <span>is down to meet up! Let's go! ✨</span>
                             </>
                           )}
                           {noti.data.type == "DATE_REJECT" && (
@@ -357,7 +359,7 @@ export default function Header() {
                               <span className="font-bold">
                                 {noti.data.senderName}
                               </span>{" "}
-                              <span> DATE_REJECT💔</span>
+                              <span>declined your date request. 🥀</span>
                             </>
                           )}
                         </p>
@@ -404,52 +406,90 @@ export default function Header() {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
-    {!isFirefox && (
-      <button className={getIconClass("/map")} onClick={() => router.push("/map")}>
-        <Map size={22} />
-      </button>
-    )}
-    <button className={getIconClass("/calendar")} onClick={() => router.push("/calendar")}>
-      <Calendar size={22} />
-    </button>
-    <button className={getIconClass("/profile/setup")} onClick={() => router.push("/profile/setup")}>
-      <Settings size={22} />
-    </button>
-    <div className="h-6 w-[1px] bg-gray-200 mx-1"></div>
-    <button className="text-gray-400 hover:text-rose-600 p-1" onClick={() => setIsLogoutModalOpen(true)}>
-      <LogOut size={22} />
-    </button>
-  </div>
-
-  {/* MOBILE ONLY MENU: (Visible only on small screens) */}
-  <div className="md:hidden relative" ref={menuRef}>
-    <button
-      onClick={() => setIsMenuOpen(!isMenuOpen)}
-      className={`p-2 rounded-md ${isMenuOpen ? "text-rose-500 bg-rose-50" : "text-gray-400"}`}
-    >
-      <Settings size={20} />
-    </button>
-
-    {isMenuOpen && (
-      <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden py-2 z-[60] animate-in fade-in slide-in-from-top-2">
-         {!isFirefox && (
-          <button onClick={() => {router.push("/map"); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50">
-            <Map size={18} /> Explore Map
+          {!isFirefox && (
+            <button
+              className={getIconClass("/map")}
+              onClick={() => router.push("/map")}
+            >
+              <Map size={22} />
+            </button>
+          )}
+          <button
+            className={getIconClass("/calendar")}
+            onClick={() => router.push("/calendar")}
+          >
+            <Calendar size={22} />
           </button>
-        )}
-        <button onClick={() => {router.push("/calendar"); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50">
-          <Calendar size={18} /> Dates
-        </button>
-        <button onClick={() => {router.push("/profile/setup"); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50">
-          <Settings size={18} /> My Profile
-        </button>
-        <div className="h-[1px] bg-gray-100 my-1 mx-2" />
-        <button onClick={() => {setIsLogoutModalOpen(true); setIsMenuOpen(false);}} className="w-full px-4 py-3 flex items-center gap-3 text-sm text-rose-500 font-bold hover:bg-rose-50">
-          <LogOut size={18} /> Log Out
-        </button>
-      </div>
-    )}
-  </div>
+          <button
+            className={getIconClass("/profile/setup")}
+            onClick={() => router.push("/profile/setup")}
+          >
+            <Settings size={22} />
+          </button>
+          <div className="h-6 w-[1px] bg-gray-200 mx-1"></div>
+          <button
+            className="text-gray-400 hover:text-rose-600 p-1"
+            onClick={() => setIsLogoutModalOpen(true)}
+          >
+            <LogOut size={22} />
+          </button>
+        </div>
+
+        {/* MOBILE ONLY MENU: (Visible only on small screens) */}
+        <div className="md:hidden relative" ref={menuRef}>
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className={`p-2 rounded-md ${
+              isMenuOpen ? "text-rose-500 bg-rose-50" : "text-gray-400"
+            }`}
+          >
+            <Settings size={20} />
+          </button>
+
+          {isMenuOpen && (
+            <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden py-2 z-[60] animate-in fade-in slide-in-from-top-2">
+              {!isFirefox && (
+                <button
+                  onClick={() => {
+                    router.push("/map");
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50"
+                >
+                  <Map size={18} /> Explore Map
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  router.push("/calendar");
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50"
+              >
+                <Calendar size={18} /> Dates
+              </button>
+              <button
+                onClick={() => {
+                  router.push("/profile/setup");
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-3 flex items-center gap-3 text-sm text-gray-600 hover:bg-rose-50"
+              >
+                <Settings size={18} /> My Profile
+              </button>
+              <div className="h-[1px] bg-gray-100 my-1 mx-2" />
+              <button
+                onClick={() => {
+                  setIsLogoutModalOpen(true);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-3 flex items-center gap-3 text-sm text-rose-500 font-bold hover:bg-rose-50"
+              >
+                <LogOut size={18} /> Log Out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <MatchModal
         isOpen={isOpen}
