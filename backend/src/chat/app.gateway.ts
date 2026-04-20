@@ -235,13 +235,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       `INSERT INTO messages (match_id, sender_id, content, type) VALUES ($1, $2, $3, $4) RETURNING *`,
       [data.matchId, fromUserId, 'Calling...', 'call'],
     );
+    const image = await this.db.query(
+      `SELECT url FROM pictures WHERE user_id = $1 AND is_profile = true LIMIT 1`,
+      [fromUserId],
+    );
     this.sendToUser(data.toUserId, {
       type: 'INCOMING_CALL',
       from: fromUserId,
       offer: data.offer,
       matchId: data.matchId,
-      userName: socket.data.userName,
+      name: socket.data.userName,
       callType: data.callType,
+      image: image.rows[0]?.url || null,
     });
     //   console.log(☎️ Signaling: ${fromUserId} is calling ${data.toUserId});
   }

@@ -19,7 +19,7 @@ import toast from "react-hot-toast";
 import MatchModal from "./MatchModal";
 import ProfileModal, { UserProfile } from "./ProfileModal";
 import IncomingCallModal from "./IncomingCallModal";
-import { ro } from "date-fns/locale";
+import { ca, ro } from "date-fns/locale";
 import { callbackify } from "util";
 
 export default function Header() {
@@ -162,9 +162,11 @@ export default function Header() {
     socketRef.current = getSocket();
     const socket = socketRef.current;
 
-    const onStartOutgoingCall = (e: Event) => {
+    const onStartOutgoingCall = async (e: Event) => {
       const customEvent = e as CustomEvent;
       const { targetUserId, matchId, callType } = customEvent.detail;
+      const res = fetchWithAuth("/profile/data/" + targetUserId);
+      const data: UserProfile = await res.then((r) => r.json());
       console.log(
         "🟢 [LIFECYCLE] Custom Event Fired: START_OUTGOING_CALL to user:",
         targetUserId
@@ -173,18 +175,25 @@ export default function Header() {
         from: socketRef.current.id,
         matchId,
         callType,
+        name: data.first_name,
+        image: data.profileImage,
       });
       setIsRemoteConnected(false);
       handleStartCall(targetUserId, matchId, callType);
       setPeerId(targetUserId);
     };
     window.addEventListener("START_OUTGOING_CALL", onStartOutgoingCall);
-    socket.on("connect", () => {
+    // socket.on("connect", () => {
+    //   console.log("user connect");
+    //   fetchCounts();
+    // });
+    const handleConnect = () => {
       console.log("user connect");
       fetchCounts();
-    });
+    };
 
-    socket.on("notification", async (data: any) => {
+    // socket.on("notification", async (data: any) => {
+    const handleNotification = async (data: any) => {
       console.log(`🔌 [SOCKET] Received Head: ${data.type}`, data);
       switch (data.type) {
         case "NEW_MESSAGE":
@@ -315,17 +324,27 @@ export default function Header() {
           fetchCounts();
           console.log("🔌 [SOCKET] Unhandled Notification:", data);
       }
-    });
+    };
 
     const handleCallEndedRefresh = () => {
       setRefreshKey((prev) => prev + 1);
     };
 
+    window.addEventListener("START_OUTGOING_CALL", onStartOutgoingCall);
     window.addEventListener("callEndedRefreshChat", handleCallEndedRefresh);
+    socket.on("connect", handleConnect);
+    socket.on("notification", handleNotification);
 
     return () => {
-      socket.off("notification");
-      socket.off("connect");
+      // socket.off("notification");
+      // socket.off("connect");
+      window.removeEventListener("START_OUTGOING_CALL", onStartOutgoingCall);
+      window.removeEventListener(
+        "callEndedRefreshChat",
+        handleCallEndedRefresh
+      );
+      socket.off("connect", handleConnect);
+      socket.off("notification", handleNotification);
     };
   }, [pathname, refreshKey]);
 
@@ -432,7 +451,6 @@ export default function Header() {
         toUserId: incomingData.from,
         answer: answer,
       });
-      
     } catch (err) {
       console.error("❌ [ERROR] WebRTC Error:", err);
     }
@@ -614,11 +632,11 @@ export default function Header() {
               ) : (
                 <div className="flex flex-col items-center justify-center text-white">
                   <img
-                    src={callData.callType}
+                    src={callData.image}
                     className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
                   />
                   <h2 className="mt-4 text-xl font-semibold">
-                    {callData.callType}
+                    {callData.name}
                   </h2>
 
                   <p className="mt-2 text-gray-300">Video call</p>
@@ -640,12 +658,10 @@ export default function Header() {
           ) : (
             <div className="flex flex-col items-center justify-center text-white">
               <img
-                src={callData.callType}
+                src={callData.image}
                 className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
               />
-              <h2 className="mt-4 text-xl font-semibold">
-                {callData.callType}
-              </h2>
+              <h2 className="mt-4 text-xl font-semibold">{callData.name}</h2>
 
               {!isRemoteConnected ? (
                 <p className="mt-2 text-gray-300">Calling...</p>
