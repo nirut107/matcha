@@ -14,12 +14,11 @@ import { useState, useEffect, useRef } from "react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import ConfirmModal from "./ConfirmModal";
 import { getSocket } from "@/lib/socket";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, set } from "date-fns";
 import toast from "react-hot-toast";
 import MatchModal from "./MatchModal";
 import ProfileModal, { UserProfile } from "./ProfileModal";
 import IncomingCallModal from "./IncomingCallModal";
-import { duplexPair } from "stream";
 
 export default function Header() {
   const router = useRouter();
@@ -45,6 +44,7 @@ export default function Header() {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
 
   const [match, setMatch] = useState<{
     userName: string;
@@ -82,6 +82,22 @@ export default function Header() {
       console.log("📺 [VIDEO DOM] 👉 Local video attached successfully!");
     }
   }, [localStream]);
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isCallActive) {
+      interval = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setCallDuration(0);
+    }
+
+    // Cleanup the interval when the component unmounts or call ends
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isCallActive]);
 
   useEffect(() => {
     console.log(
@@ -148,6 +164,11 @@ export default function Header() {
         "🟢 [LIFECYCLE] Custom Event Fired: START_OUTGOING_CALL to user:",
         targetUserId
       );
+      setCallData({
+        from: socketRef.current.id, 
+        matchId,
+        callType,
+      });
       handleStartCall(targetUserId, matchId, callType);
       setPeerId(targetUserId);
     };
@@ -580,7 +601,7 @@ export default function Header() {
                 socketRef.current.emit("endCall", {
                   toUserId: peerId,
                   matchId: callData.matchId || undefined,
-                  duration: 0,
+                  duration: callDuration,
                 });
                 handleEndCall();
               }}
