@@ -69,7 +69,6 @@ export default function ChatPage() {
   const messagesCacheRef = useRef<Record<number, any[]>>({});
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const searchParams = useSearchParams();
-  const reloadKey = searchParams.get("reload");
   const [refreshKey, setRefreshKey] = useState(0);
 
   const scrollToBottom = () => {

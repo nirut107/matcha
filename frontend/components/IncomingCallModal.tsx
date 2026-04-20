@@ -6,9 +6,10 @@ interface IncomingCallProps {
   callerName: string;
   onAccept: () => void;
   onDecline: () => void;
+  callType: "audio" | "video";
 }
 
-export default function IncomingCallModal({ isOpen, callerName, onAccept, onDecline }: IncomingCallProps) {
+export default function IncomingCallModal({ isOpen, callerName, onAccept, onDecline, callType }: IncomingCallProps) {
   if (!isOpen) return null;
 
   return (
@@ -19,7 +20,7 @@ export default function IncomingCallModal({ isOpen, callerName, onAccept, onDecl
         </div>
         
         <h2 className="text-xl font-bold mb-1">{callerName}</h2>
-        <p className="text-gray-500 mb-6">Incoming Video Call...</p>
+        <p className="text-gray-500 mb-6">Incoming {callType} Call...</p>
 
         <div className="flex gap-4 justify-center">
           <button 

@@ -240,7 +240,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       from: fromUserId,
       offer: data.offer,
       matchId: data.matchId,
-      senderName: socket.data.userName,
+      userName: socket.data.userName,
       callType: data.callType,
     });
     //   console.log(☎️ Signaling: ${fromUserId} is calling ${data.toUserId});

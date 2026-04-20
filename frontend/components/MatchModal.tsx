@@ -84,7 +84,7 @@ export default function MatchModal({
               if (pathname !== "/chat") {
                 router.push("/chat");
               } else {
-                router.push(`/chat?reload=${Date.now()}`);
+                window.dispatchEvent(new Event("callEndedRefreshChat"));
               }
             }}
             className="w-full bg-gradient-to-r from-rose-500 to-orange-400 text-white py-4 rounded-2xl font-black tracking-widest uppercase text-sm shadow-lg shadow-rose-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"

@@ -20,6 +20,7 @@ import MatchModal from "./MatchModal";
 import ProfileModal, { UserProfile } from "./ProfileModal";
 import IncomingCallModal from "./IncomingCallModal";
 import { ro } from "date-fns/locale";
+import { callbackify } from "util";
 
 export default function Header() {
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function Header() {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [isRemoteConnected, setIsRemoteConnected] = useState(false);
 
   const [match, setMatch] = useState<{
     userName: string;
@@ -159,6 +161,7 @@ export default function Header() {
   useEffect(() => {
     socketRef.current = getSocket();
     const socket = socketRef.current;
+
     const onStartOutgoingCall = (e: Event) => {
       const customEvent = e as CustomEvent;
       const { targetUserId, matchId, callType } = customEvent.detail;
@@ -171,6 +174,7 @@ export default function Header() {
         matchId,
         callType,
       });
+      setIsRemoteConnected(false);
       handleStartCall(targetUserId, matchId, callType);
       setPeerId(targetUserId);
     };
@@ -253,6 +257,7 @@ export default function Header() {
           fetchCounts();
           break;
         case "CALL_ANSWERED":
+          setIsRemoteConnected(true);
           console.log(
             "🌐 [WEBRTC] Processing CALL_ANSWERED. Signaling State:",
             pcRef.current?.signalingState
@@ -273,6 +278,7 @@ export default function Header() {
             );
             iceQueue.current = [];
           }
+
           break;
         case "INCOMING_CALL":
           console.log("🔌 [SOCKET] INCOMING_CALL from:", data.from);
@@ -280,6 +286,7 @@ export default function Header() {
           setCallData(data);
           setPeerId(data.from);
           setIsCallModalOpen(true);
+          setIsRemoteConnected(false);
           break;
         case "ICE_CANDIDATE":
           if (pcRef.current && pcRef.current.remoteDescription) {
@@ -339,6 +346,97 @@ export default function Header() {
       router.refresh();
     }
   };
+  const handleStartWebRTC = async (incomingData: any) => {
+    try {
+      setIsRemoteConnected(true);
+      console.log("🎥 [MEDIA] Requesting user media (Receiver)...");
+      const isVideo = incomingData.callType === "video";
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: isVideo,
+        audio: true,
+      });
+      console.log(
+        "🎥 [MEDIA] Got local stream! Tracks:",
+        stream.getTracks().length
+      );
+
+      setLocalStream(stream);
+      setIsCallActive(true);
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      });
+      pcRef.current = pc;
+
+      pc.ontrack = (event) => {
+        console.log(
+          "🎥 [MEDIA] REMOTE STREAM RECEIVED (Receiver)! Tracks:",
+          event.streams[0].getTracks().length
+        );
+        setRemoteStream(event.streams[0]);
+      };
+
+      pc.onconnectionstatechange = () =>
+        console.log(
+          "🌐 [WEBRTC] Peer Connection State (Receiver):",
+          pc.connectionState
+        );
+      pc.oniceconnectionstatechange = () =>
+        console.log(
+          "🌐 [WEBRTC] ICE Connection State (Receiver):",
+          pc.iceConnectionState
+        );
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log("🔌 [SOCKET] Emitting ICE Candidate (Receiver)");
+          socketRef.current.emit("iceCandidate", {
+            toUserId: incomingData.from,
+            candidate: event.candidate,
+          });
+        }
+      };
+
+      stream.getTracks().forEach((track) => {
+        console.log(
+          "🌐 [WEBRTC] Adding local track to peer connection:",
+          track.kind
+        );
+        pc.addTrack(track, stream);
+      });
+
+      console.log("🌐 [WEBRTC] Setting Remote Description (Offer)");
+      await pc.setRemoteDescription(
+        new RTCSessionDescription(incomingData.offer)
+      );
+
+      console.log(
+        "🌐 [WEBRTC] Processing",
+        iceQueue.current.length,
+        "queued ICE candidates."
+      );
+      iceQueue.current.forEach((c) =>
+        pcRef.current
+          ?.addIceCandidate(c)
+          .catch((e) => console.error("🌐 [WEBRTC] ICE Add Error:", e))
+      );
+      iceQueue.current = [];
+
+      console.log("🌐 [WEBRTC] Creating Answer...");
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      console.log("🌐 [WEBRTC] Local Description set (Answer)");
+
+      console.log("🔌 [SOCKET] Emitting answerCall to:", incomingData.from);
+      socketRef.current.emit("answerCall", {
+        toUserId: incomingData.from,
+        answer: answer,
+      });
+      
+    } catch (err) {
+      console.error("❌ [ERROR] WebRTC Error:", err);
+    }
+  };
 
   const handleStartCall = async (
     targetUserId: number,
@@ -346,7 +444,7 @@ export default function Header() {
     callType: "audio" | "video"
   ) => {
     try {
-      console.log("🎥 [MEDIA] Requesting user media (Caller)...");
+      console.log("🎥 [MEDIA] Requesting user media (Caller)...", callType);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: callType === "video",
         audio: true,
@@ -478,107 +576,24 @@ export default function Header() {
     );
   };
 
-  const handleStartWebRTC = async (incomingData: any) => {
-    try {
-      console.log("🎥 [MEDIA] Requesting user media (Receiver)...");
-      const isVideo = incomingData.callType === "video";
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: isVideo,
-        audio: true,
-      });
-      console.log(
-        "🎥 [MEDIA] Got local stream! Tracks:",
-        stream.getTracks().length
-      );
-
-      setLocalStream(stream);
-      setIsCallActive(true);
-
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
-      pcRef.current = pc;
-
-      pc.ontrack = (event) => {
-        console.log(
-          "🎥 [MEDIA] REMOTE STREAM RECEIVED (Receiver)! Tracks:",
-          event.streams[0].getTracks().length
-        );
-        setRemoteStream(event.streams[0]);
-      };
-
-      pc.onconnectionstatechange = () =>
-        console.log(
-          "🌐 [WEBRTC] Peer Connection State (Receiver):",
-          pc.connectionState
-        );
-      pc.oniceconnectionstatechange = () =>
-        console.log(
-          "🌐 [WEBRTC] ICE Connection State (Receiver):",
-          pc.iceConnectionState
-        );
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          console.log("🔌 [SOCKET] Emitting ICE Candidate (Receiver)");
-          socketRef.current.emit("iceCandidate", {
-            toUserId: incomingData.from,
-            candidate: event.candidate,
-          });
-        }
-      };
-
-      stream.getTracks().forEach((track) => {
-        console.log(
-          "🌐 [WEBRTC] Adding local track to peer connection:",
-          track.kind
-        );
-        pc.addTrack(track, stream);
-      });
-
-      console.log("🌐 [WEBRTC] Setting Remote Description (Offer)");
-      await pc.setRemoteDescription(
-        new RTCSessionDescription(incomingData.offer)
-      );
-
-      console.log(
-        "🌐 [WEBRTC] Processing",
-        iceQueue.current.length,
-        "queued ICE candidates."
-      );
-      iceQueue.current.forEach((c) =>
-        pcRef.current
-          ?.addIceCandidate(c)
-          .catch((e) => console.error("🌐 [WEBRTC] ICE Add Error:", e))
-      );
-      iceQueue.current = [];
-
-      console.log("🌐 [WEBRTC] Creating Answer...");
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      console.log("🌐 [WEBRTC] Local Description set (Answer)");
-
-      console.log("🔌 [SOCKET] Emitting answerCall to:", incomingData.from);
-      socketRef.current.emit("answerCall", {
-        toUserId: incomingData.from,
-        answer: answer,
-      });
-    } catch (err) {
-      console.error("❌ [ERROR] WebRTC Error:", err);
-    }
-  };
-
   return (
     <>
       <IncomingCallModal
         isOpen={isCallModalOpen}
         callerName={callData?.senderName || "Unknown Match"}
+        callType={callData?.callType || "video"}
         onDecline={() => {
           setIsCallModalOpen(false);
           socketRef.current.emit("rejectCall", {
             toUserId: callData.from,
             matchId: callData.matchId,
           });
+          if (pathname !== "/chat") {
+            fetchCounts();
+          } else {
+            window.dispatchEvent(new Event("callEndedRefreshChat"));
+            router.refresh();
+          }
         }}
         onAccept={() => {
           setIsCallModalOpen(false);
@@ -587,22 +602,58 @@ export default function Header() {
       />
       {isCallActive && (
         <div className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center">
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
+          {callData.callType === "video" ? (
+            <>
+              {isRemoteConnected ? (
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-white">
+                  <img
+                    src={callData.callType}
+                    className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
+                  />
+                  <h2 className="mt-4 text-xl font-semibold">
+                    {callData.callType}
+                  </h2>
 
-          <div className="absolute bottom-24 right-6 w-32 h-48 bg-gray-800 rounded-xl overflow-hidden border-2 border-white shadow-lg">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover -scale-x-100"
-            />
-          </div>
+                  <p className="mt-2 text-gray-300">Video call</p>
+                </div>
+              )}
+
+              {localVideoRef && (
+                <div className="absolute bottom-24 right-6 w-32 h-48 bg-gray-800 rounded-xl overflow-hidden border-2 border-white shadow-lg">
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover -scale-x-100"
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-white">
+              <img
+                src={callData.callType}
+                className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
+              />
+              <h2 className="mt-4 text-xl font-semibold">
+                {callData.callType}
+              </h2>
+
+              {!isRemoteConnected ? (
+                <p className="mt-2 text-gray-300">Calling...</p>
+              ) : callData.callType === "audio" ? (
+                <p className="mt-2 text-gray-300">Audio call</p>
+              ) : null}
+            </div>
+          )}
 
           <div className="absolute bottom-8 flex gap-6">
             <button
