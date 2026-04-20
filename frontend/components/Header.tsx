@@ -17,6 +17,7 @@ import { getSocket } from "@/lib/socket";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
 import MatchModal from "./MatchModal";
+import ProfileModal, { UserProfile } from "./ProfileModal";
 
 export default function Header() {
   const router = useRouter();
@@ -40,6 +41,12 @@ export default function Header() {
   const socketRef = useRef<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false); // New state for mobile menu
   const menuRef = useRef<HTMLDivElement>(null);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(
+    null
+  );
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -203,6 +210,26 @@ export default function Header() {
     }
   };
 
+  const handleViewProfile = async (userId: number) => {
+    setIsNotiOpen(false); 
+    setIsProfileLoading(true);
+    setIsProfileModalOpen(true);
+
+    try {
+      const res = await fetchWithAuth(`/profile/data/${userId}`);
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      const data = await res.json();
+      console.log("Header Profile Fetch Result:", data);
+      setSelectedProfile(data);
+
+    } catch (err) {
+      console.error("Failed to fetch profile in Header:", err);
+      toast.error("Could not load profile information");
+      setIsProfileModalOpen(false);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
   const getIconClass = (path: string) =>
     `transition-colors cursor-pointer p-1 rounded-md ${
       pathname === path
@@ -292,8 +319,9 @@ export default function Header() {
                     <div
                       key={noti.id}
                       onClick={() => {
+                        handleViewProfile(noti.data.senderId);
                         // Optional: Navigate to user profile or specific action
-                        setIsNotiOpen(false);
+                        // setIsNotiOpen(false);
                       }}
                       className="p-4 flex gap-4 hover:bg-rose-50/30 transition-colors border-b border-gray-50 last:border-0 cursor-pointer group"
                     >
@@ -491,6 +519,14 @@ export default function Header() {
           )}
         </div>
       </div>
+      {isProfileModalOpen && (
+        <ProfileModal
+          showModal={isProfileModalOpen}
+          setShowModal={setIsProfileModalOpen}
+          isModalLoading={isProfileLoading}
+          profile={selectedProfile as UserProfile}
+        />
+      )}
       <MatchModal
         isOpen={isOpen}
         match={match}
