@@ -10,7 +10,7 @@ import {
   Search,
   Circle,
   ArrowLeft,
-  Ban, // <-- Imported Ban icon
+  Ban,
   HeartOff,
 } from "lucide-react";
 import Link from "next/link";

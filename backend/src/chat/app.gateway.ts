@@ -213,7 +213,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-
   @SubscribeMessage('callUser') async handleCall(
     @ConnectedSocket() socket: Socket,
     @MessageBody()
@@ -221,7 +220,16 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const fromUserId = socket.data.userId;
     const isMatch = await this.isUserInMatch(fromUserId, data.matchId);
-    console.log('🚀 callUser from', fromUserId, 'to', data.toUserId, 'matchId', data.matchId, 'isMatch:', isMatch);
+    console.log(
+      '🚀 callUser from',
+      fromUserId,
+      'to',
+      data.toUserId,
+      'matchId',
+      data.matchId,
+      'isMatch:',
+      isMatch,
+    );
     if (!isMatch) return;
     await this.db.query(
       `INSERT INTO messages (match_id, sender_id, content, type) VALUES ($1, $2, $3, $4) RETURNING *`,
@@ -252,14 +260,19 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
   @SubscribeMessage('rejectCall')
-  handleRejectCall(
-    @MessageBody() data: { toUserId: number },
+  async handleRejectCall(
+    @MessageBody() data: { toUserId: number; matchId: number },
     @ConnectedSocket() socket: Socket,
   ) {
     console.log('rejectCall');
     const targetId = Number(data.toUserId);
     const rejectorId = socket.data.userId;
-
+    if (data.matchId) {
+      await this.db.query(
+        `INSERT INTO messages (match_id, sender_id, content, type) VALUES ($1, $2, $3, $4)`,
+        [data.matchId, rejectorId, 'Call declined', 'call'],
+      );
+    }
     this.sendToUser(targetId, {
       type: 'CALL_REJECTED',
       from: rejectorId,
@@ -269,11 +282,29 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('endCall')
-  endCall(
-    @MessageBody() data: { toUserId: number },
+  async endCall(
+    @MessageBody()
+    data: { toUserId: number; matchId?: number; duration?: number },
     @ConnectedSocket() socket: Socket,
   ) {
     const fromUserId = socket.data.userId;
+
+    let callMessage = 'Call ended';
+    if (data.duration !== undefined && data.duration > 0) {
+      const minutes = Math.floor(data.duration / 60);
+      const seconds = Math.floor(data.duration % 60);
+      const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      callMessage = `Call ended (${timeString})`;
+    } else {
+      callMessage = 'Call ended (0:00)';
+    }
+
+    if (data.matchId) {
+      await this.db.query(
+        `INSERT INTO messages (match_id, sender_id, content, type) VALUES ($1, $2, $3, $4)`,
+        [data.matchId, fromUserId, callMessage, 'call'],
+      );
+    }
 
     this.sendToUser(data.toUserId, {
       type: 'CALL_ENDED',

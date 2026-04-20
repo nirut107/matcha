@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import MatchModal from "./MatchModal";
 import ProfileModal, { UserProfile } from "./ProfileModal";
 import IncomingCallModal from "./IncomingCallModal";
+import { duplexPair } from "stream";
 
 export default function Header() {
   const router = useRouter();
@@ -44,6 +45,7 @@ export default function Header() {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
+
   const [match, setMatch] = useState<{
     userName: string;
     userImage?: string;
@@ -251,6 +253,7 @@ export default function Header() {
           break;
         case "INCOMING_CALL":
           console.log("🔌 [SOCKET] INCOMING_CALL from:", data.from);
+          console.log("🔌 [SOCKET] Call type:", data);
           setCallData(data);
           setPeerId(data.from);
           setIsCallModalOpen(true);
@@ -300,6 +303,11 @@ export default function Header() {
     setPeerId(null);
     setIsCallActive(false);
     setIsCallModalOpen(false);
+    if (pathname !== "/chat") {
+      fetchCounts();
+    } else {
+      router.push(`/chat?reload=${Date.now()}`);
+    }
   };
 
   const handleStartCall = async (
@@ -406,7 +414,7 @@ export default function Header() {
   };
 
   const handleViewProfile = async (userId: number) => {
-    setIsNotiOpen(false); 
+    setIsNotiOpen(false);
     setIsProfileLoading(true);
     setIsProfileModalOpen(true);
 
@@ -416,7 +424,6 @@ export default function Header() {
       const data = await res.json();
       console.log("Header Profile Fetch Result:", data);
       setSelectedProfile(data);
-
     } catch (err) {
       console.error("Failed to fetch profile in Header:", err);
       toast.error("Could not load profile information");
@@ -538,7 +545,10 @@ export default function Header() {
         callerName={callData?.senderName || "Unknown Match"}
         onDecline={() => {
           setIsCallModalOpen(false);
-          socketRef.current.emit("rejectCall", { toUserId: callData.from });
+          socketRef.current.emit("rejectCall", {
+            toUserId: callData.from,
+            matchId: callData.matchId,
+          });
         }}
         onAccept={() => {
           setIsCallModalOpen(false);
@@ -567,7 +577,11 @@ export default function Header() {
           <div className="absolute bottom-8 flex gap-6">
             <button
               onClick={() => {
-                socketRef.current.emit("endCall", { toUserId: peerId });
+                socketRef.current.emit("endCall", {
+                  toUserId: peerId,
+                  matchId: callData.matchId || undefined,
+                  duration: 0,
+                });
                 handleEndCall();
               }}
               className="bg-red-500 px-6 py-3 rounded-full text-white font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-500/30"
@@ -650,7 +664,7 @@ export default function Header() {
                         key={noti.id}
                         onClick={() => {
                           handleViewProfile(noti.data.senderId);
-                        // Optional: Navigate to user profile or specific action
+                          // Optional: Navigate to user profile or specific action
                           // setIsNotiOpen(false);
                         }}
                         className="p-4 flex gap-4 hover:bg-rose-50/30 transition-colors border-b border-gray-50 last:border-0 cursor-pointer group"
@@ -850,14 +864,14 @@ export default function Header() {
           </div>
         </div>
         {isProfileModalOpen && (
-        <ProfileModal
-          showModal={isProfileModalOpen}
-          setShowModal={setIsProfileModalOpen}
-          isModalLoading={isProfileLoading}
-          profile={selectedProfile as UserProfile}
-        />
-      )}
-      <MatchModal
+          <ProfileModal
+            showModal={isProfileModalOpen}
+            setShowModal={setIsProfileModalOpen}
+            isModalLoading={isProfileLoading}
+            profile={selectedProfile as UserProfile}
+          />
+        )}
+        <MatchModal
           isOpen={isOpen}
           match={match}
           onClose={() => setIsOpen(false)}
