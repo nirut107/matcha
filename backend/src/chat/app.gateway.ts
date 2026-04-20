@@ -47,6 +47,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const userId = payload.sub;
       socket.data.userId = userId;
+      const profileRes = await this.db.query(
+        `SELECT first_name FROM profiles WHERE user_id = $1`,
+        [userId],
+      );
+      socket.data.userName = profileRes.rows[0]?.first_name || 'Someone';
 
       const isFirstConnection = this.registry.add(userId, socket.id);
 
@@ -198,21 +203,39 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ========================
   // 📞 CALLS
   // ========================
-  @SubscribeMessage('callUser')
-  async callUser(
+  @SubscribeMessage('iceCandidate')
+  async handleIceCandidate(
+    @MessageBody() data: { toUserId: number; candidate: any },
+  ) {
+    this.sendToUser(data.toUserId, {
+      type: 'ICE_CANDIDATE',
+      candidate: data.candidate,
+    });
+  }
+
+
+  @SubscribeMessage('callUser') async handleCall(
     @ConnectedSocket() socket: Socket,
     @MessageBody()
     data: { toUserId: number; offer: any; matchId: number; callType: string },
   ) {
     const fromUserId = socket.data.userId;
-
+    const isMatch = await this.isUserInMatch(fromUserId, data.matchId);
+    console.log('🚀 callUser from', fromUserId, 'to', data.toUserId, 'matchId', data.matchId, 'isMatch:', isMatch);
+    if (!isMatch) return;
+    await this.db.query(
+      `INSERT INTO messages (match_id, sender_id, content, type) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [data.matchId, fromUserId, 'Calling...', 'call'],
+    );
     this.sendToUser(data.toUserId, {
       type: 'INCOMING_CALL',
       from: fromUserId,
       offer: data.offer,
       matchId: data.matchId,
+      senderName: socket.data.userName,
       callType: data.callType,
     });
+    //   console.log(☎️ Signaling: ${fromUserId} is calling ${data.toUserId});
   }
 
   @SubscribeMessage('answerCall')
@@ -227,6 +250,22 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       from: fromUserId,
       answer: data.answer,
     });
+  }
+  @SubscribeMessage('rejectCall')
+  handleRejectCall(
+    @MessageBody() data: { toUserId: number },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    console.log('rejectCall');
+    const targetId = Number(data.toUserId);
+    const rejectorId = socket.data.userId;
+
+    this.sendToUser(targetId, {
+      type: 'CALL_REJECTED',
+      from: rejectorId,
+      message: 'User declined the call',
+    });
+    console.log(`Call rejected by ${rejectorId} for caller ${targetId}`);
   }
 
   @SubscribeMessage('endCall')
