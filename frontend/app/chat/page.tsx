@@ -24,6 +24,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { UserRespone, MatchResponse } from "@/lib/interface";
 import { formatDistanceToNow } from "date-fns";
 import { useSearchParams } from "next/navigation";
+import { Socket } from "socket.io-client";
 
 function formatTime(dateString: string, type: "chat" | "list" = "chat") {
   let date = new Date(dateString);
@@ -69,6 +70,7 @@ export default function ChatPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const searchParams = useSearchParams();
   const reloadKey = searchParams.get("reload");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,7 +78,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatHistory]);
+  }, [chatHistory, refreshKey]);
 
   useEffect(() => {
     const handleLeave = () => {
@@ -94,11 +96,10 @@ export default function ChatPage() {
 
   useEffect(() => {
     activeMatchRef.current = activeChat?.id ?? null;
-  }, [activeChat]);
+  }, [activeChat, refreshKey]);
 
-  useEffect(() => {
-    const s = getSocket();
-    setSocket(s);
+  async function loadChatData(s: Socket = getSocket()) {
+    console.log("Loading chat data...");
     fetchWithAuth("/user/me")
       .then((res) => res.json())
       .then((data: UserRespone) => {
@@ -117,41 +118,24 @@ export default function ChatPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.length > 0) {
+          if (data[0]?.id) delete messagesCacheRef.current[data[0].id];
           setMatches(data);
           setActiveChat(data[0]);
           handleSelectChat(data[0]);
+
           s.emit("joinMatch", { matchId: Number(data[0]?.id) });
         }
       })
       .catch(console.error);
+  }
 
+  useEffect(() => {
+    const s = getSocket();
+    setSocket(s);
+    loadChatData(s);
     s.on("connect", () => {
       console.log("userconect");
-      fetchWithAuth("/user/me")
-        .then((res) => res.json())
-        .then((data: UserRespone) => {
-          if (data) {
-            if (!data.hasProfile) {
-              router.push("profile/setup");
-            }
-            console.log(data.id, "this should be my Id");
-            setUserId(data.id);
-            userIdRef.current = data.id;
-          } else {
-          }
-        });
-
-      fetchWithAuth("/matches")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.length > 0) {
-            setMatches(data);
-            // setActiveChat(data[0]);
-            // handleSelectChat(data[0]);
-            s.emit("joinMatch", { matchId: Number(data[0]?.id) });
-          }
-        })
-        .catch(console.error);
+      loadChatData(s);
     });
     s.on("notification", (data: any) => {
       if (data.type !== "NEW_MESSAGE") return;
@@ -265,6 +249,12 @@ export default function ChatPage() {
     };
 
     run();
+    const handleCallEndedRefresh = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    window.addEventListener("callEndedRefreshChat", handleCallEndedRefresh);
+
     return () => {
       if (activeMatchRef.current) {
         s.emit("leaveMatch", { matchId: activeMatchRef.current });
@@ -272,8 +262,12 @@ export default function ChatPage() {
       s.off("connect");
       s.off("notification");
       s.off("newMessage");
+      window.removeEventListener(
+        "callEndedRefreshChat",
+        handleCallEndedRefresh
+      );
     };
-  }, [reloadKey]);
+  }, [refreshKey]);
 
   const handleSelectChat = async (match: MatchResponse) => {
     if (socket && activeChat?.id) {

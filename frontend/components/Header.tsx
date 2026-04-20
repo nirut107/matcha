@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import MatchModal from "./MatchModal";
 import ProfileModal, { UserProfile } from "./ProfileModal";
 import IncomingCallModal from "./IncomingCallModal";
+import { ro } from "date-fns/locale";
 
 export default function Header() {
   const router = useRouter();
@@ -59,6 +60,7 @@ export default function Header() {
   );
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -165,7 +167,7 @@ export default function Header() {
         targetUserId
       );
       setCallData({
-        from: socketRef.current.id, 
+        from: socketRef.current.id,
         matchId,
         callType,
       });
@@ -308,11 +310,17 @@ export default function Header() {
       }
     });
 
+    const handleCallEndedRefresh = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    window.addEventListener("callEndedRefreshChat", handleCallEndedRefresh);
+
     return () => {
       socket.off("notification");
       socket.off("connect");
     };
-  }, [pathname]);
+  }, [pathname, refreshKey]);
 
   const handleEndCall = () => {
     console.log("🔴 [LIFECYCLE] handleEndCall Triggered");
@@ -327,7 +335,8 @@ export default function Header() {
     if (pathname !== "/chat") {
       fetchCounts();
     } else {
-      router.push(`/chat?reload=${Date.now()}`);
+      window.dispatchEvent(new Event("callEndedRefreshChat"));
+      router.refresh();
     }
   };
 
